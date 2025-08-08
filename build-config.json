@@ -1,0 +1,8 @@
+{
+  "outputDir": "./",
+  "filesToCopy": [
+    "main.js",
+    "manifest.json", 
+    "styles.css"
+  ]
+}

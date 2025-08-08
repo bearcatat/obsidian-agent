@@ -1,94 +1,69 @@
-# Obsidian Sample Plugin
+# Obsidian Agent
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+> **UI代码部分源于 [@logancyang/obsidian-copilot](https://github.com/logancyang/obsidian-copilot) 项目**
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+一个强大的 Obsidian 插件，集成了 AI 助手功能，帮助您更高效地管理和使用您的笔记。
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+## ✨ 功能特性
 
-## First time developing plugins?
+### 🤖 AI 聊天助手
+- **智能对话**: 基于配置的 AI 模型进行自然语言对话
+- **上下文感知**: 自动获取当前笔记和上下文笔记内容
+- **流式响应**: 实时显示 AI 回复，提供更好的交互体验
+- **记忆管理**: 智能管理对话历史，保持上下文连贯性
 
-Quick starting guide for new plugin devs:
+### 🛠️ 内置工具集
+- **时间工具**: 获取当前时间信息，支持时间范围查询
+- **笔记读取**: 
+  - 通过路径读取笔记内容
+  - 通过链接读取笔记内容（支持 `[[笔记名称]]` 格式）
+- **AI 搜索**: 集成[博查 AI 搜索](https://open.bochaai.com/)，获取网页、多模态参考源等信息
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+### ⚙️ 灵活的模型配置
+- **多模型支持**: 支持 DeepSeek 模型, 后续会支持更多模型
+- **自定义配置**: 可配置 API 密钥、基础 URL、温度、最大令牌数等参数
+- **模型管理**: 支持添加、编辑、删除多个模型配置
 
-## Releasing new releases
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
 
-## Adding your plugin to the community plugin list
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+## 📖 使用指南
 
-## How to use
+### 启动 AI 助手
+- 点击左侧边栏的 Obsidian Agent 图标
+- 或使用命令面板搜索 "Obsidian Agent"
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+### 与 AI 对话
+1. 在聊天界面输入您的问题
+2. AI 会自动分析当前笔记和上下文
+3. 根据需要调用相关工具获取信息
+4. 获得智能回复和建议
 
-## Manually installing the plugin
+### 工具使用
+AI 助手会根据您的需求自动调用相关工具：
+- **时间查询**: "现在几点了？"、"这个月是几月？"
+- **笔记分析**: "帮我查看这篇笔记有没有疏漏"、"分析笔记关系"
+- **信息搜索**: "查找关于最新AI技术的信息"
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
 
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
 
-## Funding URL
+## 📄 许可证
 
-You can include funding URLs where people who use your plugin can financially support it.
+本项目采用 [AGPL-3.0](LICENSE) 许可证。
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+## 🙏 致谢
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
-```
+- UI 代码部分源于 [@logancyang/obsidian-copilot](https://github.com/logancyang/obsidian-copilot) 项目
+  - 感谢开源社区提供的优秀UI组件，让开发者能够专注于核心功能开发
 
-If you have multiple URLs, you can also do:
+## 📞 支持
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+如果您遇到问题或有建议，请：
+1. 查看 [Issues](https://github.com/your-username/obsidian-agent/issues) 页面
+2. 创建新的 Issue 描述问题
+3. 提供详细的错误信息和复现步骤
 
-## API Documentation
+---
 
-See https://github.com/obsidianmd/obsidian-api
+**让 AI 助手成为您笔记管理的最佳伙伴！** 🚀

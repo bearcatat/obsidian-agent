@@ -1,6 +1,8 @@
 import esbuild from "esbuild";
 import process from "process";
 import builtins from "builtin-modules";
+import fs from "fs";
+import path from "path";
 
 const banner =
 `/*
@@ -11,11 +13,97 @@ if you want to view the source, please visit the github repository of this plugi
 
 const prod = (process.argv[2] === "production");
 
+// 读取构建配置
+function loadBuildConfig() {
+	let buildConfig = {
+		outputDir: "./dist",
+		filesToCopy: ["main.js", "manifest.json", "styles.css"]
+	}
+	try {
+		const configPath = path.join(process.cwd(), "build-config.json");
+		if (fs.existsSync(configPath)) {
+			const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+			buildConfig.outputDir = config.outputDir || "./dist";
+			buildConfig.filesToCopy = config.filesToCopy || ["main.js", "manifest.json", "styles.css"];
+		}
+	} catch (error) {
+		console.warn("Warning: Could not load build-config.json, using defaults");
+	}
+	
+	return buildConfig;
+}
+
+// 复制文件的函数
+function watchAndCopyFiles() {
+	const config = loadBuildConfig();
+	const outputDir = config.outputDir;
+	
+	// 确保目标目录存在
+	if (!fs.existsSync(outputDir)) {
+		fs.mkdirSync(outputDir, { recursive: true });
+		console.log(`Created output directory: ${outputDir}`);
+	}
+	
+	// 复制指定文件
+	config.filesToCopy.forEach(fileName => {
+		const sourcePath = path.join(process.cwd(), fileName);
+		const targetPath = path.isAbsolute(outputDir) 
+			? path.join(outputDir, fileName)
+			: path.join(process.cwd(), outputDir, fileName);
+		
+		if (!fs.existsSync(sourcePath)) {
+			console.warn(`Warning: Source file ${fileName} not found`);
+			return;
+		}
+        
+        // 每个文件独立的防抖定时器
+        let copyTimer = null;
+        
+        fs.watch(sourcePath, (eventType) => {
+            if (eventType === 'change') {
+                // 清除之前的定时器
+                if (copyTimer) {
+                    clearTimeout(copyTimer);
+                }
+                
+                // 设置新的定时器，500ms后执行复制
+                copyTimer = setTimeout(() => {
+                    console.log(`File ${fileName} changed, copying...`);
+                    fs.copyFileSync(sourcePath, targetPath);
+                    console.log(`Copied ${fileName} to ${outputDir}/`);
+                    copyTimer = null;
+                }, 500);
+            }
+        });
+	});
+}
+
+function copyFiles() {
+	const config = loadBuildConfig();
+	const outputDir = config.outputDir;
+    if (!fs.existsSync(outputDir)) {
+		fs.mkdirSync(outputDir, { recursive: true });
+		console.log(`Created output directory: ${outputDir}`);
+	}
+	config.filesToCopy.forEach(fileName => {
+		const sourcePath = path.join(process.cwd(), fileName);
+		const targetPath = path.isAbsolute(outputDir) 
+			? path.join(outputDir, fileName)
+			: path.join(process.cwd(), outputDir, fileName);
+        if (!fs.existsSync(sourcePath)) {
+            console.warn(`Warning: Source file ${fileName} not found`);
+            return;
+        }
+		fs.copyFileSync(sourcePath, targetPath);
+		console.log(`Copied ${fileName} to ${outputDir}/`);
+	});
+}
+
 const context = await esbuild.context({
 	banner: {
 		js: banner,
 	},
-	entryPoints: ["main.ts"],
+	entryPoints: ["src/main.ts"],
 	bundle: true,
 	external: [
 		"obsidian",
@@ -39,11 +127,20 @@ const context = await esbuild.context({
 	treeShaking: true,
 	outfile: "main.js",
 	minify: prod,
+	jsx: "automatic",
+	jsxImportSource: "react",
 });
 
 if (prod) {
 	await context.rebuild();
+	copyFiles();
 	process.exit(0);
 } else {
+	// 开发模式：初始构建
+	await context.rebuild();
+	copyFiles();
+	
+	// 启动监听模式，每次构建完成后复制文件
 	await context.watch();
+    watchAndCopyFiles();
 }
