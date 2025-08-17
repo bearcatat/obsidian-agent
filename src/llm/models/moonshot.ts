@@ -1,26 +1,27 @@
-import { ChatDeepSeek } from "@langchain/deepseek";
+import { ChatOpenAI } from "@langchain/openai";
 import { ModelConfig, ModelProviders, Streamer } from "@/types";
 import GeneralStreamer from "../GeneralStreamer";
 
-export default class DeepSeekGenerator {
-  private static instance: DeepSeekGenerator;
+export default class MoonshotGenerator {
+  private static instance: MoonshotGenerator;
 
-  static getInstance(): DeepSeekGenerator {
-    if (!DeepSeekGenerator.instance) {
-      DeepSeekGenerator.instance = new DeepSeekGenerator();
+  static getInstance(): MoonshotGenerator {
+    if (!MoonshotGenerator.instance) {
+      MoonshotGenerator.instance = new MoonshotGenerator();
     }
-    return DeepSeekGenerator.instance;
+    return MoonshotGenerator.instance;
   }
 
-  async newModel(modelConfig: ModelConfig): Promise<ChatDeepSeek> {
-    const model = new ChatDeepSeek({
+  async newModel(modelConfig: ModelConfig): Promise<ChatOpenAI> {
+    const model = new ChatOpenAI({
       modelName: modelConfig.name,
       streaming: true,
       maxRetries: 3,
       maxConcurrency: 3,
       apiKey: modelConfig.apiKey,
       configuration: {
-        baseURL: modelConfig.baseUrl || "https://api.deepseek.com/v1",
+        baseURL: modelConfig.baseUrl,
+        defaultHeaders: { "dangerously-allow-browser": "true" },
       },
       temperature: modelConfig.temperature,
       topP: modelConfig.topP,
@@ -36,6 +37,6 @@ export default class DeepSeekGenerator {
   }
 
   matchModel(modelConfig: ModelConfig): boolean {
-    return modelConfig.provider === ModelProviders.DEEPSEEK;
+    return modelConfig.provider === ModelProviders.MOONSHOT;
   }
 }

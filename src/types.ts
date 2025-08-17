@@ -1,8 +1,10 @@
 import { Plugin } from 'obsidian';
 import { ChatDeepSeek } from "@langchain/deepseek";
 import { ChatOpenAI } from "@langchain/openai";
+import { ChatAnthropic } from "@langchain/anthropic";
 import { ToolCall } from "@langchain/core/dist/messages/tool";
 import { StructuredToolInterface } from '@langchain/core/tools';
+
 
 /**
  * Obsidian Agent 插件接口
@@ -46,11 +48,15 @@ export interface ModelConfig {
 export enum ModelProviders {
   OPENAI = "openai",
   DEEPSEEK = "deepseek",
+  ANTHROPIC = "anthropic",
+  OPENAI_FORMAT = "openai-format",
+  MOONSHOT = "moonshot",
 }
 
 export type AgentModel =
   | ChatDeepSeek
   | ChatOpenAI
+  | ChatAnthropic
 
 export interface ModelGenerator {
   newStreamer(modelConfig: ModelConfig): Promise<Streamer>;

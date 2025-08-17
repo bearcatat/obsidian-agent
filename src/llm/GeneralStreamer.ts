@@ -26,14 +26,21 @@ export default class GeneralStreamer implements Streamer {
     abortController: AbortController,
   ): AsyncGenerator<Message, void> {
     try {
+      const streamOptions: any = {
+        signal: abortController.signal,
+      };
+      
+      // 只有当有工具时才设置 tools 和 tool_choice
+      if (tools && tools.length > 0) {
+        streamOptions.tools = tools;
+        streamOptions.tool_choice = "auto";
+      }
+
       const chatStream = await withSuppressedTokenWarnings(() => {
-        return this.model.stream(messages, {
-          signal: abortController.signal,
-          tools: tools,
-          tool_choice: "auto",
-        });
+        return this.model.stream(messages, streamOptions);
       });
       for await (const chunk of chatStream) {
+        console.log("chunk", chunk);
         yield* this.generateMessage(chunk);
       }
     } catch (error) {
@@ -49,12 +56,18 @@ export default class GeneralStreamer implements Streamer {
     tools: StructuredToolInterface[],
     abortController: AbortController,
   ): Promise<Message> {
+    const invokeOptions: any = {
+      signal: abortController.signal,
+    };
+    
+    // 只有当有工具时才设置 tools 和 tool_choice
+    if (tools && tools.length > 0) {
+      invokeOptions.tools = tools;
+      invokeOptions.tool_choice = "auto";
+    }
+
     const response = await withSuppressedTokenWarnings(() => {
-      return this.model.invoke(messages, {
-        signal: abortController.signal,
-        tools: tools,
-        tool_choice: "auto",
-      });
+      return this.model.invoke(messages, invokeOptions);
     });
 
     return {

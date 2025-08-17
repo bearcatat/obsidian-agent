@@ -11,7 +11,7 @@ export const ModelSetting: React.FC = () => {
     baseUrl: "",
     apiKey: "",
     temperature: 0.5,
-    maxTokens: 1000,
+    maxTokens: 8192, // 增加默认值以支持 thinking 功能
     topP: 0.5,
     frequencyPenalty: 0.5,
   } as ModelConfig;

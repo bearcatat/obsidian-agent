@@ -20,9 +20,10 @@
 - **AI 搜索**: 集成[博查 AI 搜索](https://open.bochaai.com/)，获取网页、多模态参考源等信息
 
 ### ⚙️ 灵活的模型配置
-- **多模型支持**: 支持 DeepSeek 模型, 后续会支持更多模型
+- **多模型支持**: 支持 DeepSeek、OpenAI、Anthropic、月之暗面等多种模型
 - **自定义配置**: 可配置 API 密钥、基础 URL、温度、最大令牌数等参数
 - **模型管理**: 支持添加、编辑、删除多个模型配置
+- **代理支持**: 月之暗面模型支持代理转发，解决跨域问题
 
 
 
@@ -45,6 +46,42 @@ AI 助手会根据您的需求自动调用相关工具：
 - **时间查询**: "现在几点了？"、"这个月是几月？"
 - **笔记分析**: "帮我查看这篇笔记有没有疏漏"、"分析笔记关系"
 - **信息搜索**: "查找关于最新AI技术的信息"
+
+## 🔧 模型配置说明
+
+### 支持的模型提供商
+- **DeepSeek**: 支持直接 API 调用
+- **OpenAI**: 支持直接 API 调用和兼容格式
+- **Anthropic**: 支持直接 API 调用，包含 thinking 功能
+- **月之暗面 (Moonshot)**: 仅支持代理转发 API
+
+### 月之暗面模型特殊说明
+由于浏览器的同源策略限制，月之暗面模型需要通过代理服务器转发请求。您需要：
+
+1. **配置代理服务器**：设置 Nginx 或其他代理服务
+2. **配置 baseUrl**：在模型设置中指定代理服务器地址
+3. **示例配置**：
+   ```
+   提供商: moonshot
+   模型名称: moonshot-v1-8k
+   API 密钥: your-api-key
+   基础 URL: https://your-proxy-server.com/api/moonshot
+   ```
+
+### 代理服务器配置示例
+如果您使用 Nginx，可以参考以下配置：
+```nginx
+location /api/moonshot/ {
+    proxy_pass https://api.moonshot.cn/v1/;
+    proxy_set_header Host api.moonshot.cn;
+    proxy_set_header Authorization $http_authorization;
+    
+    # CORS 头部
+    add_header Access-Control-Allow-Origin * always;
+    add_header Access-Control-Allow-Methods 'GET, POST, OPTIONS' always;
+    add_header Access-Control-Allow-Headers 'Content-Type, Authorization' always;
+}
+```
 
 
 

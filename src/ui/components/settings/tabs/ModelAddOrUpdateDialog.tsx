@@ -139,7 +139,6 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
           </FormField>
         </div>
 
-        {/* TODO: 这里还没改造完*/}
         <FormField
           label={
             <div className="tw-flex tw-items-center tw-gap-2">

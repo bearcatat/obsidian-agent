@@ -1,5 +1,9 @@
 import { ModelConfig, ModelGenerator, Streamer } from "@/types";
 import DeepSeekGenerator from "./models/deepseek";
+import OpenAIGenerator from "./models/openai";
+import AnthropicGenerator from "./models/anthropic";
+import OpenAIFormatGenerator from "./models/openai-format";
+import MoonshotGenerator from "./models/moonshot";
 
 
 export default class ModelManager {
@@ -8,6 +12,10 @@ export default class ModelManager {
   private static generator: ModelGenerator;
   private static modelGenerators: ModelGenerator[] = [
     DeepSeekGenerator.getInstance(),
+    OpenAIGenerator.getInstance(),
+    AnthropicGenerator.getInstance(),
+    OpenAIFormatGenerator.getInstance(),
+    MoonshotGenerator.getInstance(),
   ];
 
   static getInstance(): ModelManager {
