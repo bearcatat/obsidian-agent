@@ -27,5 +27,8 @@ export function useSettingsLogic() {
     removeModel: async (modelId: string) => await settingsLogic.removeModel(modelId),
     reorderModels: async (newModels: ModelConfig[]) => await settingsLogic.reorderModels(newModels),
     setBochaaiApiKey: async (bochaaiApiKey: string) => await settingsLogic.setBochaaiApiKey(bochaaiApiKey),
+    // 模型设置
+    setDefaultAgentModel: async (model: ModelConfig | null) => await settingsLogic.setDefaultAgentModel(model),
+    setTitleModel: async (model: ModelConfig | null) => await settingsLogic.setTitleModel(model),
   };
 }

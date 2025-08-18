@@ -5,11 +5,10 @@ import AnthropicGenerator from "./models/anthropic";
 import OpenAIFormatGenerator from "./models/openai-format";
 import MoonshotGenerator from "./models/moonshot";
 
-
 export default class ModelManager {
   private static instance: ModelManager;
   private static agentModel: Streamer;
-  private static generator: ModelGenerator;
+  private static titleModel: Streamer;
   private static modelGenerators: ModelGenerator[] = [
     DeepSeekGenerator.getInstance(),
     OpenAIGenerator.getInstance(),
@@ -34,7 +33,17 @@ export default class ModelManager {
       throw new Error(`No model generator found for: ${modelConfig.name}`);
     }
     ModelManager.agentModel = await modelGenerator.newStreamer(modelConfig);
-    ModelManager.generator = modelGenerator;
+  }
+
+  async setTitleModel(modelConfig: ModelConfig): Promise<void> {
+    console.log("Setting title model", modelConfig.provider, modelConfig.name);
+    const modelGenerator = ModelManager.modelGenerators.find((generator) =>
+      generator.matchModel(modelConfig)
+    );
+    if (!modelGenerator) {
+      throw new Error(`No model generator found for: ${modelConfig.name}`);
+    }
+    ModelManager.titleModel = await modelGenerator.newStreamer(modelConfig);
   }
 
   getAgentModel(): Streamer {
@@ -44,16 +53,18 @@ export default class ModelManager {
     return ModelManager.agentModel;
   }
 
-  async newStreamer(modelConfig: ModelConfig): Promise<Streamer> {
-    if (!ModelManager.generator) {
-      throw new Error("Model generator not set");
+  getTitleModel(): Streamer {
+    if (!ModelManager.titleModel) {
+      // 如果没有设置标题模型，返回agent模型作为后备
+      return this.getAgentModel();
     }
-    return ModelManager.generator.newStreamer(modelConfig);
+    return ModelManager.titleModel;
   }
+
 
   static resetInstance(): void {
     ModelManager.instance = undefined as any;
     ModelManager.agentModel = undefined as any;
-    ModelManager.generator = undefined as any;
+    ModelManager.titleModel = undefined as any;
   }
 }

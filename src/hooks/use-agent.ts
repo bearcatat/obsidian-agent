@@ -31,5 +31,6 @@ export function useAgentLogic() {
     setTitle: (title: string) => agentLogic.setTitle(title),
     resetForNewChat: (app: App | undefined) => agentLogic.resetForNewChat(app),
     setModel: (model: ModelConfig) => agentLogic.setModel(model),
+    setTitleModel: (model: ModelConfig) => agentLogic.setTitleModel(model),
   };
 }

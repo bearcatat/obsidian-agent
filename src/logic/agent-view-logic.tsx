@@ -108,6 +108,10 @@ export class AgentViewLogic {
     this.state.setModel(model);
     ModelManager.getInstance().setAgentModel(model);
   }
+
+  setTitleModel(model: ModelConfig): void {
+    ModelManager.getInstance().setTitleModel(model);
+  }
 }
 
 export default AgentViewLogic;

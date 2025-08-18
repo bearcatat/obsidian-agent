@@ -101,9 +101,20 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 	}
 
 	private initializeAgent(): void {
-		const modelConfigs = SettingsState.getInstance().models;
+		const settingsState = SettingsState.getInstance();
+		const modelConfigs = settingsState.models;
+		
 		if (modelConfigs.length > 0) {
-			AgentViewLogic.getInstance().setModel(modelConfigs[0]);
+			// 优先使用设置的默认模型，如果没有设置则使用第一个模型
+			const defaultModel = settingsState.defaultAgentModel || modelConfigs[0];
+			AgentViewLogic.getInstance().setModel(defaultModel);
+			
+			// 设置标题模型（如果有设置的话）
+			if (settingsState.titleModel) {
+				AgentViewLogic.getInstance().setTitleModel(settingsState.titleModel);
+			}else{
+				AgentViewLogic.getInstance().setTitleModel(defaultModel);
+			}
 		}
 	}
 }

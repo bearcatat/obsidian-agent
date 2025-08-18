@@ -9,6 +9,8 @@ export class SettingsState implements ISettingsState {
   private constructor(initialData?: Partial<SettingsStateData>) {
     this._data = {
       models: [],
+      defaultAgentModel: null,
+      titleModel: null,
       bochaaiApiKey: "",
       ...initialData,
     };
@@ -28,6 +30,14 @@ export class SettingsState implements ISettingsState {
   // 只读属性访问器
   get models(): ModelConfig[] {
     return this._data.models ? [...this._data.models] : [];
+  }
+
+  get defaultAgentModel(): ModelConfig | null {
+    return this._data.defaultAgentModel;
+  }
+
+  get titleModel(): ModelConfig | null {
+    return this._data.titleModel;
   }
 
   get bochaaiApiKey(): string {
@@ -64,11 +74,30 @@ export class SettingsState implements ISettingsState {
 
   removeModel(modelId: string): void {
     this._data.models = this._data.models.filter(model => model.id !== modelId);
+    
+    // 如果删除的模型是默认模型或标题模型，则清空对应设置
+    if (this._data.defaultAgentModel?.id === modelId) {
+      this._data.defaultAgentModel = null;
+    }
+    if (this._data.titleModel?.id === modelId) {
+      this._data.titleModel = null;
+    }
+    
     this.notify();
   }
 
   reorderModels(newModels: ModelConfig[]): void {
     this._data.models = newModels;
+    this.notify();
+  }
+
+  setDefaultAgentModel(model: ModelConfig | null): void {
+    this._data.defaultAgentModel = model;
+    this.notify();
+  }
+
+  setTitleModel(model: ModelConfig | null): void {
+    this._data.titleModel = model;
     this.notify();
   }
 

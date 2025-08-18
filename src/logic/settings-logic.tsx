@@ -84,6 +84,32 @@ export class SettingsLogic {
         await this.saveSettings();
     }
 
+    async setDefaultAgentModel(model: ModelConfig | null): Promise<void> {
+        // 如果设置了模型，验证模型是否存在
+        if (model) {
+            const existingModel = this.state.models.find(m => m.id === model.id);
+            if (!existingModel) {
+                throw new Error(`Model with ID "${model.id}" not found`);
+            }
+        }
+        
+        this.state.setDefaultAgentModel(model);
+        await this.saveSettings();
+    }
+
+    async setTitleModel(model: ModelConfig | null): Promise<void> {
+        // 如果设置了模型，验证模型是否存在
+        if (model) {
+            const existingModel = this.state.models.find(m => m.id === model.id);
+            if (!existingModel) {
+                throw new Error(`Model with ID "${model.id}" not found`);
+            }
+        }
+        
+        this.state.setTitleModel(model);
+        await this.saveSettings();
+    }
+
     // 持久化方法
     async loadSettings(): Promise<void> {
         try {

@@ -99,7 +99,7 @@ export default class Agent {
     ];
 
     try {
-      const response = await ModelManager.getInstance().getAgentModel().invoke(
+      const response = await ModelManager.getInstance().getTitleModel().invoke(
         messages,
         [],
         new AbortController()

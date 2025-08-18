@@ -187,7 +187,7 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
                     <div className="tw-max-w-[300px]">
-                      Default is {0.7}. Higher values will result
+                      Default is {0.1}. Higher values will result
                       in more creativeness, but also more mistakes. Set to 0 for no randomness.
                     </div>
                   </TooltipContent>
@@ -198,7 +198,7 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
         >
           <SettingSlider
             value={
-              model.temperature ?? 0.7
+              model.temperature ?? 0.1
             }
             onChange={(value) => debouncedSetModel({ ...model, temperature: value })}
             max={2}
@@ -218,7 +218,7 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
                     <div className="tw-w-[300px]">
-                      Default value is 0.9, the smaller the value, the less variety in the
+                      Default value is 0.3, the smaller the value, the less variety in the
                       answers, the easier to understand, the larger the value, the larger the
                       range of the Al&#39;s vocabulary, the more diverse
                     </div>
@@ -229,7 +229,7 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
           }
         >
           <SettingSlider
-            value={model.topP ?? 0.9}
+            value={model.topP ?? 0.3}
             onChange={(value) => debouncedSetModel({ ...model, topP: value })}
             max={1}
             min={0}
@@ -264,7 +264,7 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
           }
         >
           <SettingSlider
-            value={model.frequencyPenalty ?? 0}
+            value={model.frequencyPenalty ?? 0.4}
             onChange={(value) => debouncedSetModel({ ...model, frequencyPenalty: value })}
             max={2}
             min={0}
