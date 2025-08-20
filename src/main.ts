@@ -20,7 +20,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 		
 		await this.initializeSettings();
 		this.initializeUI();
-		this.initializeAgent();
+		await this.initializeAgent();
 	}
 
 	onunload() {
@@ -100,7 +100,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 		this.uiManager.setupUI();
 	}
 
-	private initializeAgent(): void {
+	private async initializeAgent(): Promise<void> {
 		const settingsState = SettingsState.getInstance();
 		const modelConfigs = settingsState.models;
 		
@@ -115,6 +115,21 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			}else{
 				AgentViewLogic.getInstance().setTitleModel(defaultModel);
 			}
+		}
+
+		// 初始化MCP服务器配置（只有在有配置时才初始化）
+		const mcpServers = settingsState.mcpServers;
+		if (mcpServers && mcpServers.length > 0) {
+			try {
+				const toolManager = ToolManager.getInstance();
+				await toolManager.init();
+				await toolManager.updateMCPServers(mcpServers);
+				console.log('MCP servers initialized successfully');
+			} catch (error) {
+				console.error('Failed to initialize MCP servers:', error);
+			}
+		} else {
+			console.log('No MCP servers configured, skipping initialization');
 		}
 	}
 }

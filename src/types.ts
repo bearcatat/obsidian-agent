@@ -92,3 +92,20 @@ export interface ToolClass {
   getTool(): StructuredToolInterface;
   run(toolCall: ToolCall): AsyncGenerator<Message, void>;
 }
+
+// MCP Server Configuration
+export interface MCPServerConfig {
+  name: string;
+  transport: "stdio" | "http" | "sse";
+  command?: string;
+  args?: string[];
+  url?: string;
+  headers?: Record<string, string>; // 新增：HTTP headers支持
+}
+
+// MCP Transport Types
+export enum MCPTransportTypes {
+  STDIO = "stdio",
+  HTTP = "http",
+  SSE = "sse",
+}

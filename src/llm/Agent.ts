@@ -64,7 +64,8 @@ export default class Agent {
   ): AsyncGenerator<Message, void> {
     console.log("messages", messages);
     let assistantMessage: LangChainAssistantMessage|null = null ;
-    for await (const message of ModelManager.getInstance().getAgentModel().stream(messages, ToolManager.getInstance().getTools(), abortController)) {
+    const toolManager = ToolManager.getInstance();
+    for await (const message of ModelManager.getInstance().getAgentModel().stream(messages, toolManager.getTools(), abortController)) {
       assistantMessage = AssistantBaseMessageLike(message);
       yield message;
     }
@@ -77,7 +78,7 @@ export default class Agent {
       return;
     }
     const toolMessages: LangChainToolMessage[] = [];
-    for await (const message of ToolManager.getInstance().runTools(assistantMessage.tool_calls)) {
+    for await (const message of toolManager.runTools(assistantMessage.tool_calls)) {
       toolMessages.push(ToolBaseMessageLike(message));
       yield message;
     }

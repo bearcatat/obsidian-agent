@@ -129,6 +129,20 @@ const context = await esbuild.context({
 	minify: prod,
 	jsx: "automatic",
 	jsxImportSource: "react",
+	// 添加别名配置
+	alias: {
+		"node:process": "process",
+		"node:stream": "stream-browserify",
+		"node:util": "util",
+		"node:buffer": "buffer"
+	},
+	// 添加全局变量定义
+	define: {
+		"process.env.NODE_ENV": prod ? '"production"' : '"development"',
+		"global": "globalThis",
+		"process": "process",
+		"Buffer": "Buffer"
+	}
 });
 
 if (prod) {

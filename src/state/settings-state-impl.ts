@@ -1,5 +1,5 @@
 import { ISettingsState, SettingsStateData } from './settings-state';
-import { ModelConfig } from '../types';
+import { ModelConfig, MCPServerConfig } from '../types';
 
 export class SettingsState implements ISettingsState {
   private static instance: SettingsState;
@@ -12,6 +12,7 @@ export class SettingsState implements ISettingsState {
       defaultAgentModel: null,
       titleModel: null,
       bochaaiApiKey: "",
+      mcpServers: [],
       ...initialData,
     };
   }
@@ -29,7 +30,7 @@ export class SettingsState implements ISettingsState {
 
   // 只读属性访问器
   get models(): ModelConfig[] {
-    return this._data.models ? [...this._data.models] : [];
+    return [...this._data.models];
   }
 
   get defaultAgentModel(): ModelConfig | null {
@@ -41,7 +42,11 @@ export class SettingsState implements ISettingsState {
   }
 
   get bochaaiApiKey(): string {
-    return this._data.bochaaiApiKey;
+    return this._data.bochaaiApiKey || "";
+  }
+
+  get mcpServers(): MCPServerConfig[] {
+    return [...this._data.mcpServers];
   }
 
   // 订阅状态变化
@@ -106,6 +111,33 @@ export class SettingsState implements ISettingsState {
     this.notify();
   }
 
+  // MCP服务器配置管理
+  addOrUpdateMCPServer(server: MCPServerConfig, originalName?: string): void {
+    const existingIndex = this._data.mcpServers.findIndex(s => s.name === (originalName || server.name));
+    
+    if (existingIndex >= 0) {
+      // 更新现有服务器
+      this._data.mcpServers = this._data.mcpServers.map((s, index) => 
+        index === existingIndex ? server : s
+      );
+    } else {
+      // 添加新服务器
+      this._data.mcpServers = [...this._data.mcpServers, server];
+    }
+    
+    this.notify();
+  }
+
+  removeMCPServer(serverName: string): void {
+    this._data.mcpServers = this._data.mcpServers.filter(server => server.name !== serverName);
+    this.notify();
+  }
+
+  reorderMCPServers(newServers: MCPServerConfig[]): void {
+    this._data.mcpServers = newServers;
+    this.notify();
+  }
+
   // 获取所有数据用于持久化
   getAllData(): SettingsStateData {
     return { ...this._data };
@@ -113,7 +145,14 @@ export class SettingsState implements ISettingsState {
 
   // 设置所有数据（用于加载）
   setAllData(data: SettingsStateData): void {
-    this._data = { ...data };
+    this._data = { 
+      // 确保所有字段都有默认值，兼容旧数据
+      models: data.models || [],
+      defaultAgentModel: data.defaultAgentModel || null,
+      titleModel: data.titleModel || null,
+      bochaaiApiKey: data.bochaaiApiKey || "",
+      mcpServers: data.mcpServers || []
+    };
     this.notify();
   }
 

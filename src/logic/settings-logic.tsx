@@ -1,6 +1,7 @@
-import { ModelConfig } from "../types";
+import { ModelConfig, MCPServerConfig } from "../types";
 import { SettingsState } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
+import ToolManager from "../tools/ToolManager";
 
 export class SettingsLogic {
     private static instance: SettingsLogic;
@@ -110,12 +111,84 @@ export class SettingsLogic {
         await this.saveSettings();
     }
 
+    // MCP服务器配置管理业务逻辑
+    async addOrUpdateMCPServer(server: MCPServerConfig, originalName?: string): Promise<void> {
+        if (originalName) {
+            // 编辑操作：检查原服务器是否存在
+            const existingServer = this.state.mcpServers.find(s => s.name === originalName);
+            if (!existingServer) {
+                throw new Error(`MCP Server with name "${originalName}" not found`);
+            }
+        } else {
+            // 添加操作：检查服务器名称是否已存在
+            const existingServer = this.state.mcpServers.find(s => s.name === server.name);
+            if (existingServer) {
+                throw new Error(`MCP Server with name "${server.name}" already exists`);
+            }
+        }
+        
+        this.state.addOrUpdateMCPServer(server, originalName);
+        
+        // 同步更新ToolManager
+        await ToolManager.getInstance().updateMCPServers(this.state.mcpServers);
+        
+        await this.saveSettings();
+    }
+
+    async removeMCPServer(serverName: string): Promise<void> {
+        // 检查服务器是否存在
+        const existingServer = this.state.mcpServers.find(s => s.name === serverName);
+        if (!existingServer) {
+            throw new Error(`MCP Server with name "${serverName}" not found`);
+        }
+
+        this.state.removeMCPServer(serverName);
+        
+        // 同步更新ToolManager
+        await ToolManager.getInstance().updateMCPServers(this.state.mcpServers);
+        
+        await this.saveSettings();
+    }
+
+    async reorderMCPServers(newServers: MCPServerConfig[]): Promise<void> {
+        // 验证新服务器列表的完整性
+        const currentServerNames = new Set(this.state.mcpServers.map(s => s.name));
+        const newServerNames = new Set(newServers.map(s => s.name));
+        
+        if (currentServerNames.size !== newServerNames.size) {
+            throw new Error("MCP Server count mismatch during reordering");
+        }
+        
+        for (const name of currentServerNames) {
+            if (!newServerNames.has(name)) {
+                throw new Error(`MCP Server "${name}" missing during reordering`);
+            }
+        }
+
+        this.state.reorderMCPServers(newServers);
+        
+        // 同步更新ToolManager
+        await ToolManager.getInstance().updateMCPServers(this.state.mcpServers);
+        
+        await this.saveSettings();
+    }
+
     // 持久化方法
     async loadSettings(): Promise<void> {
         try {
             const savedData = await this.plugin?.loadData();
             if (savedData) {
                 this.state.setAllData(savedData);
+                
+                // 初始化MCP服务器配置到ToolManager
+                if (this.state.mcpServers.length > 0) {
+                    try {
+                        await ToolManager.getInstance().updateMCPServers(this.state.mcpServers);
+                        console.log('MCP servers loaded and initialized successfully');
+                    } catch (error) {
+                        console.error('Failed to initialize MCP servers after loading settings:', error);
+                    }
+                }
             }
         } catch (error) {
             console.error('Failed to load settings:', error);

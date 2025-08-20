@@ -5,22 +5,24 @@ import ReadNoteByLinkTool from "./ReadNote/ReadNoteByLink/ReadNoteByLinkTool";
 import AISearchTool from "./AISearch/AISearchTool";
 import { StructuredToolInterface } from "@langchain/core/tools";
 import { ToolCall } from "@langchain/core/dist/messages/tool";
-import { Message } from "../types";
+import { Message, MCPServerConfig } from "../types";
+import MCPManager from "./MCP/MCPManager";
 
 export default class ToolManager {
   private static instance: ToolManager;
-  private tools: ToolClass[] = [
+  private static readonly BUILTIN_TOOLS: ToolClass[] = [
     GetCurrentTimeTool.getInstance(),
     ReadNoteByPathTool.getInstance(),
     ReadNoteByLinkTool.getInstance(),
     AISearchTool.getInstance(),
   ];
+  private tools: ToolClass[] = [];
+  private mcpManager: MCPManager;
   private toolsMap: Map<string, ToolClass> = new Map();
 
-  private constructor() {
-    this.tools.forEach(tool => {
-      this.toolsMap.set(tool.getTool().name, tool);
-    });
+  async init(): Promise<void> {
+    this.mcpManager = new MCPManager();
+    await this.initializeTools();
   }
 
   static getInstance(): ToolManager {
@@ -28,6 +30,34 @@ export default class ToolManager {
       ToolManager.instance = new ToolManager();
     }
     return ToolManager.instance;
+  }
+
+  // 更新MCP服务器配置
+  async updateMCPServers(servers: MCPServerConfig[]): Promise<void> {
+    // 更新MCPManager配置
+    this.mcpManager.updateMCPServers(servers);
+
+    // 重新初始化工具
+    await this.initializeTools();
+  }
+
+  // 重新初始化工具
+  private async initializeTools(): Promise<void> {
+
+    // 保留内置工具
+    this.toolsMap.clear();
+    this.tools = [...ToolManager.BUILTIN_TOOLS];
+
+    try {
+      const mcpTools = await this.mcpManager.getTools();
+      this.tools.push(...mcpTools);
+    } catch (error) {
+      console.error('Failed to get MCP tools:', error);
+    }
+
+    this.tools.forEach(tool => {
+      this.toolsMap.set(tool.getTool().name, tool);
+    });
   }
 
   getTools(): StructuredToolInterface[] {
@@ -44,6 +74,7 @@ export default class ToolManager {
   }
 
   static resetInstance(): void {
+    ToolManager.instance.mcpManager.closeClient();
     ToolManager.instance = undefined as any;
   }
 }

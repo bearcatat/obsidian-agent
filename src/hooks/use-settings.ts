@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { SettingsState } from '../state/settings-state-impl';
 import { SettingsLogic } from '../logic/settings-logic';
 import { clone, ISettingsState } from '../state/settings-state';
-import { ModelConfig } from '../types';
+import { ModelConfig, MCPServerConfig } from '../types';
 
 export function useSettingsState(): ISettingsState {
   const [state, setState] = useState<ISettingsState>(() => SettingsState.getInstance());
@@ -30,5 +30,9 @@ export function useSettingsLogic() {
     // 模型设置
     setDefaultAgentModel: async (model: ModelConfig | null) => await settingsLogic.setDefaultAgentModel(model),
     setTitleModel: async (model: ModelConfig | null) => await settingsLogic.setTitleModel(model),
+    // MCP服务器配置管理
+    addOrUpdateMCPServer: async (server: MCPServerConfig, originalName?: string) => await settingsLogic.addOrUpdateMCPServer(server, originalName),
+    removeMCPServer: async (serverName: string) => await settingsLogic.removeMCPServer(serverName),
+    reorderMCPServers: async (newServers: MCPServerConfig[]) => await settingsLogic.reorderMCPServers(newServers),
   };
 }

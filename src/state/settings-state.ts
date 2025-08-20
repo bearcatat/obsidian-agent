@@ -1,4 +1,4 @@
-import { ModelConfig } from '../types';
+import { ModelConfig, MCPServerConfig } from '../types';
 
 export interface ISettingsState {
   // 只保留状态属性
@@ -7,6 +7,7 @@ export interface ISettingsState {
   readonly titleModel: ModelConfig | null;
 
   readonly bochaaiApiKey: string;
+  readonly mcpServers: MCPServerConfig[];
 }
 
 export function clone(settingsState: ISettingsState): ISettingsState {
@@ -15,6 +16,7 @@ export function clone(settingsState: ISettingsState): ISettingsState {
     defaultAgentModel: settingsState.defaultAgentModel,
     titleModel: settingsState.titleModel,
     bochaaiApiKey: settingsState.bochaaiApiKey,
+    mcpServers: settingsState.mcpServers,
   };
 }
 
@@ -24,4 +26,5 @@ export interface SettingsStateData {
   defaultAgentModel: ModelConfig | null;
   titleModel: ModelConfig | null;
   bochaaiApiKey: string;
+  mcpServers: MCPServerConfig[];
 }

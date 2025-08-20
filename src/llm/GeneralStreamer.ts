@@ -40,7 +40,6 @@ export default class GeneralStreamer implements Streamer {
         return this.model.stream(messages, streamOptions);
       });
       for await (const chunk of chatStream) {
-        console.log("chunk", chunk);
         yield* this.generateMessage(chunk);
       }
     } catch (error) {
