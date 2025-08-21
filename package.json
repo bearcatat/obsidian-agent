@@ -58,7 +58,7 @@
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"langchain": "^0.3.30",
-		"lucide-react": "^0.539.0",
+		"lucide-react": "^0.540.0",
 		"mcp-use": "^0.1.17",
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1",

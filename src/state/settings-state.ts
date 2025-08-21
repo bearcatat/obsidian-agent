@@ -1,22 +1,21 @@
-import { ModelConfig, MCPServerConfig } from '../types';
+import { ModelConfig, MCPServerConfig, BuiltinToolConfig } from '../types';
 
 export interface ISettingsState {
   // 只保留状态属性
   readonly models: ModelConfig[];
   readonly defaultAgentModel: ModelConfig | null;
   readonly titleModel: ModelConfig | null;
-
-  readonly bochaaiApiKey: string;
   readonly mcpServers: MCPServerConfig[];
+  readonly builtinTools: BuiltinToolConfig[];
 }
 
 export function clone(settingsState: ISettingsState): ISettingsState {
   return {
-    models: settingsState.models,
+    models: settingsState.models || [],
     defaultAgentModel: settingsState.defaultAgentModel,
     titleModel: settingsState.titleModel,
-    bochaaiApiKey: settingsState.bochaaiApiKey,
-    mcpServers: settingsState.mcpServers,
+    mcpServers: settingsState.mcpServers || [],
+    builtinTools: settingsState.builtinTools || [],
   };
 }
 
@@ -25,6 +24,6 @@ export interface SettingsStateData {
   models: ModelConfig[];
   defaultAgentModel: ModelConfig | null;
   titleModel: ModelConfig | null;
-  bochaaiApiKey: string;
   mcpServers: MCPServerConfig[];
+  builtinTools: BuiltinToolConfig[];
 }

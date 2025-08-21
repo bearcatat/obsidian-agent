@@ -1,4 +1,4 @@
-import { ModelConfig, MCPServerConfig } from "../types";
+import { ModelConfig, MCPServerConfig, BuiltinToolConfig } from "../types";
 import { SettingsState } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
 import ToolManager from "../tools/ToolManager";
@@ -77,11 +77,6 @@ export class SettingsLogic {
         }
 
         this.state.reorderModels(newModels);
-        await this.saveSettings();
-    }
-
-    async setBochaaiApiKey(bochaaiApiKey: string): Promise<void> {
-        this.state.setBochaaiApiKey(bochaaiApiKey);
         await this.saveSettings();
     }
 
@@ -173,22 +168,28 @@ export class SettingsLogic {
         await this.saveSettings();
     }
 
+    // 内置工具管理业务逻辑
+    async updateBuiltinTool(toolName: string, enabled: boolean): Promise<void> {
+        // 验证工具是否存在
+        const existingTool = this.state.builtinTools.find(t => t.name === toolName);
+        if (!existingTool) {
+            throw new Error(`Builtin tool "${toolName}" not found`);
+        }
+        
+        this.state.updateBuiltinTool(toolName, enabled);
+        
+        // 同步更新ToolManager
+        await ToolManager.getInstance().updateBuiltinTools(this.state.builtinTools);
+        
+        await this.saveSettings();
+    }
+
     // 持久化方法
     async loadSettings(): Promise<void> {
         try {
             const savedData = await this.plugin?.loadData();
             if (savedData) {
                 this.state.setAllData(savedData);
-                
-                // 初始化MCP服务器配置到ToolManager
-                if (this.state.mcpServers.length > 0) {
-                    try {
-                        await ToolManager.getInstance().updateMCPServers(this.state.mcpServers);
-                        console.log('MCP servers loaded and initialized successfully');
-                    } catch (error) {
-                        console.error('Failed to initialize MCP servers after loading settings:', error);
-                    }
-                }
             }
         } catch (error) {
             console.error('Failed to load settings:', error);

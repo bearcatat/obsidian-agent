@@ -4,7 +4,7 @@ import { cn } from "@/ui/elements/utils";
 import { closestCenter, DndContext, DragEndEvent, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { GripVertical, Pencil, Plus, Trash2, Settings } from "lucide-react";
 import React from "react";
 import { MCPServerConfig } from "@/types";
 import { useSettingsLogic, useSettingsState } from "@/hooks/use-settings";
@@ -12,7 +12,8 @@ import { useSettingsLogic, useSettingsState } from "@/hooks/use-settings";
 const MCPServerTableRow: React.FC<{
   server: MCPServerConfig;
   onEdit: (server: MCPServerConfig) => void;
-}> = ({ server, onEdit }) => {
+  onManageTools: (server: MCPServerConfig) => void;
+}> = ({ server, onEdit, onManageTools }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: server.name,
   });
@@ -47,18 +48,34 @@ const MCPServerTableRow: React.FC<{
       <TableCell>{server.name}</TableCell>
       <TableCell>{server.transport}</TableCell>
       <TableCell>
-        {server.transport === "stdio" ? (
-          <div className="tw-text-sm tw-text-gray-600">
-            {server.command} {server.args?.join(" ")}
-          </div>
-        ) : (
-          <div className="tw-text-sm tw-text-gray-600">
-            {server.url}
-          </div>
-        )}
+        <div className="tw-text-sm tw-text-gray-600">
+          {server.transport === "stdio" ? (
+            <div className="tw-truncate" title={`${server.command} ${server.args?.join(" ")}`}>
+              {server.command} {server.args?.join(" ")}
+            </div>
+          ) : (
+            <div className="tw-truncate" title={server.url}>
+              {server.url}
+            </div>
+          )}
+          {server.tools && server.tools.length > 0 && (
+            <div className="tw-text-xs tw-text-blue-500 tw-mt-1">
+              Tools: {server.tools.filter(t => t.enabled).length}/{server.tools.length} enabled
+            </div>
+          )}
+        </div>
       </TableCell>
       <TableCell className="tw-text-center">
         <div className="tw-flex tw-justify-center tw-gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onManageTools(server)}
+            className="tw-shadow-sm tw-transition-shadow hover:tw-shadow-md"
+            title="Manage Tools"
+          >
+            <Settings className="tw-size-4" />
+          </Button>
           {onEdit && (
             <Button
               variant="ghost"
@@ -92,9 +109,10 @@ const MCPServerTableRow: React.FC<{
 interface MCPServerTableProps {
   onEdit: (server: MCPServerConfig) => void;
   onAdd: () => void;
+  onManageTools: (server: MCPServerConfig) => void;
 }
 
-export const MCPServerTable: React.FC<MCPServerTableProps> = ({ onEdit, onAdd }) => {
+export const MCPServerTable: React.FC<MCPServerTableProps> = ({ onEdit, onAdd, onManageTools }) => {
   const { mcpServers } = useSettingsState();
   const { reorderMCPServers } = useSettingsLogic();
 
@@ -175,6 +193,7 @@ export const MCPServerTable: React.FC<MCPServerTableProps> = ({ onEdit, onAdd })
                       key={server.name}
                       server={server}
                       onEdit={onEdit}
+                      onManageTools={onManageTools}
                     />
                   ))}
                 </SortableContext>

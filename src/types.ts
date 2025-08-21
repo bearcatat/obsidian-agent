@@ -93,14 +93,23 @@ export interface ToolClass {
   run(toolCall: ToolCall): AsyncGenerator<Message, void>;
 }
 
+// MCP Tool Configuration
+export interface MCPToolConfig {
+  name: string;
+  description?: string;
+  enabled: boolean;
+}
+
 // MCP Server Configuration
 export interface MCPServerConfig {
   name: string;
   transport: "stdio" | "http" | "sse";
   command?: string;
   args?: string[];
+  env?: Record<string, string>; // 新增：stdio环境变量支持
   url?: string;
   headers?: Record<string, string>; // 新增：HTTP headers支持
+  tools?: MCPToolConfig[]; // 新增：MCP工具配置
 }
 
 // MCP Transport Types
@@ -108,4 +117,12 @@ export enum MCPTransportTypes {
   STDIO = "stdio",
   HTTP = "http",
   SSE = "sse",
+}
+
+// 内置工具配置
+export interface BuiltinToolConfig {
+  name: string;
+  description: string;
+  enabled: boolean;
+  category: string; // 分类：如 "Time", "Note", "Search" 等
 }

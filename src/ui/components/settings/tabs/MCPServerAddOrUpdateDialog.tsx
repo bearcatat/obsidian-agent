@@ -28,11 +28,13 @@ export const MCPServerAddOrUpdateDialog: React.FC<MCPServerAddOrUpdateDialogProp
 
   const [server, setServer] = useState<MCPServerConfig>(initialServer);
   const [headersString, setHeadersString] = useState<string>("");
+  const [envString, setEnvString] = useState<string>("");
   const { addOrUpdateMCPServer } = useSettingsLogic();
 
   useEffect(() => {
     setServer(initialServer);
     setHeadersString(formatHeadersForDisplay(initialServer.headers));
+    setEnvString(formatHeadersForDisplay(initialServer.env));
   }, [initialServer]);
 
   // Clean up server data by trimming whitespace
@@ -62,9 +64,26 @@ export const MCPServerAddOrUpdateDialog: React.FC<MCPServerAddOrUpdateDialogProp
       });
     }
 
+    // 解析env字符串
+    const env: Record<string, string> = {};
+    if (envString.trim()) {
+      const lines = envString.split('\n');
+      lines.forEach(line => {
+        const trimmedLine = line.trim();
+        if (trimmedLine && trimmedLine.includes(':')) {
+          const [key, ...valueParts] = trimmedLine.split(':');
+          const value = valueParts.join(':').trim();
+          if (key.trim() && value) {
+            env[key.trim()] = value;
+          }
+        }
+      });
+    }
+
     const cleanedServer = getCleanedServer({
       ...server,
-      headers: Object.keys(headers).length > 0 ? headers : undefined
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
+      env: Object.keys(env).length > 0 ? env : undefined
     });
     
     try {
@@ -89,28 +108,34 @@ export const MCPServerAddOrUpdateDialog: React.FC<MCPServerAddOrUpdateDialogProp
         transport: "stdio" as const,
         command: "",
         args: [],
+        env: {},
         url: undefined,
         headers: undefined,
       });
-    } else if (transport === "http" || transport === "sse") {
-      setServer({
-        ...server,
-        transport: transport as "http" | "sse",
-        command: undefined,
-        args: undefined,
-        url: "",
-        headers: {},
-      });
-    }
+         } else if (transport === "http" || transport === "sse") {
+       setServer({
+         ...server,
+         transport: transport as "http" | "sse",
+         command: undefined,
+         args: undefined,
+         env: undefined,
+         url: "",
+         headers: {},
+       });
+     }
   };
 
   const handleArgsChange = (argsString: string) => {
-    const args = argsString.split(" ").filter(arg => arg.trim() !== "");
+    const args = argsString.split("\n").map(arg => arg.trim()).filter(arg => arg !== "");
     setServer({ ...server, args });
   };
 
   const handleHeadersChange = (headersString: string) => {
     setHeadersString(headersString);
+  };
+
+  const handleEnvChange = (envString: string) => {
+    setEnvString(envString);
   };
 
   const formatHeadersForDisplay = (headers: Record<string, string> | undefined): string => {
@@ -181,18 +206,35 @@ export const MCPServerAddOrUpdateDialog: React.FC<MCPServerAddOrUpdateDialogProp
                 />
               </FormField>
 
-              <FormField
-                label="Arguments"
-              >
-                <Input
-                  type="text"
-                  placeholder="Enter arguments separated by spaces (e.g., @playwright/mcp@latest)"
-                  value={server.args?.join(" ") || ""}
-                  onChange={(e) => handleArgsChange(e.target.value)}
-                />
-              </FormField>
-            </>
-          )}
+                             <FormField
+                 label="Arguments"
+               >
+                 <Textarea
+                   placeholder="Enter arguments (one per line):&#10;--directory&#10;/path/to/bocha-search-mcp&#10;run&#10;bocha-search-mcp"
+                   value={server.args?.join("\n") || ""}
+                   onChange={(e) => handleArgsChange(e.target.value)}
+                   rows={4}
+                 />
+                 <div className="tw-text-xs tw-text-gray-500 tw-mt-1">
+                   Format: one argument per line
+                 </div>
+               </FormField>
+
+               <FormField
+                 label="Environment Variables (Optional)"
+               >
+                 <Textarea
+                   placeholder="Enter environment variables in format:&#10;API_KEY: your_api_key_here&#10;DEBUG: true"
+                   value={envString}
+                   onChange={(e) => handleEnvChange(e.target.value)}
+                   rows={4}
+                 />
+                 <div className="tw-text-xs tw-text-gray-500 tw-mt-1">
+                   Format: KEY: VALUE (one per line)
+                 </div>
+               </FormField>
+             </>
+           )}
 
           {(server.transport === "http" || server.transport === "sse") && (
             <>

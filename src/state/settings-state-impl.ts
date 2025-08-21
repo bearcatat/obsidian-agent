@@ -1,5 +1,5 @@
 import { ISettingsState, SettingsStateData } from './settings-state';
-import { ModelConfig, MCPServerConfig } from '../types';
+import { ModelConfig, MCPServerConfig, BuiltinToolConfig } from '../types';
 
 export class SettingsState implements ISettingsState {
   private static instance: SettingsState;
@@ -11,8 +11,27 @@ export class SettingsState implements ISettingsState {
       models: [],
       defaultAgentModel: null,
       titleModel: null,
-      bochaaiApiKey: "",
       mcpServers: [],
+      builtinTools: [
+        {
+          name: "getCurrentTime",
+          description: "获取当前时间信息",
+          enabled: true,
+          category: "Time"
+        },
+        {
+          name: "readNoteByPath", 
+          description: "根据文件路径读取笔记内容",
+          enabled: true,
+          category: "Note"
+        },
+        {
+          name: "readNoteByLink",
+          description: "根据链接读取笔记内容", 
+          enabled: true,
+          category: "Note"
+        }
+      ],
       ...initialData,
     };
   }
@@ -41,12 +60,12 @@ export class SettingsState implements ISettingsState {
     return this._data.titleModel;
   }
 
-  get bochaaiApiKey(): string {
-    return this._data.bochaaiApiKey || "";
-  }
-
   get mcpServers(): MCPServerConfig[] {
     return [...this._data.mcpServers];
+  }
+
+  get builtinTools(): BuiltinToolConfig[] {
+    return [...this._data.builtinTools];
   }
 
   // 订阅状态变化
@@ -106,11 +125,6 @@ export class SettingsState implements ISettingsState {
     this.notify();
   }
 
-  setBochaaiApiKey(bochaaiApiKey: string): void {
-    this._data.bochaaiApiKey = bochaaiApiKey;
-    this.notify();
-  }
-
   // MCP服务器配置管理
   addOrUpdateMCPServer(server: MCPServerConfig, originalName?: string): void {
     const existingIndex = this._data.mcpServers.findIndex(s => s.name === (originalName || server.name));
@@ -138,6 +152,14 @@ export class SettingsState implements ISettingsState {
     this.notify();
   }
 
+  // 内置工具管理
+  updateBuiltinTool(toolName: string, enabled: boolean): void {
+    this._data.builtinTools = this._data.builtinTools.map(tool =>
+      tool.name === toolName ? { ...tool, enabled } : tool
+    );
+    this.notify();
+  }
+
   // 获取所有数据用于持久化
   getAllData(): SettingsStateData {
     return { ...this._data };
@@ -150,8 +172,27 @@ export class SettingsState implements ISettingsState {
       models: data.models || [],
       defaultAgentModel: data.defaultAgentModel || null,
       titleModel: data.titleModel || null,
-      bochaaiApiKey: data.bochaaiApiKey || "",
-      mcpServers: data.mcpServers || []
+      mcpServers: data.mcpServers || [],
+      builtinTools: data.builtinTools || [
+        {
+          name: "getCurrentTime",
+          description: "获取当前时间信息",
+          enabled: true,
+          category: "Time"
+        },
+        {
+          name: "readNoteByPath", 
+          description: "根据文件路径读取笔记内容",
+          enabled: true,
+          category: "Note"
+        },
+        {
+          name: "readNoteByLink",
+          description: "根据链接读取笔记内容", 
+          enabled: true,
+          category: "Note"
+        }
+      ]
     };
     this.notify();
   }

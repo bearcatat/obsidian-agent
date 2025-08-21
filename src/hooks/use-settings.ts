@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import { SettingsState } from '../state/settings-state-impl';
 import { SettingsLogic } from '../logic/settings-logic';
 import { clone, ISettingsState } from '../state/settings-state';
-import { ModelConfig, MCPServerConfig } from '../types';
+import { ModelConfig, MCPServerConfig, BuiltinToolConfig } from '../types';
 
 export function useSettingsState(): ISettingsState {
-  const [state, setState] = useState<ISettingsState>(() => SettingsState.getInstance());
+  const [state, setState] = useState<ISettingsState>(() => {
+    const settingsState = SettingsState.getInstance();
+    return clone(settingsState);
+  });
 
   useEffect(() => {
     const settingsState = SettingsState.getInstance();
@@ -26,13 +29,27 @@ export function useSettingsLogic() {
     addOrUpdateModel: async (model: ModelConfig, originalId?: string) => await settingsLogic.addOrUpdateModel(model, originalId),
     removeModel: async (modelId: string) => await settingsLogic.removeModel(modelId),
     reorderModels: async (newModels: ModelConfig[]) => await settingsLogic.reorderModels(newModels),
-    setBochaaiApiKey: async (bochaaiApiKey: string) => await settingsLogic.setBochaaiApiKey(bochaaiApiKey),
+
     // 模型设置
     setDefaultAgentModel: async (model: ModelConfig | null) => await settingsLogic.setDefaultAgentModel(model),
     setTitleModel: async (model: ModelConfig | null) => await settingsLogic.setTitleModel(model),
+    
     // MCP服务器配置管理
     addOrUpdateMCPServer: async (server: MCPServerConfig, originalName?: string) => await settingsLogic.addOrUpdateMCPServer(server, originalName),
     removeMCPServer: async (serverName: string) => await settingsLogic.removeMCPServer(serverName),
     reorderMCPServers: async (newServers: MCPServerConfig[]) => await settingsLogic.reorderMCPServers(newServers),
+    
+    // 内置工具管理
+    updateBuiltinTool: async (toolName: string, enabled: boolean) => await settingsLogic.updateBuiltinTool(toolName, enabled),
+  };
+}
+
+export function useSettings() {
+  const state = useSettingsState();
+  const logic = useSettingsLogic();
+  
+  return {
+    ...state,
+    ...logic,
   };
 }

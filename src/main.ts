@@ -117,19 +117,28 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			}
 		}
 
-		// 初始化MCP服务器配置（只有在有配置时才初始化）
-		const mcpServers = settingsState.mcpServers;
-		if (mcpServers && mcpServers.length > 0) {
-			try {
-				const toolManager = ToolManager.getInstance();
-				await toolManager.init();
+		// 初始化工具管理器
+		try {
+			const toolManager = ToolManager.getInstance();
+			await toolManager.init();
+			
+			// 初始化内置工具配置
+			const builtinTools = settingsState.builtinTools;
+			if (builtinTools && builtinTools.length > 0) {
+				await toolManager.updateBuiltinTools(builtinTools);
+				console.log('Builtin tools initialized successfully');
+			}
+			
+			// 初始化MCP服务器配置（只有在有配置时才初始化）
+			const mcpServers = settingsState.mcpServers;
+			if (mcpServers && mcpServers.length > 0) {
 				await toolManager.updateMCPServers(mcpServers);
 				console.log('MCP servers initialized successfully');
-			} catch (error) {
-				console.error('Failed to initialize MCP servers:', error);
+			} else {
+				console.log('No MCP servers configured, skipping initialization');
 			}
-		} else {
-			console.log('No MCP servers configured, skipping initialization');
+		} catch (error) {
+			console.error('Failed to initialize tools:', error);
 		}
 	}
 }

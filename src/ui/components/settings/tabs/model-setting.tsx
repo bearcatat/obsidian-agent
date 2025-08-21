@@ -3,7 +3,6 @@ import { useState } from "react";
 import { ModelTable } from "./model-table";
 import { ModelConfig } from "@/types";
 import { useSettingsState, useSettingsLogic } from "@/hooks/use-settings";
-import { FormField } from "@/ui/elements/form-field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/elements/select";
 
 export const ModelSetting: React.FC = () => {
