@@ -1,8 +1,9 @@
 import { cn } from "../../../elements/utils";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { Component, MarkdownRenderer } from "obsidian";
 import { useApp } from "../../../../hooks/app-context";
 import { Message } from "../../../../types";
+import { TFile } from "obsidian";
 
 interface SingleMessageProps {
   message: Message;
@@ -24,46 +25,102 @@ const AgentMessage: React.FC<{
 }> = ({
   content,
 }) => {
-  const contentRef = useRef<HTMLDivElement>(null);
-  const componentRef = useRef<Component | null>(null);
-  const app = useApp();
+    const contentRef = useRef<HTMLDivElement>(null);
+    const componentRef = useRef<Component | null>(null);
+    const app = useApp();
 
-  useEffect(() => {
-    let isUnmounting = false;
-    const cleanup = () => {
-      isUnmounting = true;
-      setTimeout(() => {
-        if (componentRef.current) {
-          componentRef.current.unload();
-          componentRef.current = null;
-        }
-      }, 0);
-    }
-    if (!app) return cleanup;
-    if (!contentRef.current) return cleanup;
+    // From https://github.com/logancyang/obsidian-copilot
+    const preprocess = useCallback(
+      (content: string): string => {
+        if (!app) return content;
+        const activeFile = app.workspace.getActiveFile();
+        const sourcePath = activeFile ? activeFile.path : "";
 
-    contentRef.current.innerHTML = "";
-    if (!componentRef.current) {
-      componentRef.current = new Component();
-    }
+        const replaceLinks = (text: string, regex: RegExp, template: (file: TFile) => string) => {
+          // Split text into code blocks and non-code blocks
+          const parts = text.split(/(```[\s\S]*?```|`[^`]*`)/g);
 
-    if (isUnmounting) return cleanup;
+          return parts
+            .map((part, index) => {
+              // Even indices are normal text, odd indices are code blocks
+              if (index % 2 === 0) {
+                // Process links only in non-code blocks
+                return part.replace(regex, (match: string, selection: string) => {
+                  const file = app.metadataCache.getFirstLinkpathDest(selection, sourcePath);
+                  return file ? template(file) : match;
+                });
+              }
+              // Return code blocks unchanged
+              return part;
+            })
+            .join("");
+        };
 
-    MarkdownRenderer.render(
-      app,
-      content,
-      contentRef.current,
-      "",
-      componentRef.current
+        // Process LaTeX
+        const latexProcessed = content
+          .replace(/\\\[\s*/g, "$$")
+          .replace(/\s*\\\]/g, "$$")
+          .replace(/\\\(\s*/g, "$")
+          .replace(/\s*\\\)/g, "$");
+
+        // Process only Obsidian internal images (starting with ![[)
+        const noteImageProcessed = replaceLinks(
+          latexProcessed,
+          /!\[\[(.*?)]]/g,
+          (file) => `![](${app.vault.getResourcePath(file)})`
+        );
+
+        // Transform [[link]] to clickable format but exclude ![[]] image links
+        const noteLinksProcessed = replaceLinks(
+          noteImageProcessed,
+          /(?<!!)\[\[([^\]]+)]]/g,
+          (file: TFile) =>
+            `<a href="obsidian://open?file=${encodeURIComponent(file.path)}" target="_blank">${file.basename}</a>`
+        );
+
+        return noteLinksProcessed;
+      },
+      [app]
     );
-    return cleanup;
-    // 如果这里出现bug，考虑app没有加进来的可能
-  }, [content, componentRef])
 
-  return (
-    <div className="" ref={contentRef}>{content}</div>
-  )
-}
+    useEffect(() => {
+      let isUnmounting = false;
+      const cleanup = () => {
+        isUnmounting = true;
+        setTimeout(() => {
+          if (componentRef.current) {
+            componentRef.current.unload();
+            componentRef.current = null;
+          }
+        }, 0);
+      }
+      if (!app) return cleanup;
+      if (!contentRef.current) return cleanup;
+
+      contentRef.current.innerHTML = "";
+      if (!componentRef.current) {
+        componentRef.current = new Component();
+      }
+
+      if (isUnmounting) return cleanup;
+
+      const processedContent = preprocess(content);
+
+      MarkdownRenderer.render(
+        app,
+        processedContent,
+        contentRef.current,
+        "",
+        componentRef.current
+      );
+      return cleanup;
+      // 如果这里出现bug，考虑app没有加进来的可能
+    }, [content, componentRef])
+
+    return (
+      <div className="" ref={contentRef}>{content}</div>
+    )
+  }
 
 const ToolMessage: React.FC<Message> = ({
   call_tool_msg,
@@ -99,7 +156,7 @@ const ErrorMessage: React.FC<Message> = ({
 
 export const SingleMessage: React.FC<SingleMessageProps> = ({ message, style }) => {
   return (
-    <div 
+    <div
       className="tw-flex tw-w-full tw-flex-col"
       style={style}
     >
