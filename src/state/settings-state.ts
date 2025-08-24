@@ -1,4 +1,5 @@
 import { ModelConfig, MCPServerConfig, BuiltinToolConfig, SubAgentConfig } from '../types';
+import { getDefaultBuiltinTools } from '../tools/BuiltinTools';
 
 export interface ISettingsState {
   // 只保留状态属性
@@ -16,26 +17,7 @@ export function clone(settingsState: ISettingsState): ISettingsState {
     defaultAgentModel: settingsState.defaultAgentModel,
     titleModel: settingsState.titleModel,
     mcpServers: settingsState.mcpServers || [],
-    builtinTools: settingsState.builtinTools || [
-      {
-        name: "getCurrentTime",
-        description: "获取当前时间信息",
-        enabled: true,
-        category: "Time"
-      },
-      {
-        name: "readNoteByPath", 
-        description: "根据文件路径读取笔记内容",
-        enabled: true,
-        category: "Note"
-      },
-      {
-        name: "readNoteByLink",
-        description: "根据链接读取笔记内容", 
-        enabled: true,
-        category: "Note"
-      }
-    ],
+    builtinTools: settingsState.builtinTools || getDefaultBuiltinTools(),
     subAgents: settingsState.subAgents || [],
   };
 }

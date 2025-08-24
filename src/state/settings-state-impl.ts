@@ -1,5 +1,6 @@
 import { ISettingsState, SettingsStateData } from './settings-state';
 import { ModelConfig, MCPServerConfig, BuiltinToolConfig, SubAgentConfig } from '../types';
+import { getDefaultBuiltinTools } from '../tools/BuiltinTools';
 
 export class SettingsState implements ISettingsState {
   private static instance: SettingsState;
@@ -12,23 +13,7 @@ export class SettingsState implements ISettingsState {
       defaultAgentModel: null,
       titleModel: null,
       mcpServers: [],
-      builtinTools: [
-        {
-          name: "getCurrentTime",
-          description: "获取当前时间信息",
-          enabled: true,
-        },
-        {
-          name: "readNoteByPath",
-          description: "根据文件路径读取笔记内容",
-          enabled: true,
-        },
-        {
-          name: "readNoteByLink",
-          description: "根据链接读取笔记内容",
-          enabled: true,
-        }
-      ],
+      builtinTools: getDefaultBuiltinTools(),
       subAgents: [],
       ...initialData,
     };
@@ -204,26 +189,7 @@ export class SettingsState implements ISettingsState {
       defaultAgentModel: data.defaultAgentModel || null,
       titleModel: data.titleModel || null,
       mcpServers: data.mcpServers || [],
-      builtinTools: data.builtinTools || [
-        {
-          name: "getCurrentTime",
-          description: "获取当前时间信息",
-          enabled: true,
-          category: "Time"
-        },
-        {
-          name: "readNoteByPath",
-          description: "根据文件路径读取笔记内容",
-          enabled: true,
-          category: "Note"
-        },
-        {
-          name: "readNoteByLink",
-          description: "根据链接读取笔记内容",
-          enabled: true,
-          category: "Note"
-        }
-      ],
+      builtinTools: data.builtinTools || getDefaultBuiltinTools(),
       subAgents: data.subAgents || [],
     };
     this.notify();
