@@ -4,7 +4,6 @@ import { App, TFile } from "obsidian";
 import ModelManager from "../llm/ModelManager";
 import Agent from "../llm/Agent";
 import { v4 as uuidv4 } from "uuid";
-import AgentMemoryManager from "../llm/AgentMemoryManager";
 
 
 export class AgentViewLogic {
@@ -31,8 +30,7 @@ export class AgentViewLogic {
   async sendMessage(content: string): Promise<void> {
     // 设置加载状态
     this.state.setLoading(true);
-    const abortController = new AbortController();
-    this.state.setAbortController(abortController);
+    this.state.setAbortController(new AbortController());
 
     try {
       this.setTitleIfNewChat(content);
@@ -45,7 +43,10 @@ export class AgentViewLogic {
       };
       this.state.addMessage(userMessage);
       const agent = Agent.getInstance();
-      for await (const message of agent.query(userMessage, this.state.activeNote, this.state.contextNotes, abortController)) {
+      for await (const message of agent.query(userMessage, this.state.activeNote, this.state.contextNotes)) {
+        if (message.id == "") {
+          continue;
+        }
         this.state.addMessage(message);
       }
       console.log("messages", this.state.messages);
@@ -101,7 +102,7 @@ export class AgentViewLogic {
     if (activeNote) {
       this.state.setActiveNote(activeNote);
     }
-    AgentMemoryManager.getInstance().clearMessages();
+    Agent.getInstance().clearMemory();
   }
 
   setModel(model: ModelConfig): void {

@@ -47,14 +47,20 @@ const MCPServerTableRow: React.FC<{
       </TableCell>
       <TableCell>{server.name}</TableCell>
       <TableCell>{server.transport}</TableCell>
-      <TableCell>
+      <TableCell className="tw-max-w-xs">
         <div className="tw-text-sm tw-text-gray-600">
           {server.transport === "stdio" ? (
-            <div className="tw-truncate" title={`${server.command} ${server.args?.join(" ")}`}>
+            <div 
+              className="tw-truncate tw-whitespace-nowrap tw-overflow-hidden" 
+              title={`${server.command} ${server.args?.join(" ")}`}
+            >
               {server.command} {server.args?.join(" ")}
             </div>
           ) : (
-            <div className="tw-truncate" title={server.url}>
+            <div 
+              className="tw-truncate tw-whitespace-nowrap tw-overflow-hidden" 
+              title={server.url}
+            >
               {server.url}
             </div>
           )}
@@ -179,7 +185,7 @@ export const MCPServerTable: React.FC<MCPServerTableProps> = ({ onEdit, onAdd, o
                   <TableHead className="tw-w-6 tw-px-2"></TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Transport</TableHead>
-                  <TableHead>Configuration</TableHead>
+                  <TableHead className="tw-max-w-xs">Configuration</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>

@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
-import { SettingsState } from '../state/settings-state-impl';
-import { SettingsLogic } from '../logic/settings-logic';
-import { clone, ISettingsState } from '../state/settings-state';
-import { ModelConfig, MCPServerConfig, BuiltinToolConfig } from '../types';
+import { useState, useEffect } from "react";
+import { SettingsLogic } from "../logic/settings-logic";
+import { SettingsState } from "../state/settings-state-impl";
+import { ISettingsState, clone } from "../state/settings-state";
+import { ModelConfig, MCPServerConfig, SubAgentConfig } from "../types";
 
 export function useSettingsState(): ISettingsState {
   const [state, setState] = useState<ISettingsState>(() => {
-    const settingsState = SettingsState.getInstance();
-    return clone(settingsState);
+    const instance = SettingsState.getInstance();
+    return clone(instance);
   });
 
   useEffect(() => {
@@ -41,6 +41,14 @@ export function useSettingsLogic() {
     
     // 内置工具管理
     updateBuiltinTool: async (toolName: string, enabled: boolean) => await settingsLogic.updateBuiltinTool(toolName, enabled),
+
+    // SubAgent配置管理
+    addOrUpdateSubAgent: async (subAgent: SubAgentConfig, originalName?: string) => await settingsLogic.addOrUpdateSubAgent(subAgent, originalName),
+    removeSubAgent: async (subAgentName: string) => await settingsLogic.removeSubAgent(subAgentName),
+    reorderSubAgents: async (newSubAgents: SubAgentConfig[]) => await settingsLogic.reorderSubAgents(newSubAgents),
+
+    // 获取MCP工具
+    getMCPTools: async (server: MCPServerConfig) => await settingsLogic.getMCPTools(server),
   };
 }
 

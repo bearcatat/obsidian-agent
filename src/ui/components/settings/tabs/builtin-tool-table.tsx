@@ -43,9 +43,6 @@ export const BuiltinToolTable: React.FC = () => {
   if (!builtinTools || builtinTools.length === 0) {
     return (
       <div className="tw-space-y-4">
-        <div className="tw-flex tw-justify-between tw-items-center">
-          <h3 className="tw-text-lg tw-font-semibold">Built-in Tools</h3>
-        </div>
         <div className="tw-text-sm tw-text-gray-500">Loading built-in tools...</div>
       </div>
     );

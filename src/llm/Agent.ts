@@ -6,13 +6,16 @@ import { AssistantBaseMessageLike, ErrorMessage, ToolBaseMessageLike } from "@/u
 import ToolManager from "@/tools/ToolManager";
 import { getSystemPrompts, getTitleGenerationPrompt } from "./system-prompts";
 import { TFile } from "obsidian";
+import { AgentState } from "@/state/agent-state-impl";
 
 export default class Agent {
   private static instance: Agent;
+  private memoryManager: AgentMemoryManager;
 
   static getInstance(): Agent {
     if (!Agent.instance) {
       Agent.instance = new Agent();
+      Agent.instance.memoryManager = new AgentMemoryManager();
     }
     return Agent.instance;
   }
@@ -22,16 +25,20 @@ export default class Agent {
   }
 
   // query 
-  async *query(message: Message, activeNote: TFile|null, contextNotes: TFile[], abortController: AbortController): AsyncGenerator<Message, void> {
+  async *query(message: Message, activeNote: TFile|null, contextNotes: TFile[]): AsyncGenerator<Message, void> {
     const enhancedMessage = this.getFullUserMessage(message, activeNote, contextNotes);
-    AgentMemoryManager.getInstance().appendMessage(enhancedMessage);
-    const chatHistory = AgentMemoryManager.getInstance().getMessages();
+    this.memoryManager.appendMessage(enhancedMessage);
+    const chatHistory = this.memoryManager.getMessages();
     const systemPrompts = await getSystemPrompts();
     const messages = [...systemPrompts, ...chatHistory];
+    const abortController = AgentState.getInstance().abortController;
+    if (!abortController) {
+      throw new Error("Abort controller not found");
+    }
     for await (const message of this.stream(messages, abortController)) {
       yield message;
       if (!message.isStreaming) {
-        AgentMemoryManager.getInstance().appendMessage(message);
+        this.memoryManager.appendMessage(message);
       }
     }
   }
@@ -65,7 +72,7 @@ export default class Agent {
     console.log("messages", messages);
     let assistantMessage: LangChainAssistantMessage|null = null ;
     const toolManager = ToolManager.getInstance();
-    for await (const message of ModelManager.getInstance().getAgentModel().stream(messages, toolManager.getTools(), abortController)) {
+    for await (const message of ModelManager.getInstance().getAgentModel().stream(messages, toolManager.getMainAgentEnabledTools(), abortController)) {
       assistantMessage = AssistantBaseMessageLike(message);
       yield message;
     }
@@ -73,13 +80,14 @@ export default class Agent {
       yield ErrorMessage("Error: No assistant message");
       return;
     }
-    // console.log("assistantMessage", assistantMessage);
     if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
       return;
     }
     const toolMessages: LangChainToolMessage[] = [];
     for await (const message of toolManager.runTools(assistantMessage.tool_calls)) {
-      toolMessages.push(ToolBaseMessageLike(message));
+      if (!message.is_sub_agent) {
+        toolMessages.push(ToolBaseMessageLike(message));
+      } 
       yield message;
     }
 
@@ -111,5 +119,9 @@ export default class Agent {
       // 如果标题生成失败，使用用户消息的前20个字符作为标题
       return userMessage.substring(0, 20) || "New Chat";
     }
+  }
+
+  async clearMemory(): Promise<void> {
+    await this.memoryManager.clearMessages();
   }
 }

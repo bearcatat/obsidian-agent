@@ -1,5 +1,5 @@
 import { ISettingsState, SettingsStateData } from './settings-state';
-import { ModelConfig, MCPServerConfig, BuiltinToolConfig } from '../types';
+import { ModelConfig, MCPServerConfig, BuiltinToolConfig, SubAgentConfig } from '../types';
 
 export class SettingsState implements ISettingsState {
   private static instance: SettingsState;
@@ -17,21 +17,19 @@ export class SettingsState implements ISettingsState {
           name: "getCurrentTime",
           description: "获取当前时间信息",
           enabled: true,
-          category: "Time"
         },
         {
-          name: "readNoteByPath", 
+          name: "readNoteByPath",
           description: "根据文件路径读取笔记内容",
           enabled: true,
-          category: "Note"
         },
         {
           name: "readNoteByLink",
-          description: "根据链接读取笔记内容", 
+          description: "根据链接读取笔记内容",
           enabled: true,
-          category: "Note"
         }
       ],
+      subAgents: [],
       ...initialData,
     };
   }
@@ -68,6 +66,12 @@ export class SettingsState implements ISettingsState {
     return [...this._data.builtinTools];
   }
 
+  get subAgents(): SubAgentConfig[] {
+    return [...this._data.subAgents];
+  }
+
+
+
   // 订阅状态变化
   subscribe(listener: (state: SettingsStateData) => void): () => void {
     this.listeners.add(listener);
@@ -81,10 +85,10 @@ export class SettingsState implements ISettingsState {
 
   addOrUpdateModel(model: ModelConfig, originalId?: string): void {
     const existingIndex = this._data.models.findIndex(m => m.id === (originalId || model.id));
-    
+
     if (existingIndex >= 0) {
       // 更新现有模型
-      this._data.models = this._data.models.map((model, index) => 
+      this._data.models = this._data.models.map((model, index) =>
         index === existingIndex ? model : model
       );
       this._data.models[existingIndex] = model;
@@ -92,13 +96,13 @@ export class SettingsState implements ISettingsState {
       // 添加新模型
       this._data.models = [...this._data.models, model];
     }
-    
+
     this.notify();
   }
 
   removeModel(modelId: string): void {
     this._data.models = this._data.models.filter(model => model.id !== modelId);
-    
+
     // 如果删除的模型是默认模型或标题模型，则清空对应设置
     if (this._data.defaultAgentModel?.id === modelId) {
       this._data.defaultAgentModel = null;
@@ -106,7 +110,7 @@ export class SettingsState implements ISettingsState {
     if (this._data.titleModel?.id === modelId) {
       this._data.titleModel = null;
     }
-    
+
     this.notify();
   }
 
@@ -128,17 +132,17 @@ export class SettingsState implements ISettingsState {
   // MCP服务器配置管理
   addOrUpdateMCPServer(server: MCPServerConfig, originalName?: string): void {
     const existingIndex = this._data.mcpServers.findIndex(s => s.name === (originalName || server.name));
-    
+
     if (existingIndex >= 0) {
       // 更新现有服务器
-      this._data.mcpServers = this._data.mcpServers.map((s, index) => 
+      this._data.mcpServers = this._data.mcpServers.map((s, index) =>
         index === existingIndex ? server : s
       );
     } else {
       // 添加新服务器
       this._data.mcpServers = [...this._data.mcpServers, server];
     }
-    
+
     this.notify();
   }
 
@@ -160,6 +164,33 @@ export class SettingsState implements ISettingsState {
     this.notify();
   }
 
+  // SubAgent配置管理
+  addOrUpdateSubAgent(subAgent: SubAgentConfig, originalName?: string): void {
+    const existingIndex = this._data.subAgents.findIndex(s => s.name === (originalName || subAgent.name));
+
+    if (existingIndex >= 0) {
+      // 更新现有SubAgent
+      this._data.subAgents = this._data.subAgents.map((s, index) =>
+        index === existingIndex ? subAgent : s
+      );
+    } else {
+      // 添加新SubAgent
+      this._data.subAgents = [...this._data.subAgents, subAgent];
+    }
+
+    this.notify();
+  }
+
+  removeSubAgent(subAgentName: string): void {
+    this._data.subAgents = this._data.subAgents.filter(s => s.name !== subAgentName);
+    this.notify();
+  }
+
+  reorderSubAgents(newSubAgents: SubAgentConfig[]): void {
+    this._data.subAgents = newSubAgents;
+    this.notify();
+  }
+
   // 获取所有数据用于持久化
   getAllData(): SettingsStateData {
     return { ...this._data };
@@ -167,7 +198,7 @@ export class SettingsState implements ISettingsState {
 
   // 设置所有数据（用于加载）
   setAllData(data: SettingsStateData): void {
-    this._data = { 
+    this._data = {
       // 确保所有字段都有默认值，兼容旧数据
       models: data.models || [],
       defaultAgentModel: data.defaultAgentModel || null,
@@ -181,18 +212,19 @@ export class SettingsState implements ISettingsState {
           category: "Time"
         },
         {
-          name: "readNoteByPath", 
+          name: "readNoteByPath",
           description: "根据文件路径读取笔记内容",
           enabled: true,
           category: "Note"
         },
         {
           name: "readNoteByLink",
-          description: "根据链接读取笔记内容", 
+          description: "根据链接读取笔记内容",
           enabled: true,
           category: "Note"
         }
-      ]
+      ],
+      subAgents: data.subAgents || [],
     };
     this.notify();
   }

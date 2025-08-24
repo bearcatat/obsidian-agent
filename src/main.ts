@@ -42,7 +42,9 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 			// 3. 清理内存管理器（在重置之前）
 			console.log('Clearing agent memory...');
-			AgentMemoryManager.getInstance().clearMessages();
+			// 注意：AgentMemoryManager没有静态方法，需要创建实例
+			const memoryManager = new AgentMemoryManager();
+			memoryManager.clearMessages();
 
 			// 4. 重置单例实例
 			console.log('Resetting singleton instances...');
@@ -51,7 +53,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			ModelManager.resetInstance();
 			ToolManager.resetInstance();
 			Agent.resetInstance();
-			AgentMemoryManager.resetInstance();
+			// AgentMemoryManager没有静态方法，不需要重置
 			
 			// 5. 清理全局引用
 			console.log('Clearing global references...');
@@ -136,6 +138,15 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 				console.log('MCP servers initialized successfully');
 			} else {
 				console.log('No MCP servers configured, skipping initialization');
+			}
+
+			// 初始化SubAgent配置（只有在有配置时才初始化）
+			const subAgents = settingsState.subAgents;
+			if (subAgents && subAgents.length > 0) {
+				await toolManager.updateSubAgents(subAgents);
+				console.log('SubAgents initialized successfully');
+			} else {
+				console.log('No SubAgents configured, skipping initialization');
 			}
 		} catch (error) {
 			console.error('Failed to initialize tools:', error);

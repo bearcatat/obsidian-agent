@@ -1,7 +1,8 @@
-import { ModelConfig, MCPServerConfig, BuiltinToolConfig } from "../types";
+import { ModelConfig, MCPServerConfig, SubAgentConfig } from "../types";
 import { SettingsState } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
 import ToolManager from "../tools/ToolManager";
+import MCPToolAdaptor from "../tools/MCP/MCPToolAdaptor";
 
 export class SettingsLogic {
     private static instance: SettingsLogic;
@@ -184,6 +185,54 @@ export class SettingsLogic {
         await this.saveSettings();
     }
 
+    // SubAgent配置管理业务逻辑
+    async addOrUpdateSubAgent(subAgent: SubAgentConfig, originalName?: string): Promise<void> {
+        if (originalName) {
+            // 编辑操作：检查原SubAgent是否存在
+            const existingSubAgent = this.state.subAgents.find(s => s.name === originalName);
+            if (!existingSubAgent) {
+                throw new Error(`SubAgent with name "${originalName}" not found`);
+            }
+        } else {
+            // 添加操作：检查SubAgent名称是否已存在
+            const existingSubAgent = this.state.subAgents.find(s => s.name === subAgent.name);
+            if (existingSubAgent) {
+                throw new Error(`SubAgent with name "${subAgent.name}" already exists`);
+            }
+        }
+        
+        this.state.addOrUpdateSubAgent(subAgent, originalName);
+        
+        // 同步更新ToolManager
+        await ToolManager.getInstance().updateSubAgents(this.state.subAgents);
+        
+        await this.saveSettings();
+    }
+
+    async removeSubAgent(subAgentName: string): Promise<void> {
+        // 检查SubAgent是否存在
+        const existingSubAgent = this.state.subAgents.find(s => s.name === subAgentName);
+        if (!existingSubAgent) {
+            throw new Error(`SubAgent with name "${subAgentName}" not found`);
+        }
+        
+        this.state.removeSubAgent(subAgentName);
+        
+        // 同步更新ToolManager
+        await ToolManager.getInstance().updateSubAgents(this.state.subAgents);
+        
+        await this.saveSettings();
+    }
+
+    async reorderSubAgents(newSubAgents: SubAgentConfig[]): Promise<void> {
+        this.state.reorderSubAgents(newSubAgents);
+        
+        // 同步更新ToolManager
+        await ToolManager.getInstance().updateSubAgents(this.state.subAgents);
+        
+        await this.saveSettings();
+    }
+
     // 持久化方法
     async loadSettings(): Promise<void> {
         try {
@@ -203,6 +252,10 @@ export class SettingsLogic {
         } catch (error) {
             console.error('Failed to save settings:', error);
         }
+    }
+
+    async getMCPTools(server: MCPServerConfig): Promise<MCPToolAdaptor[]> {
+        return ToolManager.getInstance().getMCPTools(server);
     }
 }
 

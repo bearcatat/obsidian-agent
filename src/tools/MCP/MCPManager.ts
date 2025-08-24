@@ -95,4 +95,27 @@ export default class MCPManager {
       return [];
     }
   }
+
+  // 获取所有 MCP 工具（不管是否启用）
+  async getAllTools(): Promise<MCPToolAdaptor[]> {
+    if (!this.client) {
+      return [];
+    }
+
+    try {
+      const allTools = await this.client.getTools();
+      return allTools.map(tool => new MCPToolAdaptor(tool));
+    } catch (error) {
+      console.error("Failed to get all MCP tools:", error);
+      return [];
+    }
+  }
+
+  async getTools(server: MCPServerConfig): Promise<MCPToolAdaptor[]> {
+    if (!this.client) {
+      return [];
+    }
+    const tools = await this.client.getTools(server.name);
+    return tools.map(tool => new MCPToolAdaptor(tool));
+  }
 }

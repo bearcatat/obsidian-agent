@@ -30,6 +30,8 @@ export interface Message {
   name?: string;
   call_tool_msg?: string;
   tool_call_id?: string;
+  // sub agent
+  is_sub_agent?: boolean;
 }
 
 export interface ModelConfig {
@@ -124,5 +126,20 @@ export interface BuiltinToolConfig {
   name: string;
   description: string;
   enabled: boolean;
-  category: string; // 分类：如 "Time", "Note", "Search" 等
+}
+
+// SubAgent Tool Configuration
+export interface SubAgentToolConfig {
+  type: "builtin" | "mcp" | "subAgent";
+  name: string;
+  enabled: boolean;
+}
+
+// SubAgent Configuration
+export interface SubAgentConfig {
+  name: string;
+  systemPrompt: string;
+  enabled: boolean;
+  modelId: string;
+  tools: SubAgentToolConfig[];
 }

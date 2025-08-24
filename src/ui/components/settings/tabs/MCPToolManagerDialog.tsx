@@ -3,10 +3,8 @@ import { useTab } from "@/hooks/TabContext";
 import { MCPToolConfig, MCPServerConfig } from "@/types";
 import { Button } from "@/ui/elements/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/ui/elements/dialog";
-import { FormField } from "@/ui/elements/form-field";
 import { Checkbox } from "@/ui/elements/checkbox";
 import { useSettingsLogic } from "@/hooks/use-settings";
-import ToolManager from "@/tools/ToolManager";
 
 interface MCPToolManagerDialogProps {
   server: MCPServerConfig;
@@ -20,7 +18,7 @@ export const MCPToolManagerDialog: React.FC<MCPToolManagerDialogProps> = ({
   close,
 }) => {
   const { modalContainer } = useTab();
-  const { addOrUpdateMCPServer } = useSettingsLogic();
+  const { addOrUpdateMCPServer, getMCPTools } = useSettingsLogic();
   
   const [tools, setTools] = useState<MCPToolConfig[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,56 +36,21 @@ export const MCPToolManagerDialog: React.FC<MCPToolManagerDialogProps> = ({
     setError(null);
     
     try {
-      // 创建临时MCPManager来获取工具
-      const tempMCPManager = new (await import("@/tools/MCP/MCPManager")).default();
       
-      // 创建临时配置
-      const tempConfig: Record<string, any> = {};
-      const serverConfig: any = {
-        transport: server.transport,
-        restart: { enabled: true, maxAttempts: 3, delayMs: 1000 },
-      };
-
-      if (server.transport === "stdio") {
-        serverConfig.command = server.command;
-        serverConfig.args = server.args;
-        if (server.env && Object.keys(server.env).length > 0) {
-          serverConfig.env = server.env;
-        }
-      } else if (server.transport === "http" || server.transport === "sse") {
-        serverConfig.url = server.url;
-        if (server.headers && Object.keys(server.headers).length > 0) {
-          serverConfig.headers = server.headers;
-        }
-      }
-      
-      tempConfig[server.name] = serverConfig;
-      
-      // 创建客户端并获取工具
-      const client = new (await import("@langchain/mcp-adapters")).MultiServerMCPClient({
-        throwOnLoadError: true,
-        prefixToolNameWithServerName: false,
-        useStandardContentBlocks: true,
-        mcpServers: tempConfig
-      });
-
-      const availableTools = await client.getTools();
+      const availableTools = await getMCPTools(server);
       
       // 转换为MCPToolConfig格式
       const toolConfigs: MCPToolConfig[] = availableTools.map(tool => {
         // 检查是否已有配置
-        const existingConfig = server.tools?.find(t => t.name === tool.name);
+        const existingConfig = server.tools?.find(t => t.name === tool.getToolName());
         return {
-          name: tool.name,
-          description: tool.description || "",
+          name: tool.getToolName(),
+          description: tool.getTool().description,
           enabled: existingConfig?.enabled ?? false // 默认禁用
         };
       });
 
       setTools(toolConfigs);
-      
-      // 清理
-      client.close();
     } catch (err) {
       console.error('Failed to load MCP tools:', err);
       setError('Failed to load tools from MCP server. Please check your configuration.');

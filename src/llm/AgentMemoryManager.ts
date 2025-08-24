@@ -3,17 +3,9 @@ import { Message } from "@/types";
 import { UserBaseMessageLike, AssistantBaseMessageLike, ToolBaseMessageLike } from "@/utils";
 
 export default class AgentMemoryManager {
-  private static instance: AgentMemoryManager;
   private messages: BaseMessageLike[];
 
-  static getInstance(): AgentMemoryManager {
-    if (!AgentMemoryManager.instance) {
-      AgentMemoryManager.instance = new AgentMemoryManager();
-    }
-    return AgentMemoryManager.instance;
-  }
-
-  private constructor() {
+  constructor() {
     this.messages = [];
   }
 
@@ -29,6 +21,9 @@ export default class AgentMemoryManager {
   }
 
   handleMessage(message: Message): BaseMessageLike | undefined {
+    if (message.is_sub_agent) {
+      return undefined;
+    }
     if (message.role === "user") {
       return UserBaseMessageLike(message);
     }
@@ -43,9 +38,5 @@ export default class AgentMemoryManager {
 
   async clearMessages(): Promise<void> {
     this.messages = [];
-  }
-
-  static resetInstance(): void {
-    AgentMemoryManager.instance = undefined as any;
   }
 }

@@ -1,4 +1,4 @@
-import { ModelConfig, MCPServerConfig, BuiltinToolConfig } from '../types';
+import { ModelConfig, MCPServerConfig, BuiltinToolConfig, SubAgentConfig } from '../types';
 
 export interface ISettingsState {
   // 只保留状态属性
@@ -7,6 +7,7 @@ export interface ISettingsState {
   readonly titleModel: ModelConfig | null;
   readonly mcpServers: MCPServerConfig[];
   readonly builtinTools: BuiltinToolConfig[];
+  readonly subAgents: SubAgentConfig[];
 }
 
 export function clone(settingsState: ISettingsState): ISettingsState {
@@ -15,7 +16,27 @@ export function clone(settingsState: ISettingsState): ISettingsState {
     defaultAgentModel: settingsState.defaultAgentModel,
     titleModel: settingsState.titleModel,
     mcpServers: settingsState.mcpServers || [],
-    builtinTools: settingsState.builtinTools || [],
+    builtinTools: settingsState.builtinTools || [
+      {
+        name: "getCurrentTime",
+        description: "获取当前时间信息",
+        enabled: true,
+        category: "Time"
+      },
+      {
+        name: "readNoteByPath", 
+        description: "根据文件路径读取笔记内容",
+        enabled: true,
+        category: "Note"
+      },
+      {
+        name: "readNoteByLink",
+        description: "根据链接读取笔记内容", 
+        enabled: true,
+        category: "Note"
+      }
+    ],
+    subAgents: settingsState.subAgents || [],
   };
 }
 
@@ -26,4 +47,5 @@ export interface SettingsStateData {
   titleModel: ModelConfig | null;
   mcpServers: MCPServerConfig[];
   builtinTools: BuiltinToolConfig[];
+  subAgents: SubAgentConfig[];
 }

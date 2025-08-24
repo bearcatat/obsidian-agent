@@ -25,25 +25,26 @@ export default class ModelManager {
   }
 
   async setAgentModel(modelConfig: ModelConfig): Promise<void> {
-    console.log("Setting agent model", modelConfig.provider, modelConfig.name);
-    const modelGenerator = ModelManager.modelGenerators.find((generator) =>
-      generator.matchModel(modelConfig)
-    );
-    if (!modelGenerator) {
-      throw new Error(`No model generator found for: ${modelConfig.name}`);
-    }
-    ModelManager.agentModel = await modelGenerator.newStreamer(modelConfig);
+    ModelManager.agentModel = await this.createStreamer(modelConfig);
   }
 
   async setTitleModel(modelConfig: ModelConfig): Promise<void> {
-    console.log("Setting title model", modelConfig.provider, modelConfig.name);
+    ModelManager.titleModel = await this.createStreamer(modelConfig);
+  }
+
+  async createStreamer(modelConfig: ModelConfig): Promise<Streamer> {
+    const modelGenerator = this.getModelGenerator(modelConfig);
+    return await modelGenerator.newStreamer(modelConfig);
+  }
+
+  private getModelGenerator(modelConfig: ModelConfig): ModelGenerator {
     const modelGenerator = ModelManager.modelGenerators.find((generator) =>
       generator.matchModel(modelConfig)
     );
     if (!modelGenerator) {
       throw new Error(`No model generator found for: ${modelConfig.name}`);
     }
-    ModelManager.titleModel = await modelGenerator.newStreamer(modelConfig);
+    return modelGenerator;
   }
 
   getAgentModel(): Streamer {
@@ -60,7 +61,6 @@ export default class ModelManager {
     }
     return ModelManager.titleModel;
   }
-
 
   static resetInstance(): void {
     ModelManager.instance = undefined as any;
