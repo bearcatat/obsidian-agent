@@ -17,7 +17,7 @@ export default class SubAgentToolAdaptor {
       return "success";
     }, {
       name: this.subAgent.name,
-      description: this.subAgent.systemPrompt,
+      description: this.subAgent.description,
       schema: z.object({
         message: z.string().describe("The message to send to the sub agent, should include context information"),
         isNewChat: z.boolean().describe("Whether to start a new chat with the sub agent, if true, the sub agent will clear its memory"),

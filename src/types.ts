@@ -139,6 +139,7 @@ export interface SubAgentToolConfig {
 export interface SubAgentConfig {
   name: string;
   systemPrompt: string;
+  description: string;
   enabled: boolean;
   modelId: string;
   tools: SubAgentToolConfig[];

@@ -21,14 +21,11 @@ export default class SubAgentManager {
     // 清理现有实例
     this.subAgentInstanceMap.clear();
 
-    // 只为启用的SubAgent创建实例
     for (const config of this.subAgentConfigs) {
-      if (config.enabled) {
-        try {
-          await this.createSubAgentInstance(config);
-        } catch (error) {
-          console.error(`Failed to create SubAgent instance for ${config.name}:`, error);
-        }
+      try {
+        await this.createSubAgentInstance(config);
+      } catch (error) {
+        console.error(`Failed to create SubAgent instance for ${config.name}:`, error);
       }
     }
   }
@@ -41,10 +38,10 @@ export default class SubAgentManager {
       throw new Error(`Model with ID "${config.modelId}" not found`);
     }
 
-    const model = await ModelManager.getInstance().createStreamer(modelConfig);    
+    const model = await ModelManager.getInstance().createStreamer(modelConfig);
     // 创建SubAgent实例
-    const subAgent = new SubAgent(config.name, config.systemPrompt, model);
-    
+    const subAgent = new SubAgent(config.name, config.systemPrompt, config.description, model);
+
     // 创建工具适配器
     const toolAdaptor = new SubAgentToolAdaptor(subAgent);
     this.subAgentInstanceMap.set(config.name, toolAdaptor);
@@ -58,6 +55,7 @@ export default class SubAgentManager {
   }
 
   async setAllSubAgentTools(allTools: StructuredToolInterface[]): Promise<void> {
+    console.log("SubAgentManager.setAllSubAgentTools", allTools);
     this.subAgentConfigs.forEach(async config => {
       const subAgentInstance = this.subAgentInstanceMap.get(config.name);
       if (subAgentInstance) {
@@ -78,7 +76,7 @@ export default class SubAgentManager {
 
   // 获取启用的工具
   getEnabledTools(): SubAgentToolAdaptor[] {
-    const enableSubAgents =this.subAgentConfigs.filter(subAgent => subAgent.enabled)
+    const enableSubAgents = this.subAgentConfigs.filter(subAgent => subAgent.enabled)
     if (enableSubAgents.length === 0) {
       return [];
     }

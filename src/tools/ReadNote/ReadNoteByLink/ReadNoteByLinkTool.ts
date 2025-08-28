@@ -57,12 +57,14 @@ export default class ReadNoteByLinkTool {
   }
 
   private static genResult(fileName: string, path: string, linkPath: string, content: string): string {
-    return `title: ${fileName}
+    return `<metadata>
+title: ${fileName}
 note path: ${path}
 link path: ${linkPath}
-
+</metadata>
+<content>
 ${content}
-`;
+</content>`;
   }
 
   getTool(): StructuredToolInterface {

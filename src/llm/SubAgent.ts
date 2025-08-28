@@ -1,10 +1,11 @@
-import { LangChainAssistantMessage, LangChainToolMessage, Message ,Streamer} from "@/types";
+import { LangChainAssistantMessage, LangChainToolMessage, Message, Streamer } from "@/types";
 import AgentMemoryManager from "./AgentMemoryManager";
 import { BaseMessageLike } from "@langchain/core/messages";
 import { AssistantBaseMessageLike, ErrorMessage, ToolBaseMessageLike } from "@/utils";
 import ToolManager from "@/tools/ToolManager";
 import { StructuredToolInterface } from "@langchain/core/tools";
 import { AgentState } from "@/state/agent-state-impl";
+import { getSubAgentSystemPrompt } from "./system-prompts";
 
 export default class SubAgent {
   private model: Streamer;
@@ -13,10 +14,12 @@ export default class SubAgent {
 
   public name: string;
   public systemPrompt: string;
+  public description: string;
 
 
-  constructor(name: string, systemPrompt: string, model: Streamer) {
+  constructor(name: string, systemPrompt: string, description: string, model: Streamer) {
     this.systemPrompt = systemPrompt;
+    this.description = description;
     this.model = model;
     this.memoryManager = new AgentMemoryManager();
     this.name = name;
@@ -28,7 +31,8 @@ export default class SubAgent {
     yield message;
     const chatHistory = this.memoryManager.getMessages();
     const systemMessage = { role: "system", content: this.systemPrompt } as BaseMessageLike;
-    const messages = [systemMessage, ...chatHistory];
+    const sharedSystemMessage = { role: "system", content: getSubAgentSystemPrompt() } as BaseMessageLike;
+    const messages = [sharedSystemMessage, systemMessage, ...chatHistory];
     const abortController = AgentState.getInstance().abortController;
     if (!abortController) {
       throw new Error("Abort controller not found");
@@ -40,11 +44,12 @@ export default class SubAgent {
       message.is_sub_agent = true;
       yield message;
     }
-    console.log("SubAgent.query",systemMessage, this.memoryManager.getMessages());
+    console.log("SubAgent.query", systemMessage, this.memoryManager.getMessages());
   }
 
   private async *stream(messages: BaseMessageLike[], abortController: AbortController): AsyncGenerator<Message, void> {
-    let assistantMessage: LangChainAssistantMessage|null = null ;
+    let assistantMessage: LangChainAssistantMessage | null = null;
+    console.log("SubAgent.stream", this.name, messages);
     for await (const message of this.model.stream(messages, this.tools, abortController)) {
       assistantMessage = AssistantBaseMessageLike(message);
       yield message;
@@ -58,10 +63,12 @@ export default class SubAgent {
     }
     const toolMessages: LangChainToolMessage[] = [];
     for await (const message of ToolManager.getInstance().runTools(assistantMessage.tool_calls)) {
-      toolMessages.push(ToolBaseMessageLike(message));
+      if (!message.is_sub_agent) {
+        toolMessages.push(ToolBaseMessageLike(message));
+      }
       yield message;
     }
-    yield* this.stream([...messages,assistantMessage, ...toolMessages], abortController);
+    yield* this.stream([...messages, assistantMessage, ...toolMessages], abortController);
   }
 
   async clearMemory(): Promise<void> {

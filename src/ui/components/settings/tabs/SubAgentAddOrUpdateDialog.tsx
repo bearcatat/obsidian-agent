@@ -39,6 +39,7 @@ export const SubAgentAddOrUpdateDialog: React.FC<SubAgentAddOrUpdateDialogProps>
     return {
       name: subAgentData.name.trim(),
       systemPrompt: subAgentData.systemPrompt.trim(),
+      description: subAgentData.description.trim(),
       enabled: initialSubAgent.enabled, // 保持原始状态，不受表单影响
       modelId: subAgentData.modelId.trim(),
       tools: subAgentData.tools || [],
@@ -55,6 +56,10 @@ export const SubAgentAddOrUpdateDialog: React.FC<SubAgentAddOrUpdateDialogProps>
     }
     if (!cleanedSubAgent.systemPrompt) {
       setError("System prompt is required");
+      return;
+    }
+    if (!cleanedSubAgent.description) {
+      setError("Description is required");
       return;
     }
     if (!cleanedSubAgent.modelId) {
@@ -130,6 +135,16 @@ export const SubAgentAddOrUpdateDialog: React.FC<SubAgentAddOrUpdateDialogProps>
             />
           </FormField>
 
+          {/* Description */}
+          <FormField label="Description" required>
+            <Textarea
+              id="description"
+              value={subAgent.description}
+              onChange={(e) => setSubAgent({ ...subAgent, description: e.target.value })}
+              placeholder="Enter description for the SubAgent"
+              rows={3}
+            />
+          </FormField>
 
           {/* Error Message */}
           {error && (

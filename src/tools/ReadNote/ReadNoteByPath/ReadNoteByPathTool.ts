@@ -53,11 +53,13 @@ export default class ReadNoteByPathTool {
   }
 
   private static genResult(fileName: string, path: string, content: string): string {
-    return `title: ${fileName}
+    return `<metadata>
+title: ${fileName}
 note path: ${path}
-
+</metadata>
+<content>
 ${content}
-`;
+</content>`;
   }
 
   getTool(): StructuredToolInterface {

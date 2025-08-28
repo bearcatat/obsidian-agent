@@ -49,7 +49,6 @@ export class AgentViewLogic {
         }
         this.state.addMessage(message);
       }
-      console.log("messages", this.state.messages);
     } catch (error) {
       console.error('Failed to send message:', error);
     } finally {
@@ -97,6 +96,7 @@ export class AgentViewLogic {
   }
 
   resetForNewChat(app: App | undefined): void {
+    this.stopLoading();
     const activeNote = app?.workspace.getActiveFile();
     this.state.resetForNewChat();
     if (activeNote) {

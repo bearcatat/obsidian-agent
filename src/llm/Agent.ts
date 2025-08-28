@@ -69,9 +69,9 @@ export default class Agent {
     messages: BaseMessageLike[],
     abortController: AbortController,
   ): AsyncGenerator<Message, void> {
-    console.log("messages", messages);
     let assistantMessage: LangChainAssistantMessage|null = null ;
     const toolManager = ToolManager.getInstance();
+    console.log("Agent.stream", messages);
     for await (const message of ModelManager.getInstance().getAgentModel().stream(messages, toolManager.getMainAgentEnabledTools(), abortController)) {
       assistantMessage = AssistantBaseMessageLike(message);
       yield message;

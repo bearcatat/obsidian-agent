@@ -21,6 +21,7 @@ export const ToolSetting: React.FC = () => {
   const _initialSubAgent = {
     name: "",
     systemPrompt: "",
+    description: "",
     enabled: true,
     modelId: "",
     tools: [],
