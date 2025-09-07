@@ -14,6 +14,7 @@ export default class OpenAIGenerator {
 
   async newModel(modelConfig: ModelConfig): Promise<ChatOpenAI> {
     const isOSeries = modelConfig.name.startsWith("o");
+    const isGPT5Series = modelConfig.name.startsWith("gpt-5");
     const model = new ChatOpenAI({
       modelName: modelConfig.name,
       streaming: true,
@@ -23,7 +24,7 @@ export default class OpenAIGenerator {
       configuration: {
         baseURL: modelConfig.baseUrl || "https://api.openai.com/v1",
       },
-      ...(isOSeries
+      ...(isOSeries || isGPT5Series
         ? {
             maxCompletionTokens: modelConfig.maxTokens,
             temperature: modelConfig.temperature === undefined ? undefined : 1,
