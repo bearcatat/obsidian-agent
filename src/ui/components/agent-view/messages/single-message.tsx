@@ -84,25 +84,12 @@ const AgentMessage: React.FC<{
     );
 
     useEffect(() => {
-      let isUnmounting = false;
-      const cleanup = () => {
-        isUnmounting = true;
-        setTimeout(() => {
-          if (componentRef.current) {
-            componentRef.current.unload();
-            componentRef.current = null;
-          }
-        }, 0);
-      }
-      if (!app) return cleanup;
-      if (!contentRef.current) return cleanup;
+      if (!app || !contentRef.current) return;
 
       contentRef.current.innerHTML = "";
       if (!componentRef.current) {
         componentRef.current = new Component();
       }
-
-      if (isUnmounting) return cleanup;
 
       const processedContent = preprocess(content);
 
@@ -113,9 +100,14 @@ const AgentMessage: React.FC<{
         "",
         componentRef.current
       );
-      return cleanup;
-      // 如果这里出现bug，考虑app没有加进来的可能
-    }, [content, componentRef])
+
+      return () => {
+        if (componentRef.current) {
+          componentRef.current.unload();
+          componentRef.current = null;
+        }
+      };
+    }, [content, app, preprocess])
 
     return (
       <div className="" ref={contentRef}>{content}</div>

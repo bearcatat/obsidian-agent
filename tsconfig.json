@@ -22,7 +22,8 @@
       "ES6",
       "ES7"
     ],
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "ignoreDeprecations": "6.0"
   },
   "include": [
     "**/*.ts",

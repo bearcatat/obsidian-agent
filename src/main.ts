@@ -18,9 +18,20 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 		// 设置全局App访问器
 		setGlobalApp(this.app);
 		
-		await this.initializeSettings();
-		this.initializeUI();
-		await this.initializeAgent();
+		try {
+			// 优先初始化设置，确保模型配置可用
+			await this.initializeSettings();
+			
+			// 初始化UI，让用户看到界面
+			this.initializeUI();
+			
+			// 异步初始化Agent工具（非阻塞）
+			this.initializeAgent().catch(error => {
+				console.error('Agent initialization failed:', error);
+			});
+		} catch (error) {
+			console.error('Failed to initialize plugin:', error);
+		}
 	}
 
 	onunload() {
@@ -128,25 +139,18 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			const builtinTools = settingsState.builtinTools;
 			if (builtinTools && builtinTools.length > 0) {
 				await toolManager.updateBuiltinTools(builtinTools);
-				console.log('Builtin tools initialized successfully');
 			}
 			
 			// 初始化MCP服务器配置（只有在有配置时才初始化）
 			const mcpServers = settingsState.mcpServers;
 			if (mcpServers && mcpServers.length > 0) {
 				await toolManager.updateMCPServers(mcpServers);
-				console.log('MCP servers initialized successfully');
-			} else {
-				console.log('No MCP servers configured, skipping initialization');
 			}
 
 			// 初始化SubAgent配置（只有在有配置时才初始化）
 			const subAgents = settingsState.subAgents;
 			if (subAgents && subAgents.length > 0) {
 				await toolManager.updateSubAgents(subAgents);
-				console.log('SubAgents initialized successfully');
-			} else {
-				console.log('No SubAgents configured, skipping initialization');
 			}
 		} catch (error) {
 			console.error('Failed to initialize tools:', error);

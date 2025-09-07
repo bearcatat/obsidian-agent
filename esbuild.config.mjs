@@ -122,7 +122,7 @@ const context = await esbuild.context({
 		...builtins],
 	format: "cjs",
 	target: "es2018",
-	logLevel: "info",
+	logLevel: prod ? "warning" : "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
 	outfile: "main.js",
