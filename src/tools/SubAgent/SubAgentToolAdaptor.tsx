@@ -81,8 +81,9 @@ export default class SubAgentToolAdaptor {
 
   private render(messages: MessageV2[]): React.ReactNode {
     console.log("SubAgentToolAdaptor.render", messages);
+    const messagesOnlyWithTools = messages.filter((message: MessageV2) => message.role === "tool");
     return (
-      <SubAgentMessagesCard messages={messages} />
+      <SubAgentMessagesCard messages={messagesOnlyWithTools} />
     )
   }
 }
