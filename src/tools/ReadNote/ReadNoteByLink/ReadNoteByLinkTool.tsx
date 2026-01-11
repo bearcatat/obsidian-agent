@@ -93,9 +93,7 @@ ${content}
 
   private render(): React.ReactNode {
     return (
-      <div>
-        <p>Read note by link: {this.linkPath}</p>
-      </div>
+        `Read note by link: ${this.linkPath}`
     )
   }
 }

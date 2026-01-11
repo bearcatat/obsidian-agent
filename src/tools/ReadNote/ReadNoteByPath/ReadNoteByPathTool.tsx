@@ -88,9 +88,7 @@ ${content}
 
   private render(): React.ReactNode {
     return (
-      <div>
-        <p>Read note by path: {this.filePath}</p>
-      </div>
+      `Read note by path: ${this.filePath}`
     )
   }
 }

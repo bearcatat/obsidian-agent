@@ -56,9 +56,7 @@ export default class GetCurrentTimeTool {
 
   private render(): React.ReactNode {
     return (
-      <div>
-        <p>Current time: {this.timeInfo.formatted}</p>
-      </div>
+      `Current time: ${this.timeInfo.formatted}`
     )
   }
 }

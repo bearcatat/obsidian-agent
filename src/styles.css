@@ -848,3 +848,65 @@ If your plugin does not need CSS, delete this file.
   color: var(--text-error);
   opacity: 1;
 }
+
+/* Compact markdown content styles */
+.assistant-markdown-content {
+  line-height: 1.5;
+}
+
+.assistant-markdown-content p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.assistant-markdown-content h1,
+.assistant-markdown-content h2,
+.assistant-markdown-content h3,
+.assistant-markdown-content h4,
+.assistant-markdown-content h5,
+.assistant-markdown-content h6 {
+  margin-top: 0.75em;
+  margin-bottom: 0.5em;
+}
+
+.assistant-markdown-content ul,
+.assistant-markdown-content ol {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  padding-left: 1.5em;
+}
+
+.assistant-markdown-content li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.assistant-markdown-content pre {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  padding: 0.5em;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+}
+
+.assistant-markdown-content code {
+  padding: 0.125em 0.25em;
+  border-radius: 3px;
+}
+
+.assistant-markdown-content blockquote {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  padding-left: 1em;
+  border-left: 2px solid var(--background-modifier-border);
+}
+
+.assistant-markdown-content table {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.assistant-markdown-content hr {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}

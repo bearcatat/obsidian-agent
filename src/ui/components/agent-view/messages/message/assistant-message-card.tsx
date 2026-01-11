@@ -37,7 +37,7 @@ export function AssistantMessageCard({ content }: Props) {
 
     return (
         <MessageCard>
-            <div ref={contentRef}>{content}</div>
+            <div ref={contentRef} className="assistant-markdown-content tw-leading-tight">{content}</div>
         </MessageCard>
     )
 }

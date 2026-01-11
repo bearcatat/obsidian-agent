@@ -38,9 +38,7 @@ export default class MCPToolAdaptor implements ToolClass {
 
   private render(): React.ReactNode {
     return (
-      <div>
-        <p>MCPToolAdaptor: {this.tool.name}</p>
-      </div>
+      `MCPToolAdaptor: ${this.tool.name}`
     )
   }
 }
