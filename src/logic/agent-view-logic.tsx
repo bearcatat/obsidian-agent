@@ -4,6 +4,7 @@ import { App, TFile } from "obsidian";
 import ModelManager from "../llm/ModelManager";
 import Agent from "../llm/Agent";
 import { v4 as uuidv4 } from "uuid";
+import { UserMessage } from "@/messages/user-message";
 
 
 export class AgentViewLogic {
@@ -35,12 +36,13 @@ export class AgentViewLogic {
     try {
       this.setTitleIfNewChat(content);
       // 添加用户消息
-      const userMessage: Message = {
-        id: uuidv4(),
-        content,
-        role: 'user',
-        isStreaming: false,
-      };
+      // const userMessage: Message = {
+      //   id: uuidv4(),
+      //   content,
+      //   role: 'user',
+      //   isStreaming: false,
+      // };
+      const userMessage = new UserMessage(content);
       this.state.addMessage(userMessage);
       const agent = Agent.getInstance();
       for await (const message of agent.query(userMessage, this.state.activeNote, this.state.contextNotes)) {

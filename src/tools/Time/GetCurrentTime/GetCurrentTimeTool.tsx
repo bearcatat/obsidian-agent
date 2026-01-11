@@ -3,14 +3,15 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { TimeInfo, convertDateToTimeInfo } from "../common/common";
 import { StructuredToolInterface } from "@langchain/core/tools";
-import { Message } from "../../../types";
-import { v4 as uuidv4 } from "uuid";
+import { MessageV2 } from "../../../types";
 import { ToolCall } from "@langchain/core/dist/messages/tool";
-import { ErrorMessage } from "@/utils";
+import { ErrorMessage } from "@/messages/error-message";
+import { ToolMessage } from "@/messages/tool-message";
 
 export default class GetCurrentTimeTool {
   private static instance: GetCurrentTimeTool;
   private tool: StructuredToolInterface;
+  private timeInfo: TimeInfo;
 
   static getInstance(): GetCurrentTimeTool {
     if (!GetCurrentTimeTool.instance) {
@@ -27,34 +28,37 @@ export default class GetCurrentTimeTool {
     });
   }
 
-
   private getCurrentTime(): TimeInfo {
     const now = new Date();
     return convertDateToTimeInfo(now);
   }
-  
+
   getTool(): StructuredToolInterface {
     return this.tool;
   }
 
-  async *run(toolCall: ToolCall): AsyncGenerator<Message, void> {
+  async *run(toolCall: ToolCall): AsyncGenerator<MessageV2, void> {
     if (!toolCall.id) {
       console.error(`Tool call id is undefined`);
       return;
     }
     try {
-      const timeInfo = await this.tool.invoke(toolCall.args);
-      yield {
-        id: uuidv4(),
-        content: JSON.stringify(timeInfo, null, 2),
-        role: "tool",
-        name: this.tool.name,
-        tool_call_id: toolCall.id,
-        isStreaming: false,
-        call_tool_msg: `current time: ${timeInfo.formatted}`,
-      };
+      const toolMessage = ToolMessage.fromToolCall(toolCall);
+      this.timeInfo = await this.tool.invoke(toolCall.args);
+      toolMessage.setContent(JSON.stringify(this.timeInfo, null, 2));
+      toolMessage.setChildren(this.render());
+      toolMessage.close();
+      yield toolMessage;
     } catch (error) {
-      yield ErrorMessage(error as string);
+      yield new ErrorMessage(error as string);
     }
+  }
+
+  private render(): React.ReactNode {
+    return (
+      <div>
+        <p>Current time: {this.timeInfo.formatted}</p>
+      </div>
+    )
   }
 }

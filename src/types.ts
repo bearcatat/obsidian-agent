@@ -4,6 +4,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { ToolCall } from "@langchain/core/dist/messages/tool";
 import { StructuredToolInterface } from '@langchain/core/tools';
+import { BaseMessageLike } from '@langchain/core/messages';
 
 
 /**
@@ -32,6 +33,15 @@ export interface Message {
   tool_call_id?: string;
   // sub agent
   is_sub_agent?: boolean;
+}
+
+export interface MessageV2 {
+  id: string;
+  role: "user" | "assistant" | "tool" | "thinking" | "error" | "none";
+  isStreaming: boolean;
+  content: string;
+  render(): React.ReactElement;
+  toBaseMessageLike(): BaseMessageLike|undefined;
 }
 
 export interface ModelConfig {
@@ -86,13 +96,13 @@ export type LangChainToolMessage = {
 };
 
 export interface Streamer {
-  stream(messages: any, tools: StructuredToolInterface[], abortController: AbortController): AsyncGenerator<Message, void>;
-  invoke(messages: any, tools: StructuredToolInterface[], abortController: AbortController): Promise<Message>;
+  stream(messages: any, tools: StructuredToolInterface[], abortController: AbortController): AsyncGenerator<MessageV2, void>;
+  invoke(messages: any, tools: StructuredToolInterface[], abortController: AbortController): Promise<MessageV2>;
 }
 
 export interface ToolClass {
   getTool(): StructuredToolInterface;
-  run(toolCall: ToolCall): AsyncGenerator<Message, void>;
+  run(toolCall: ToolCall): AsyncGenerator<MessageV2, void>;
 }
 
 // MCP Tool Configuration

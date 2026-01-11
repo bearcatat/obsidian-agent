@@ -1,5 +1,5 @@
 import { BaseMessageLike } from "@langchain/core/messages";
-import { Message } from "@/types";
+import { Message, MessageV2 } from "@/types";
 import { UserBaseMessageLike, AssistantBaseMessageLike, ToolBaseMessageLike } from "@/utils";
 
 export default class AgentMemoryManager {
@@ -13,25 +13,29 @@ export default class AgentMemoryManager {
     return this.messages;
   }
 
-  appendMessage(message: Message): void {
+  appendMessage(message: Message | MessageV2): void {
     const baseMessage = this.handleMessage(message);
     if (baseMessage) {
       this.messages.push(baseMessage);
     }
   }
 
-  handleMessage(message: Message): BaseMessageLike | undefined {
-    if (message.is_sub_agent) {
+  handleMessage(message: Message | MessageV2): BaseMessageLike | undefined {
+    if ('toBaseMessageLike' in message && typeof message.toBaseMessageLike === 'function') {
+      return message.toBaseMessageLike();
+    }
+    const msg = message as Message;
+    if (msg.is_sub_agent) {
       return undefined;
     }
-    if (message.role === "user") {
-      return UserBaseMessageLike(message);
+    if (msg.role === "user") {
+      return UserBaseMessageLike(msg);
     }
-    if (message.role === "assistant") {
-      return AssistantBaseMessageLike(message);
+    if (msg.role === "assistant") {
+      return AssistantBaseMessageLike(msg);
     }
-    if (message.role === "tool") {
-      return ToolBaseMessageLike(message);
+    if (msg.role === "tool") {
+      return ToolBaseMessageLike(msg);
     }
     return undefined;
   }

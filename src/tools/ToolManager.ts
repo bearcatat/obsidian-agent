@@ -4,7 +4,7 @@ import ReadNoteByPathTool from "./ReadNote/ReadNoteByPath/ReadNoteByPathTool";
 import ReadNoteByLinkTool from "./ReadNote/ReadNoteByLink/ReadNoteByLinkTool";
 import { StructuredToolInterface } from "@langchain/core/tools";
 import { ToolCall } from "@langchain/core/dist/messages/tool";
-import { Message, MCPServerConfig, SubAgentConfig } from "../types";
+import { MessageV2, MCPServerConfig, SubAgentConfig } from "../types";
 import MCPManager from "./MCP/MCPManager";
 import SubAgentManager from "./SubAgent/SubAgentManager";
 import MCPToolAdaptor from "./MCP/MCPToolAdaptor";
@@ -105,7 +105,7 @@ export default class ToolManager {
   }
 
 
-  async *runTools(toolCalls: ToolCall[]): AsyncGenerator<Message, void> {
+  async *runTools(toolCalls: ToolCall[]): AsyncGenerator<MessageV2, void> {
     for (const toolCall of toolCalls) {
       const tool = this.toolsMap.get(toolCall.name);
       if (tool) {

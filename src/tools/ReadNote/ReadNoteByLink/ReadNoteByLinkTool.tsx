@@ -3,14 +3,16 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { DESCRIPTION } from "./prompts";
 import { StructuredToolInterface } from "@langchain/core/tools";
-import { Message } from "../../../types";
-import { v4 as uuidv4 } from "uuid";
+import { MessageV2 } from "../../../types";
 import { ToolCall } from "@langchain/core/dist/messages/tool";
-import { ErrorMessage, getGlobalApp } from "@/utils";
+import { getGlobalApp } from "@/utils";
+import { ErrorMessage } from "@/messages/error-message";
+import { ToolMessage } from "@/messages/tool-message";
 
 export default class ReadNoteByLinkTool {
   private static instance: ReadNoteByLinkTool;
   private tool: StructuredToolInterface;
+  private linkPath: string;
 
   static getInstance(): ReadNoteByLinkTool {
     if (!ReadNoteByLinkTool.instance) {
@@ -71,24 +73,29 @@ ${content}
     return this.tool;
   }
 
-  async *run(toolCall: ToolCall): AsyncGenerator<Message, void> {
+  async *run(toolCall: ToolCall): AsyncGenerator<MessageV2, void> {
     if (!toolCall.id) {
       console.error(`Tool call id is undefined`);
       return;
     }
     try {
+      const toolMessage = ToolMessage.fromToolCall(toolCall);
+      this.linkPath = toolCall.args.linkPath;
       const result = await this.tool.invoke(toolCall.args);
-      yield {
-        id: uuidv4(),
-        content: result,
-        role: "tool",
-        name: this.tool.name,
-        tool_call_id: toolCall.id,
-        isStreaming: false,
-        call_tool_msg: `读取链接笔记: ${toolCall.args.linkPath}`,
-      };
+      toolMessage.setContent(result);
+      toolMessage.setChildren(this.render());
+      toolMessage.close();
+      yield toolMessage;
     } catch (error) {
-      yield ErrorMessage(error as string);
+      yield new ErrorMessage(error as string);
     }
+  }
+
+  private render(): React.ReactNode {
+    return (
+      <div>
+        <p>Read note by link: {this.linkPath}</p>
+      </div>
+    )
   }
 }

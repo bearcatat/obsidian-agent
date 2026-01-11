@@ -1,20 +1,20 @@
 import { AIMessageChunk } from "@langchain/core/messages";
 import { ToolCallChunk } from "@langchain/core/dist/messages/tool";
 import { ToolCall } from "@langchain/core/dist/messages/tool";
-import { Message, AgentModel, Streamer } from "@/types";
+import { MessageV2, AgentModel, Streamer, Message } from "@/types";
 import { withSuppressedTokenWarnings } from "@/utils";
 import { StructuredToolInterface } from "@langchain/core/tools";
+import { AssistantMessage } from "@/messages/assistant-message";
+import { ThinkingMessage } from "@/messages/thinking-message";
 
 export default class GeneralStreamer implements Streamer {
   private model: AgentModel;
-  private lastSent: Message = {
-    id: "",
-    role: "none",
-    content: "",
-    tool_calls: [],
-    isStreaming: true,
-  };
+
   private toolCallChunkMap: Map<number, ToolCallChunk> = new Map();
+  private thinkingMessage: ThinkingMessage = ThinkingMessage.createEmpty("");
+  private assistantMessage: AssistantMessage = AssistantMessage.createEmpty("");
+  private lastSentMessageRole: "assistant" | "thinking" | "none" = "none";
+
 
   constructor(model: AgentModel) {
     this.model = model;
@@ -24,21 +24,13 @@ export default class GeneralStreamer implements Streamer {
     messages: any,
     tools: StructuredToolInterface[],
     abortController: AbortController,
-  ): AsyncGenerator<Message, void> {
+  ): AsyncGenerator<MessageV2, void> {
     try {
-      const streamOptions: any = {
-        signal: abortController.signal,
-      };
-      
-      // 只有当有工具时才设置 tools 和 tool_choice
-      if (tools && tools.length > 0) {
-        streamOptions.tools = tools;
-        streamOptions.tool_choice = "auto";
-      }
-
+      const streamOptions = this.buildModelOptions(tools, abortController);
       const chatStream = await withSuppressedTokenWarnings(() => {
         return this.model.stream(messages, streamOptions);
       });
+
       for await (const chunk of chatStream) {
         yield* this.generateMessage(chunk);
       }
@@ -54,33 +46,26 @@ export default class GeneralStreamer implements Streamer {
     messages: any,
     tools: StructuredToolInterface[],
     abortController: AbortController,
-  ): Promise<Message> {
-    const invokeOptions: any = {
-      signal: abortController.signal,
-    };
-    
-    // 只有当有工具时才设置 tools 和 tool_choice
-    if (tools && tools.length > 0) {
-      invokeOptions.tools = tools;
-      invokeOptions.tool_choice = "auto";
-    }
-
+  ): Promise<MessageV2> {
+    const invokeOptions = this.buildModelOptions(tools, abortController);
     const response = await withSuppressedTokenWarnings(() => {
       return this.model.invoke(messages, invokeOptions);
     });
-
-    return {
-      id: response.id || `invoke-${Date.now()}`,
-      role: "assistant",
-      content: typeof response.content === "string"
-        ? response.content
-        : response.content.toString(),
-      tool_calls: response.tool_calls || [],
-      isStreaming: false,
-    };
+    return AssistantMessage.fromAIMessageChunk(response);
   }
 
-  private async *generateMessage(chunk: AIMessageChunk): AsyncGenerator<Message, void> {
+  private buildModelOptions(tools: StructuredToolInterface[], abortController: AbortController): any {
+    const options: any = {
+      signal: abortController.signal,
+    };
+    if (tools && tools.length > 0) {
+      options.tools = tools;
+      options.tool_choice = "auto";
+    }
+    return options;
+  }
+
+  private async *generateMessage(chunk: AIMessageChunk): AsyncGenerator<MessageV2, void> {
     if (this.isThinkingChunk(chunk)) {
       yield* this.generateThinkingMessage(chunk);
     } else if (this.isContentChunk(chunk)) {
@@ -93,63 +78,52 @@ export default class GeneralStreamer implements Streamer {
     return chunk.additional_kwargs?.reasoning_content !== undefined && chunk.additional_kwargs?.reasoning_content !== null;
   }
 
-  private resetLastSentForThinking(chunk: AIMessageChunk) {
+  private async *generateThinkingMessage(chunk: AIMessageChunk): AsyncGenerator<MessageV2, void> {
+    this.resetLastSentForThinkingIfNeeded(chunk);
+    this.thinkingMessage.appendContent(chunk.additional_kwargs?.reasoning_content as string || "");
+    yield this.thinkingMessage;
+    this.lastSentMessageRole = "thinking";
+  }
+
+  private resetLastSentForThinkingIfNeeded(chunk: AIMessageChunk) {
     if (!chunk.id) {
       return;
     }
-    if (this.lastSent.role != "thinking") {
-      this.lastSent = {
-        id: chunk.id + "-thinking",
-        role: "thinking",
-        content: "",
-        tool_calls: [],
-        isStreaming: true,
-      }
+    if (!this.thinkingMessage.isMatch(chunk)) {
+      this.thinkingMessage = ThinkingMessage.createEmpty(chunk.id);
     }
-  }
-
-  private async *generateThinkingMessage(chunk: AIMessageChunk): AsyncGenerator<Message, void> {
-    this.resetLastSentForThinking(chunk);
-    this.lastSent.content += chunk.additional_kwargs?.reasoning_content;
-    yield { ...this.lastSent };
   }
 
   private isContentChunk(chunk: AIMessageChunk): boolean {
     return chunk.content !== undefined && chunk.content !== null;
   }
 
-  async *resetLastSentForContent(chunk: AIMessageChunk): AsyncGenerator<Message, void> {
+  async *resetLastSentForContentIfNeeded(chunk: AIMessageChunk): AsyncGenerator<MessageV2, void> {
+    if (this.lastSentMessageRole == "thinking") {
+      this.thinkingMessage.close();
+      yield this.thinkingMessage;
+    }
     if (!chunk.id) {
       return;
     }
-    if (this.lastSent.role == "assistant") {
-      return;
-    }
-    if (this.lastSent.role == "thinking") {
-      this.lastSent.isStreaming = false;
-      yield { ...this.lastSent };
-    }
-    this.lastSent = {
-      id: chunk.id,
-      role: "assistant",
-      content: "",
-      tool_calls: [],
-      isStreaming: true,
+    if (!this.assistantMessage.isMatch(chunk)) {
+      this.assistantMessage = AssistantMessage.createEmpty(chunk.id);
     }
   }
 
-  private async *generateContentMessage(chunk: AIMessageChunk): AsyncGenerator<Message, void> {
-    yield* this.resetLastSentForContent(chunk);
+  private async *generateContentMessage(chunk: AIMessageChunk): AsyncGenerator<MessageV2, void> {
+    yield* this.resetLastSentForContentIfNeeded(chunk);
     if (typeof chunk.content === "string") {
-      this.lastSent.content += chunk.content;
+      this.assistantMessage.appendContent(chunk.content);
     } else if (Array.isArray(chunk.content)) {
       chunk.content.forEach((item) => {
         if (item.type === "text") {
-          this.lastSent.content += item.text;
+          this.assistantMessage.appendContent(item.text);
         }
       });
     }
-    yield { ...this.lastSent };
+    yield this.assistantMessage;
+    this.lastSentMessageRole = "assistant";
   }
 
   private handleToolCall(chunk: AIMessageChunk) {
@@ -186,29 +160,23 @@ export default class GeneralStreamer implements Streamer {
     }
   }
 
-  private async *close(): AsyncGenerator<Message, void> {
-    this.lastSent.isStreaming = false;
+  private async *close(): AsyncGenerator<MessageV2, void> {
+    this.assistantMessage.close();
     this.setToolCalls();
-    yield { ...this.lastSent };
-    this.lastSent = {
-      id: "",
-      role: "none",
-      content: "",
-      tool_calls: [],
-      isStreaming: true,
-    }
+    yield this.assistantMessage;
+    this.lastSentMessageRole = "none";
+    this.assistantMessage = AssistantMessage.createEmpty("");
+    this.thinkingMessage = ThinkingMessage.createEmpty("");
     this.toolCallChunkMap.clear();
   }
 
   private setToolCalls() {
-    const toolCalls: ToolCall[] = [];
     this.toolCallChunkMap.forEach((toolCallChunk, index) => {
       const toolCall = this.toolCallChunkToToolCall(toolCallChunk);
       if (toolCall) {
-        toolCalls.push(toolCall);
+        this.assistantMessage.appendToolCall(toolCall);
       }
     });
-    this.lastSent.tool_calls = [...toolCalls];
   }
 
   private toolCallChunkToToolCall(toolCallChunk: ToolCallChunk): ToolCall | undefined {

@@ -1,12 +1,15 @@
-import { LangChainAssistantMessage, LangChainToolMessage, Message } from "@/types";
+import { LangChainAssistantMessage, LangChainToolMessage, Message, MessageV2 } from "@/types";
 import ModelManager from "./ModelManager";
 import AgentMemoryManager from "./AgentMemoryManager";
 import { BaseMessageLike } from "@langchain/core/messages";
-import { AssistantBaseMessageLike, ErrorMessage, ToolBaseMessageLike } from "@/utils";
+import { AssistantBaseMessageLike, ToolBaseMessageLike } from "@/utils";
 import ToolManager from "@/tools/ToolManager";
 import { getSystemPrompts, getTitleGenerationPrompt } from "./system-prompts";
 import { TFile } from "obsidian";
 import { AgentState } from "@/state/agent-state-impl";
+import { UserMessage } from "@/messages/user-message";
+import { AssistantMessage } from "@/messages/assistant-message";
+import { ErrorMessage } from "@/messages/error-message";
 
 export default class Agent {
   private static instance: Agent;
@@ -25,7 +28,7 @@ export default class Agent {
   }
 
   // query 
-  async *query(message: Message, activeNote: TFile|null, contextNotes: TFile[]): AsyncGenerator<Message, void> {
+  async *query(message: UserMessage, activeNote: TFile|null, contextNotes: TFile[]): AsyncGenerator<MessageV2, void> {
     const enhancedMessage = this.getFullUserMessage(message, activeNote, contextNotes);
     this.memoryManager.appendMessage(enhancedMessage);
     const chatHistory = this.memoryManager.getMessages();
@@ -43,7 +46,7 @@ export default class Agent {
     }
   }
 
-  getFullUserMessage(message: Message, activeNote: TFile|null, contextNotes: TFile[]): Message {
+  getFullUserMessage(message: UserMessage, activeNote: TFile|null, contextNotes: TFile[]): UserMessage {
     const contextInfo = [];
     
     if (activeNote) {
@@ -59,25 +62,24 @@ export default class Agent {
       ? `## 上下文信息\n${contextInfo.join('\n')}\n\n## 用户消息\n${message.content}`
       : message.content;
       
-    return {
-      ...message,
-      content: enhancedContent
-    };
+    return new UserMessage(enhancedContent);
   }
 
   async *stream(
     messages: BaseMessageLike[],
     abortController: AbortController,
-  ): AsyncGenerator<Message, void> {
-    let assistantMessage: LangChainAssistantMessage|null = null ;
+  ): AsyncGenerator<MessageV2, void> {
+    let assistantMessage: AssistantMessage|null = null;
     const toolManager = ToolManager.getInstance();
     console.log("Agent.stream", messages);
     for await (const message of ModelManager.getInstance().getAgentModel().stream(messages, toolManager.getMainAgentEnabledTools(), abortController)) {
-      assistantMessage = AssistantBaseMessageLike(message);
       yield message;
+      if (message.role === "assistant") {
+        assistantMessage = message as AssistantMessage;
+      }
     }
     if (!assistantMessage) {  
-      yield ErrorMessage("Error: No assistant message");
+      yield new ErrorMessage("Error: No assistant message");
       return;
     }
     if (!assistantMessage.tool_calls || assistantMessage.tool_calls.length === 0) {
@@ -85,14 +87,14 @@ export default class Agent {
     }
     const toolMessages: LangChainToolMessage[] = [];
     for await (const message of toolManager.runTools(assistantMessage.tool_calls)) {
-      if (!message.is_sub_agent) {
-        toolMessages.push(ToolBaseMessageLike(message));
-      } 
       yield message;
+      if (!message.isStreaming) {
+        toolMessages.push(message.toBaseMessageLike() as LangChainToolMessage);
+      }
     }
 
     // 递归调用
-    yield* this.stream([...messages,assistantMessage, ...toolMessages], abortController);
+    yield* this.stream([...messages,assistantMessage.toBaseMessageLike(), ...toolMessages], abortController);
   }
 
   // 生成聊天标题

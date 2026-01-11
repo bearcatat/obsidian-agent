@@ -3,14 +3,16 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { DESCRIPTION } from "./prompts";
 import { StructuredToolInterface } from "@langchain/core/tools";
-import { Message } from "../../../types";
-import { v4 as uuidv4 } from "uuid";
+import { MessageV2 } from "../../../types";
 import { ToolCall } from "@langchain/core/dist/messages/tool";
-import { ErrorMessage, getGlobalApp } from "@/utils";
+import { getGlobalApp } from "@/utils";
+import { ErrorMessage } from "@/messages/error-message";
+import { ToolMessage } from "@/messages/tool-message";
 
 export default class ReadNoteByPathTool {
   private static instance: ReadNoteByPathTool;
   private tool: StructuredToolInterface;
+  private filePath: string;
 
   static getInstance(): ReadNoteByPathTool {
     if (!ReadNoteByPathTool.instance) {
@@ -66,24 +68,29 @@ ${content}
     return this.tool;
   }
 
-  async *run(toolCall: ToolCall): AsyncGenerator<Message, void> {
+  async *run(toolCall: ToolCall): AsyncGenerator<MessageV2, void> {
     if (!toolCall.id) {
       console.error(`Tool call id is undefined`);
       return;
     }
     try {
+      const toolMessage = ToolMessage.fromToolCall(toolCall);
+      this.filePath = toolCall.args.filePath;
       const result = await this.tool.invoke(toolCall.args);
-      yield {
-        id: uuidv4(),
-        content: result,
-        role: "tool",
-        name: this.tool.name,
-        tool_call_id: toolCall.id,
-        isStreaming: false,
-        call_tool_msg: `读取笔记: ${toolCall.args.filePath}`,
-      };
+      toolMessage.setContent(result);
+      toolMessage.setChildren(this.render());
+      toolMessage.close();
+      yield toolMessage;
     } catch (error) {
-      yield ErrorMessage(error as string);
+      yield new ErrorMessage(error as string);
     }
+  }
+
+  private render(): React.ReactNode {
+    return (
+      <div>
+        <p>Read note by path: {this.filePath}</p>
+      </div>
+    )
   }
 }
