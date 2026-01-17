@@ -16,6 +16,11 @@ export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
     name: "readNoteByLink",
     description: "Read note content by link",
     enabled: true,
+  },
+  {
+    name: "askQuestion",
+    description: "Ask a question",
+    enabled: true,
   }
 ];
 

@@ -8,6 +8,7 @@ import { MessageV2, MCPServerConfig, SubAgentConfig } from "../types";
 import MCPManager from "./MCP/MCPManager";
 import SubAgentManager from "./SubAgent/SubAgentManager";
 import MCPToolAdaptor from "./MCP/MCPToolAdaptor";
+import QuestionTool from "./Question/QuestionTool";
 
 export default class ToolManager {
   private static instance: ToolManager;
@@ -15,6 +16,7 @@ export default class ToolManager {
     GetCurrentTimeTool.getInstance(),
     ReadNoteByPathTool.getInstance(),
     ReadNoteByLinkTool.getInstance(),
+    QuestionTool.getInstance(),
   ];
   private mainAgentEnableTools: ToolClass[] = [];
   private mcpManager: MCPManager;

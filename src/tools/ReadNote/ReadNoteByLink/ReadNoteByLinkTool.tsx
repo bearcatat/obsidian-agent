@@ -1,4 +1,4 @@
-import { MetadataCache, Vault, getLinkpath } from "obsidian";
+import { getLinkpath } from "obsidian";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { DESCRIPTION } from "./prompts";
@@ -12,7 +12,6 @@ import { ToolMessage } from "@/messages/tool-message";
 export default class ReadNoteByLinkTool {
   private static instance: ReadNoteByLinkTool;
   private tool: StructuredToolInterface;
-  private linkPath: string;
 
   static getInstance(): ReadNoteByLinkTool {
     if (!ReadNoteByLinkTool.instance) {
@@ -80,10 +79,9 @@ ${content}
     }
     try {
       const toolMessage = ToolMessage.fromToolCall(toolCall);
-      this.linkPath = toolCall.args.linkPath;
       const result = await this.tool.invoke(toolCall.args);
       toolMessage.setContent(result);
-      toolMessage.setChildren(this.render());
+      toolMessage.setChildren(this.render(toolCall.args.linkPath));
       toolMessage.close();
       yield toolMessage;
     } catch (error) {
@@ -91,9 +89,9 @@ ${content}
     }
   }
 
-  private render(): React.ReactNode {
+  private render(linkPath: string): React.ReactNode {
     return (
-        `Read note by link: ${this.linkPath}`
+        `Read note by link: ${linkPath}`
     )
   }
 }

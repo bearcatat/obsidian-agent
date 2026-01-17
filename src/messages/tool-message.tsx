@@ -11,7 +11,7 @@ export class ToolMessage implements MessageV2 {
     public tool_call_id: string;
     public content: string;
     public role: "tool" = "tool";
-
+    public isCustomized: boolean;
     private children: React.ReactNode;
     private constructor(name: string, tool_call_id: string) {
         this.id = uuidv4();
@@ -19,13 +19,16 @@ export class ToolMessage implements MessageV2 {
         this.name = name;
         this.tool_call_id = tool_call_id;
         this.content = "";
+        this.isCustomized = false;
     }
 
     static fromToolCall(toolCall: ToolCall): ToolMessage {
         return new ToolMessage(toolCall.name, toolCall.id?? "");
     }
     render(): React.ReactElement {
-        return <ToolMessageCard>{this.children}</ToolMessageCard>;
+        return (
+            <ToolMessageCard>{this.children}</ToolMessageCard>
+        )
     }
     toBaseMessageLike(): BaseMessageLike {
         return {

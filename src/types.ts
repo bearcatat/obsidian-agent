@@ -154,3 +154,9 @@ export interface SubAgentConfig {
   modelId: string;
   tools: SubAgentToolConfig[];
 }
+
+export interface Question{
+  id: string;
+  question: string;
+  options: string[];
+}

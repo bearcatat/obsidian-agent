@@ -183,17 +183,26 @@ export class SettingsState implements ISettingsState {
 
   // 设置所有数据（用于加载）
   setAllData(data: SettingsStateData): void {
+    const builtinTools = data.builtinTools 
+    for (const builtinTool of getDefaultBuiltinTools()) {
+      const existingBuiltinTool = builtinTools.find(bt => bt.name === builtinTool.name);
+      if (!existingBuiltinTool) {
+        builtinTools.push(builtinTool);
+      }
+    }
     this._data = {
       // 确保所有字段都有默认值，兼容旧数据
       models: data.models || [],
       defaultAgentModel: data.defaultAgentModel || null,
       titleModel: data.titleModel || null,
       mcpServers: data.mcpServers || [],
-      builtinTools: data.builtinTools || getDefaultBuiltinTools(),
+      builtinTools: builtinTools,
       subAgents: data.subAgents || [],
     };
     this.notify();
   }
+
+
 
   // 清理所有监听器
   clearListeners(): void {

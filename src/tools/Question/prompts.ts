@@ -1,0 +1,1 @@
+export const DESCRIPTION = `这是一个向用户提问的工具，你可根据用户的问答，继续下一步操作。`

@@ -17,7 +17,7 @@ export function clone(settingsState: ISettingsState): ISettingsState {
     defaultAgentModel: settingsState.defaultAgentModel,
     titleModel: settingsState.titleModel,
     mcpServers: settingsState.mcpServers || [],
-    builtinTools: settingsState.builtinTools || getDefaultBuiltinTools(),
+    builtinTools: settingsState.builtinTools,
     subAgents: settingsState.subAgents || [],
   };
 }
