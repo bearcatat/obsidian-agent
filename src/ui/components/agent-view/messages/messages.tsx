@@ -67,7 +67,7 @@ export const SubAgentMessagesCard = memo(({ messages }: Props) => {
   return (
     <div className="tw-flex tw-h-full tw-flex-1 tw-flex-col tw-overflow-hidden">
       <div
-        className="tw-mt-auto tw-box-border tw-flex tw-w-full tw-flex-1 tw-select-text tw-flex-col tw-items-start tw-justify-start tw-overflow-y-auto tw-scroll-smooth tw-break-words tw-text-[calc(var(--font-text-size)_-_2px)] tw-space-y-0"
+        className="tw-mt-auto tw-box-border tw-flex tw-w-full tw-flex-1 tw-select-text tw-flex-col tw-items-start tw-justify-start tw-overflow-y-auto tw-scroll-smooth tw-break-words tw-text-[calc(var(--font-text-size)_-_2px)] tw-space-y-1"
       >
         {messageElements}
       </div>

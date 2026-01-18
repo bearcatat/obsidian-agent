@@ -11,7 +11,7 @@ export function MessageCard({ has_border=false, children }: Props) {
             <div className={cn(
                 "tw-group tw-flex tw-rounded-md tw-flex-col",
                 has_border && "tw-border tw-border-solid tw-border-border tw-p-1",
-                !has_border && "tw-p-0"
+                !has_border && "tw-py-0 tw-px-2"
             )}>
                 {children}
             </div>

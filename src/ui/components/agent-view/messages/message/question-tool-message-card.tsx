@@ -31,7 +31,7 @@ export const QuestionToolMessageCard = ({ origin_answered_state, question, answe
         <Collapsible
             open={isOpen}
             onOpenChange={setIsOpen}
-            className="tw-w-full tw-border tw-border-solid tw-border-border tw-py-1"
+            className="tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-border tw-py-1"
         >
             <div className="tw-flex tw-items-center tw-justify-between tw-px-2 tw-py-0">
                 <div>{isAnswered ? "Answered" : "Question"}: {question.question}</div>
