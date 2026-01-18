@@ -21,6 +21,11 @@ export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
     name: "askQuestion",
     description: "Ask a question",
     enabled: true,
+  },
+  {
+    name: "editFile",
+    description: "Edit file content by replacing text",
+    enabled: true,
   }
 ];
 

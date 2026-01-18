@@ -160,3 +160,12 @@ export interface Question{
   question: string;
   options: string[];
 }
+
+export interface FileEdit {
+  id: string;
+  file_path: string;
+  old_string: string;
+  new_string: string;
+  old_content?: string;  // 完整旧文件内容（用于 diff 显示）
+  new_content?: string;  // 完整新文件内容（用于 diff 显示）
+}
