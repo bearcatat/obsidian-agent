@@ -910,3 +910,42 @@ If your plugin does not need CSS, delete this file.
   margin-top: 0.75em;
   margin-bottom: 0.75em;
 }
+
+/* Style for code blocks in assistant messages */
+.assistant-markdown-content pre {
+  position: relative;
+}
+
+/* Fix copy button position for code blocks in assistant messages */
+.assistant-markdown-content pre .copy-code-button,
+.assistant-markdown-content pre button[aria-label*="copy" i],
+.assistant-markdown-content pre button[title*="copy" i] {
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: auto !important;
+  left: auto !important;
+  padding: 4px 8px;
+  color: var(--text-muted);
+  background-color: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 0 4px 0 4px;
+  font-size: 0.8em;
+  transition: all 0.1s ease;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.assistant-markdown-content pre:hover .copy-code-button,
+.assistant-markdown-content pre:hover button[aria-label*="copy" i],
+.assistant-markdown-content pre:hover button[title*="copy" i] {
+  opacity: 1;
+}
+
+.assistant-markdown-content pre .copy-code-button:hover,
+.assistant-markdown-content pre button[aria-label*="copy" i]:hover,
+.assistant-markdown-content pre button[title*="copy" i]:hover {
+  background-color: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
