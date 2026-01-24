@@ -183,11 +183,16 @@ export default class GeneralStreamer implements Streamer {
     if (!toolCallChunk.args || !toolCallChunk.name || !toolCallChunk.id) {
       return undefined;
     }
-    return {
-      name: toolCallChunk.name,
-      args: JSON.parse(toolCallChunk.args),
-      id: toolCallChunk.id,
-      type: "tool_call",
-    };
+    try {
+      return {
+        name: toolCallChunk.name,
+        args: JSON.parse(toolCallChunk.args),
+        id: toolCallChunk.id,
+        type: "tool_call",
+      };
+    } catch (error) {
+      console.error("Failed to parse tool call args:", error, "args:", toolCallChunk.args);
+      return undefined;
+    }
   }
 }

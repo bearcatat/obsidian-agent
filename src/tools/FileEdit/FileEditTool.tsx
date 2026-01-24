@@ -26,8 +26,8 @@ export default class FileEditTool {
       name: "editFile",
       description: DESCRIPTION,
       schema: z.object({
-        file_path: z.string().describe("要修改文件的路径（相对于 vault 根目录，例如：'项目/文档/README.md'）"),
-        old_string: z.string().describe("要替换的文本（在文件中必须是唯一的，创建新文件时为空）"),
+        file_path: z.string().describe("要修改笔记的路径（相对于 vault 根目录，例如：'项目/文档/README.md'）"),
+        old_string: z.string().describe("要替换的文本（在笔记中必须是唯一的，创建新笔记时为空）"),
         new_string: z.string().describe("用于替换 old_string 的编辑后文本"),
       }),
     });

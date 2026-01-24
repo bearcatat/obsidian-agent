@@ -28,5 +28,6 @@ build-config.json
 analysis_claude_code
 
 CLAUDE.md
+AGENTS.md
 
 .claude
