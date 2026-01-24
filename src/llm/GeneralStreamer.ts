@@ -5,15 +5,13 @@ import { MessageV2, AgentModel, Streamer, Message } from "@/types";
 import { withSuppressedTokenWarnings } from "@/utils";
 import { StructuredToolInterface } from "@langchain/core/tools";
 import { AssistantMessage } from "@/messages/assistant-message";
-import { ThinkingMessage } from "@/messages/thinking-message";
 
 export default class GeneralStreamer implements Streamer {
   private model: AgentModel;
 
   private toolCallChunkMap: Map<number, ToolCallChunk> = new Map();
-  private thinkingMessage: ThinkingMessage = ThinkingMessage.createEmpty("");
   private assistantMessage: AssistantMessage = AssistantMessage.createEmpty("");
-  private lastSentMessageRole: "assistant" | "thinking" | "none" = "none";
+  private lastSentMessageRole: "assistant" | "none" = "none";
 
 
   constructor(model: AgentModel) {
@@ -66,43 +64,15 @@ export default class GeneralStreamer implements Streamer {
   }
 
   private async *generateMessage(chunk: AIMessageChunk): AsyncGenerator<MessageV2, void> {
-    if (this.isThinkingChunk(chunk)) {
-      yield* this.generateThinkingMessage(chunk);
-    } else if (this.isContentChunk(chunk)) {
-      yield* this.generateContentMessage(chunk);
-    }
+    yield* this.generateContentMessage(chunk);
     this.handleToolCall(chunk);
   }
 
-  private isThinkingChunk(chunk: AIMessageChunk): boolean {
-    return chunk.additional_kwargs?.reasoning_content !== undefined && chunk.additional_kwargs?.reasoning_content !== null;
-  }
 
-  private async *generateThinkingMessage(chunk: AIMessageChunk): AsyncGenerator<MessageV2, void> {
-    this.resetLastSentForThinkingIfNeeded(chunk);
-    this.thinkingMessage.appendContent(chunk.additional_kwargs?.reasoning_content as string || "");
-    yield this.thinkingMessage;
-    this.lastSentMessageRole = "thinking";
-  }
 
-  private resetLastSentForThinkingIfNeeded(chunk: AIMessageChunk) {
-    if (!chunk.id) {
-      return;
-    }
-    if (!this.thinkingMessage.isMatch(chunk)) {
-      this.thinkingMessage = ThinkingMessage.createEmpty(chunk.id);
-    }
-  }
 
-  private isContentChunk(chunk: AIMessageChunk): boolean {
-    return chunk.content !== undefined && chunk.content !== null;
-  }
 
   async *resetLastSentForContentIfNeeded(chunk: AIMessageChunk): AsyncGenerator<MessageV2, void> {
-    if (this.lastSentMessageRole == "thinking") {
-      this.thinkingMessage.close();
-      yield this.thinkingMessage;
-    }
     if (!chunk.id) {
       return;
     }
@@ -113,6 +83,13 @@ export default class GeneralStreamer implements Streamer {
 
   private async *generateContentMessage(chunk: AIMessageChunk): AsyncGenerator<MessageV2, void> {
     yield* this.resetLastSentForContentIfNeeded(chunk);
+    
+    // 处理reasoning_content
+    if (chunk.additional_kwargs?.reasoning_content !== undefined && chunk.additional_kwargs?.reasoning_content !== null) {
+      this.assistantMessage.appendReasoningContent(chunk.additional_kwargs.reasoning_content as string || "");
+    }
+    
+    // 处理content
     if (typeof chunk.content === "string") {
       this.assistantMessage.appendContent(chunk.content);
     } else if (Array.isArray(chunk.content)) {
@@ -122,6 +99,7 @@ export default class GeneralStreamer implements Streamer {
         }
       });
     }
+    
     yield this.assistantMessage;
     this.lastSentMessageRole = "assistant";
   }
@@ -166,7 +144,6 @@ export default class GeneralStreamer implements Streamer {
     yield this.assistantMessage;
     this.lastSentMessageRole = "none";
     this.assistantMessage = AssistantMessage.createEmpty("");
-    this.thinkingMessage = ThinkingMessage.createEmpty("");
     this.toolCallChunkMap.clear();
   }
 

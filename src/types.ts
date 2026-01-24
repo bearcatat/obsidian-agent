@@ -23,6 +23,7 @@ export interface IObsidianAgentPlugin extends Plugin {
 export interface Message {
   id: string;
   content: string;
+  reasoning_content?: string;
   role: "user" | "assistant" | "tool" | "thinking" | "error" | "none";
   isStreaming: boolean;
   // assistant message
@@ -40,6 +41,7 @@ export interface MessageV2 {
   role: "user" | "assistant" | "tool" | "thinking" | "error" | "none";
   isStreaming: boolean;
   content: string;
+  reasoning_content?: string;
   render(): React.ReactElement;
   toBaseMessageLike(): BaseMessageLike|undefined;
 }
@@ -85,6 +87,7 @@ export type LangChainUserMessage = {
 export type LangChainAssistantMessage = {
   role: "assistant";
   content: string;
+  reasoning_content?: string;
   tool_calls: ToolCall[];
 };
 

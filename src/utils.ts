@@ -55,6 +55,7 @@ export function AssistantBaseMessageLike(message: Message): LangChainAssistantMe
   return {
     role: "assistant",
     content: message.content,
+    reasoning_content: message.reasoning_content || "",
     tool_calls: message.tool_calls || [],
   }
 }

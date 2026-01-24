@@ -7,13 +7,15 @@ import { AIMessageChunk } from "@langchain/core/dist/messages/ai";
 
 export class AssistantMessage implements MessageV2 {
     public content: string;
+    public reasoning_content: string;
     public id: string;
     public isStreaming: boolean;
     public tool_calls: ToolCall[];
     public role: "assistant" = "assistant";
 
-    private constructor(content: string, tool_calls: ToolCall[], isStreaming: boolean, id: string) {
+    private constructor(content: string, reasoning_content: string, tool_calls: ToolCall[], isStreaming: boolean, id: string) {
         this.content = content;
+        this.reasoning_content = reasoning_content;
         this.id = id+"-assistant";
         this.isStreaming = isStreaming;
         this.tool_calls = tool_calls;
@@ -23,22 +25,26 @@ export class AssistantMessage implements MessageV2 {
         const content = typeof chunk.content === "string"
             ? chunk.content
             : chunk.content.toString();
+        const reasoning_content = chunk.additional_kwargs?.reasoning_content as string || "";
         const tool_calls = chunk.tool_calls || [];
-        return new AssistantMessage(content, tool_calls, false, chunk.id?? "");
+        return new AssistantMessage(content, reasoning_content, tool_calls, false, chunk.id?? "");
     }
     static createEmpty(id: string): AssistantMessage {
-        return new AssistantMessage("", [], true, id);
+        return new AssistantMessage("", "", [], true, id);
     }
 
     render(): React.ReactElement {
-        return <AssistantMessageCard content={this.content} />;
+        return <AssistantMessageCard content={this.content} reasoning_content={this.reasoning_content} isStreaming={this.isStreaming} />;
     }
     toBaseMessageLike(): BaseMessageLike {
-        return {
+        const result: any = {
             role: "assistant",
             content: this.content,
             tool_calls: this.tool_calls,
-        }
+        };
+        // 确保reasoning_content字段始终存在，即使为空字符串
+        result.reasoning_content = this.reasoning_content || "";
+        return result;
     }
 
     isMatch(chunk: AIMessageChunk): boolean {
@@ -49,6 +55,9 @@ export class AssistantMessage implements MessageV2 {
     }
     appendContent(content: string): void {
         this.content += content || "";
+    }
+    appendReasoningContent(content: string): void {
+        this.reasoning_content += content || "";
     }
     appendToolCall(tool_call: ToolCall): void {
         this.tool_calls.push(tool_call);

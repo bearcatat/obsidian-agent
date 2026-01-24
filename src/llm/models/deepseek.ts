@@ -13,7 +13,8 @@ export default class DeepSeekGenerator {
   }
 
   async newModel(modelConfig: ModelConfig): Promise<ChatDeepSeek> {
-    const model = new ChatDeepSeek({
+    const isReasoner = modelConfig.name.includes('reasoner');
+    const modelConfigOptions: any = {
       modelName: modelConfig.name,
       streaming: true,
       maxRetries: 3,
@@ -26,7 +27,14 @@ export default class DeepSeekGenerator {
       topP: modelConfig.topP,
       maxTokens: modelConfig.maxTokens,
       frequencyPenalty: modelConfig.frequencyPenalty,
-    });
+    };
+    
+    // 如果使用reasoner模型或需要思考模式，添加thinking参数
+    if (isReasoner) {
+      modelConfigOptions.thinking = { type: "enabled" };
+    }
+    
+    const model = new ChatDeepSeek(modelConfigOptions);
     return model;
   }
 
