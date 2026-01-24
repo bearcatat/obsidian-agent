@@ -5,7 +5,7 @@ import { DESCRIPTION } from "./prompts";
 import { MessageV2 } from "@/types";
 import { ToolCall } from "@langchain/core/dist/messages/tool";
 import { ToolMessage } from "@/messages/tool-message";
-import { ErrorMessage } from "@/messages/error-message";
+import { createToolError } from "@/utils/error-utils";
 import { QuestionToolMessageCard } from "@/ui/components/agent-view/messages/message/question-tool-message-card";
 import { Question } from "@/types";
 
@@ -64,7 +64,7 @@ export default class QuestionTool {
             toolMessage.close();
             yield toolMessage;
         } catch (error) {
-            yield new ErrorMessage(error as string);
+            yield createToolError(toolCall, error as string);
         }
     }
 

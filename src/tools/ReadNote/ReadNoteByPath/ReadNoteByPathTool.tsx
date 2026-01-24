@@ -6,8 +6,8 @@ import { StructuredToolInterface } from "@langchain/core/tools";
 import { MessageV2 } from "../../../types";
 import { ToolCall } from "@langchain/core/dist/messages/tool";
 import { getGlobalApp } from "@/utils";
-import { ErrorMessage } from "@/messages/error-message";
 import { ToolMessage } from "@/messages/tool-message";
+import { createToolError } from "@/utils/error-utils";
 
 export default class ReadNoteByPathTool {
   private static instance: ReadNoteByPathTool;
@@ -32,25 +32,20 @@ export default class ReadNoteByPathTool {
   }
 
   private async readNoteByPath({ filePath }: { filePath: string }): Promise<string> {
-    try {
-      const app = getGlobalApp();
-      const vault = app.vault;
+    const app = getGlobalApp();
+    const vault = app.vault;
 
-      const file = vault.getAbstractFileByPath(filePath);
-      if (file && typeof file === "object" && "basename" in file && "path" in file) {
-        const text = await vault.read(file as TFile);
-        return ReadNoteByPathTool.genResult(file.basename as string, file.path as string, text);
-      }
-      return JSON.stringify({
-        error: "文件不存在或不是笔记文件",
-        details: `路径 "${filePath}" 对应的文件不存在或不是Markdown文件`,
-      });
+    const file = vault.getAbstractFileByPath(filePath);
+    if (!file || typeof file !== "object" || !("basename" in file) || !("path" in file)) {
+      throw new Error(`文件不存在或不是笔记文件: 路径 "${filePath}" 对应的文件不存在或不是Markdown文件`);
+    }
+
+    try {
+      const text = await vault.read(file as TFile);
+      return ReadNoteByPathTool.genResult(file.basename as string, file.path as string, text);
     } catch (error) {
       console.error("ReadNoteByPath错误:", error);
-      return JSON.stringify({
-        error: "读取文件时发生错误",
-        details: error instanceof Error ? error.message : "未知错误",
-      });
+      throw new Error(`读取文件时发生错误: ${error instanceof Error ? error.message : "未知错误"}`);
     }
   }
 
@@ -82,7 +77,7 @@ ${content}
       toolMessage.close();
       yield toolMessage;
     } catch (error) {
-      yield new ErrorMessage(error as string);
+      yield createToolError(toolCall, error as string, { filePath: toolCall.args.filePath });
     }
   }
 

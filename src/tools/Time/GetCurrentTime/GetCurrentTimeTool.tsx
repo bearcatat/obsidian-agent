@@ -5,8 +5,8 @@ import { TimeInfo, convertDateToTimeInfo } from "../common/common";
 import { StructuredToolInterface } from "@langchain/core/tools";
 import { MessageV2 } from "../../../types";
 import { ToolCall } from "@langchain/core/dist/messages/tool";
-import { ErrorMessage } from "@/messages/error-message";
 import { ToolMessage } from "@/messages/tool-message";
+import { createToolError } from "@/utils/error-utils";
 
 export default class GetCurrentTimeTool {
   private static instance: GetCurrentTimeTool;
@@ -50,7 +50,7 @@ export default class GetCurrentTimeTool {
       toolMessage.close();
       yield toolMessage;
     } catch (error) {
-      yield new ErrorMessage(error as string);
+      yield createToolError(toolCall, error as string);
     }
   }
 

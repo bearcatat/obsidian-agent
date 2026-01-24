@@ -6,8 +6,8 @@ import { StructuredToolInterface } from "@langchain/core/tools";
 import { MessageV2, FileEdit } from "@/types";
 import { ToolCall } from "@langchain/core/dist/messages/tool";
 import { getGlobalApp } from "@/utils";
-import { ErrorMessage } from "@/messages/error-message";
 import { ToolMessage } from "@/messages/tool-message";
+import { createToolError } from "@/utils/error-utils";
 import { FileEditToolMessageCard } from "@/ui/components/agent-view/messages/message/file-edit-tool-message-card";
 
 export default class FileEditTool {
@@ -86,37 +86,38 @@ export default class FileEditTool {
       } else {
         // 编辑现有文件
         if (!file) {
-          yield new ErrorMessage(JSON.stringify({
-            error: "文件不存在",
+          yield createToolError(toolCall, "文件不存在", { 
             details: `路径 "${relativePath}" 对应的文件不存在`,
-          }));
+            filePath: relativePath 
+          }, "not_found");
           return;
         }
 
         try {
           oldContent = await vault.read(file);
         } catch (error) {
-          yield new ErrorMessage(JSON.stringify({
-            error: "读取文件失败",
+          yield createToolError(toolCall, "读取文件失败", { 
             details: error instanceof Error ? error.message : "未知错误",
-          }));
+            filePath: relativePath 
+          }, "runtime");
           return;
         }
 
         // 验证 old_string 的唯一性
         const occurrences = (oldContent.match(new RegExp(old_string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
         if (occurrences === 0) {
-          yield new ErrorMessage(JSON.stringify({
-            error: "old_string 不匹配",
+          yield createToolError(toolCall, "old_string 不匹配", { 
             details: `在文件中找不到匹配的 old_string`,
-          }));
+            filePath: relativePath 
+          }, "validation");
           return;
         }
         if (occurrences > 1) {
-          yield new ErrorMessage(JSON.stringify({
-            error: "old_string 不唯一",
+          yield createToolError(toolCall, "old_string 不唯一", { 
             details: `old_string 在文件中出现了 ${occurrences} 次，必须唯一`,
-          }));
+            filePath: relativePath,
+            occurrences
+          }, "validation");
           return;
         }
 
@@ -204,7 +205,7 @@ export default class FileEditTool {
       toolMessage.close();
       yield toolMessage;
     } catch (error) {
-      yield new ErrorMessage(error instanceof Error ? error.message : "未知错误");
+      yield createToolError(toolCall, error instanceof Error ? error.message : "未知错误");
     }
   }
 

@@ -1,8 +1,8 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { ToolClass, MessageV2 } from "../../types";
 import { ToolCall } from "@langchain/core/dist/messages/tool";
-import { ErrorMessage } from "../../messages/error-message";
 import { ToolMessage } from "../../messages/tool-message";
+import { createToolError } from "../../utils/error-utils";
 
 
 
@@ -32,7 +32,7 @@ export default class MCPToolAdaptor implements ToolClass {
       yield toolMessage;
     } catch (error) {
       console.error("Error in MCPToolAdaptor.run", error);
-      yield new ErrorMessage(error as string);
+      yield createToolError(toolCall, error as string, { toolName: this.tool.name }, "network");
     }
   }
 

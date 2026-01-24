@@ -4,8 +4,8 @@ import SubAgent from "@/llm/SubAgent";
 import { StructuredToolInterface } from "@langchain/core/tools";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { ErrorMessage } from "../../messages/error-message";
 import { ToolMessage } from "../../messages/tool-message";
+import { createToolError } from "../../utils/error-utils";
 import { UserMessage } from "../../messages/user-message";
 import { SubAgentMessagesCard } from "../../ui/components/agent-view/messages/messages";
 
@@ -55,7 +55,7 @@ export default class SubAgentToolAdaptor {
       }
     } catch (error) {
       console.error("SubAgentToolAdaptor.run", error);
-      yield new ErrorMessage(error as string);
+      yield createToolError(toolCall, error as string, { subAgentName: this.subAgent.name }, "runtime");
     }
   }
 
