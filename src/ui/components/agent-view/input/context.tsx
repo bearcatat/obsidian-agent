@@ -76,7 +76,8 @@ export const InputContext: React.FC = () => {
   }, [app.workspace, handleActiveFileChange]);
 
   const notes = React.useMemo(() => {
-    const notes = contextNotes.map((note) => ({ note, isActive: false } as ContextNote));
+    const notesWithoutActiveNote = contextNotes.filter((note) => (note.path != activeNote?.path))
+    const notes = notesWithoutActiveNote.map((note) => ({ note, isActive: false } as ContextNote));
     if (activeNote && !isActiveNoteRemoved) {
       notes.unshift({ note: activeNote, isActive: true } as ContextNote);
     }

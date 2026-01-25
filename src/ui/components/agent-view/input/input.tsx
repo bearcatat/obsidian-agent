@@ -3,6 +3,8 @@ import { InputContext } from './context';
 import { InputButtom } from './buttom';
 import { Textarea } from './textarea';
 import { useAgentLogic, useAgentState } from '../../../../hooks/use-agent';
+import { useApp } from '../../../../hooks/app-context';
+import { TFile } from 'obsidian';
 
 export interface InputProps {
 }
@@ -10,7 +12,8 @@ export interface InputProps {
 export const Input: React.FC<InputProps> = () => {
   const [message, setMessage] = useState('');
   const { isLoading } = useAgentState();
-  const { sendMessage } = useAgentLogic();
+  const { sendMessage, addContextNote } = useAgentLogic();
+  const app = useApp();
   const placeholder =  `输入消息...`
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -26,6 +29,15 @@ export const Input: React.FC<InputProps> = () => {
     setMessage('');
   };
 
+  const handleDropFiles = (files: TFile[]) => {
+    if (!app) return;
+    const activeFile = app.workspace.getActiveFile();
+    files.forEach(file => {
+      const isActive = activeFile?.path === file.path;
+      addContextNote(file, isActive);
+    });
+  };
+
   return (
     <div className="tw-flex tw-w-full tw-flex-col tw-gap-0.5 tw-rounded-md tw-border tw-border-solid tw-border-border tw-px-1 tw-pb-1 tw-pt-2 tw-@container/chat-input">
       <InputContext />
@@ -36,6 +48,7 @@ export const Input: React.FC<InputProps> = () => {
           onKeyDown={onKeyDown}
           placeholder={placeholder}
           disabled={isLoading}
+          onDropFiles={handleDropFiles}
         />
       </div>
       <InputButtom onSend={onSend} />

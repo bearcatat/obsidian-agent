@@ -116,7 +116,6 @@ export class AgentState implements IAgentState {
       if (isActive) {
         this._data.activeNote = note;
         this._data.isActiveNoteRemoved = false;
-        return;
       }
       if (this._data.contextNotes.find((n) => n.path === note.path)) {
         return; // 如果已经存在，则不添加
