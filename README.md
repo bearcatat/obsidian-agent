@@ -20,6 +20,7 @@ A powerful Obsidian plugin that integrates AI assistant functionality to help yo
   - Question tool: AI assistant can ask questions to users with multiple choice options for interactive dialogue
   - File editing: Edit file content with diff preview and user confirmation, support creating new files
   - WebFetch: Fetch content from URLs and convert to markdown, text, or HTML format
+  - **Local Search**: Search for content in local Markdown files with full regex support, filename/content search, and path filtering
 - **MCP Servers**: Support Model Context Protocol servers to extend custom tools
 - **SubAgent**: Create specialized AI assistants to handle specific tasks and domains
 - **Tool Management**: Flexibly enable/disable various tools with permission configuration
@@ -66,6 +67,7 @@ The AI assistant will automatically call relevant tools based on your needs:
 - **Note Analysis**: "Help me check if this note has any gaps" "Analyze note relationships"
 - **File Editing**: "Update the introduction section in this note" "Create a new file with this content"
 - **Interactive Questions**: The AI assistant will proactively ask questions with multiple choice options when it needs to clarify user intent
+- **Local Search**: "Search for notes containing 'project plan'" "Find files with 'README' in the filename" "Search for date patterns using regex: \d{4}-\d{2}-\d{2}" "Search in 'projects/docs/' directory for 'API design'"
 - **SubAgent Calls**: "Let the programming assistant help me optimize this code"
 
 ## 🔧 Model Configuration Guide

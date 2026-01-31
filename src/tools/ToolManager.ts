@@ -11,6 +11,7 @@ import MCPToolAdaptor from "./MCP/MCPToolAdaptor";
 import QuestionTool from "./Question/QuestionTool";
 import FileEditTool from "./FileEdit/FileEditTool";
 import WebFetchTool from "./WebFetch/WebFetchTool";
+import SearchTool from "./Search/SearchTool";
 
 export default class ToolManager {
   private static instance: ToolManager;
@@ -21,6 +22,7 @@ export default class ToolManager {
     QuestionTool.getInstance(),
     FileEditTool.getInstance(),
     WebFetchTool.getInstance(),
+    SearchTool.getInstance(),
   ];
   private mainAgentEnableTools: ToolClass[] = [];
   private mcpManager: MCPManager;

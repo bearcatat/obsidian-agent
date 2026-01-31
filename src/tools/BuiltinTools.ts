@@ -31,6 +31,11 @@ export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
     name: "webFetch",
     description: "Fetch content from a URL",
     enabled: true,
+  },
+  {
+    name: "search",
+    description: "Search for content in local Markdown files",
+    enabled: true,
   }
 ];
 
