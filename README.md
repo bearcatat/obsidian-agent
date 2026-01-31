@@ -14,11 +14,12 @@ A powerful Obsidian plugin that integrates AI assistant functionality to help yo
 - **Multi-model Support**: Supports DeepSeek, OpenAI, Anthropic, Moonshot, and other models
 
 ### 🛠️ Tool Ecosystem
-- **Built-in Tools**: 
+- **Built-in Tools**:
   - Time tools: Get current time information, support time range queries
   - Note reading: Read note content by path or link (supports `[[note name]]` format)
   - Question tool: AI assistant can ask questions to users with multiple choice options for interactive dialogue
   - File editing: Edit file content with diff preview and user confirmation, support creating new files
+  - WebFetch: Fetch content from URLs and convert to markdown, text, or HTML format
 - **MCP Servers**: Support Model Context Protocol servers to extend custom tools
 - **SubAgent**: Create specialized AI assistants to handle specific tasks and domains
 - **Tool Management**: Flexibly enable/disable various tools with permission configuration

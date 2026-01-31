@@ -10,6 +10,7 @@ import SubAgentManager from "./SubAgent/SubAgentManager";
 import MCPToolAdaptor from "./MCP/MCPToolAdaptor";
 import QuestionTool from "./Question/QuestionTool";
 import FileEditTool from "./FileEdit/FileEditTool";
+import WebFetchTool from "./WebFetch/WebFetchTool";
 
 export default class ToolManager {
   private static instance: ToolManager;
@@ -19,6 +20,7 @@ export default class ToolManager {
     ReadNoteByLinkTool.getInstance(),
     QuestionTool.getInstance(),
     FileEditTool.getInstance(),
+    WebFetchTool.getInstance(),
   ];
   private mainAgentEnableTools: ToolClass[] = [];
   private mcpManager: MCPManager;

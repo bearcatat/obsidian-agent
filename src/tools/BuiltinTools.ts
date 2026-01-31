@@ -26,6 +26,11 @@ export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
     name: "editFile",
     description: "Edit file content by replacing text",
     enabled: true,
+  },
+  {
+    name: "webFetch",
+    description: "Fetch content from a URL",
+    enabled: true,
   }
 ];
 
