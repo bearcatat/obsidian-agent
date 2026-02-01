@@ -93,8 +93,8 @@ export default class GeneralStreamer implements Streamer {
     if (typeof chunk.content === "string") {
       this.assistantMessage.appendContent(chunk.content);
     } else if (Array.isArray(chunk.content)) {
-      chunk.content.forEach((item) => {
-        if (item.type === "text") {
+      chunk.content.forEach((item: { type: string; text?: unknown }) => {
+        if (item.type === "text" && typeof item.text === "string") {
           this.assistantMessage.appendContent(item.text);
         }
       });

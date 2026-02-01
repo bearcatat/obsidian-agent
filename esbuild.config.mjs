@@ -119,6 +119,7 @@ const context = await esbuild.context({
 		"@lezer/common",
 		"@lezer/highlight",
 		"@lezer/lr",
+		"node:async_hooks",
 		...builtins],
 	format: "cjs",
 	target: "es2018",
