@@ -59,13 +59,13 @@ export class ToolMessage implements MessageV2 {
     static createErrorToolMessage2(
         name: string,
         id: string,
-        error: string,
+        error: unknown,
         details?: Record<string, any>,
         errorType?: string
     ): ToolMessage {
         const message = new ToolMessage(name, id ?? "");
         message.isError = true;
-        message.content = error;
+        message.content = error instanceof Error ? error.message : String(error);
         message.errorDetails = details;
         message.errorType = errorType || "runtime";
         message.close(); // 错误消息立即关闭流式状态

@@ -7,6 +7,7 @@ import { QuestionTool, toolName as QuestionToolName } from "./Question/QuestionT
 import { FileEditTool, toolName as FileEditToolName } from "./FileEdit/FileEditTool";
 import { WebFetchTool, toolName as WebFetchToolName } from "./WebFetch/WebFetchTool";
 import { SearchTool, toolName as SearchToolName } from "./Search/SearchTool";
+import MCPManager from "./MCP/MCPManager";
 
 
 export default class AIToolManager {
@@ -21,9 +22,10 @@ export default class AIToolManager {
     [SearchToolName]: SearchTool,
   }
 
-  private allTools: ToolSet = {}
   private builtinToolConfigs: BuiltinToolConfig[] = [];
   private mainAgentEnableTools: ToolSet = {};
+  private mcpManager: MCPManager;
+
 
   static getInstance(): AIToolManager {
     if (!AIToolManager.instance) {
@@ -41,6 +43,7 @@ export default class AIToolManager {
   }
 
   async init() {
+    this.mcpManager = new MCPManager()
     await this.initializeTools()
   }
 
@@ -51,6 +54,9 @@ export default class AIToolManager {
 
   // 更新MCP服务器配置
   async updateMCPServers(servers: MCPServerConfig[]): Promise<void> {
+    await this.mcpManager.updateMCPServers(servers)
+    await this.initializeTools();
+    console.log("ai mcp updated")
   }
 
   // 更新SubAgent配置
@@ -63,11 +69,9 @@ export default class AIToolManager {
 
   // 重新初始化工具
   private async initializeTools() {
-    this.allTools = {
-      ...AIToolManager.BUILTIN_TOOLS
-    }
     this.mainAgentEnableTools = {
-      ...this.getEnabledBuiltinTools()
+      ...this.getEnabledBuiltinTools(),
+      ...await this.mcpManager.getEnabledTools()
     }
   }
 
