@@ -57,11 +57,12 @@ export default class QuestionTool {
             const toolMessage = ToolMessage.fromToolCall(toolCall);
             const question = this.generateQuestion(toolCall);
             toolMessage.setChildren(this.render(question, false, null, submitAnswer));
-            yield toolMessage;
+            yield toolMessage; //ai-sdk: 变成addMessage
             const result = await askQuestion();
             toolMessage.setChildren(this.render(question, true, result, submitAnswer));
             toolMessage.setContent(result);
-            toolMessage.close();
+            toolMessage.close(); //ai-sdk 变成addMessage
+            //ai-adk return result
             yield toolMessage;
         } catch (error) {
             yield createToolError(toolCall, error as string);

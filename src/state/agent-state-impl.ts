@@ -92,8 +92,6 @@ export class AgentState implements IAgentState {
       this._data.messages.pop();
     }
 
-    console.log(lastMessage?.id ?? 0, message.id)
-
     // 限制消息数量，防止内存无限增长
     const MAX_MESSAGES = 100;
     if (this._data.messages.length >= MAX_MESSAGES) {

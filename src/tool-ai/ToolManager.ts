@@ -1,12 +1,24 @@
 import { ToolSet } from "ai";
 import { BuiltinToolConfig, MCPServerConfig, SubAgentConfig } from "../types";
 import { GetCurrentTimeTool, toolName as GetCurrentTimeToolName } from "./Time/GetCurrentTime/GetCurrentTimeTool";
+import { ReadNoteByPathTool, toolName as ReadNoteByPathToolName } from "./ReadNote/ReadNoteByPath/ReadNoteByPathTool";
+import { ReadNoteByLinkTool, toolName as ReadNoteByLinkToolName } from "./ReadNote/ReadNoteByLink/ReadNoteByLinkTool";
+import { QuestionTool, toolName as QuestionToolName } from "./Question/QuestionTool";
+import { FileEditTool, toolName as FileEditToolName } from "./FileEdit/FileEditTool";
+import { WebFetchTool, toolName as WebFetchToolName } from "./WebFetch/WebFetchTool";
+import { SearchTool, toolName as SearchToolName } from "./Search/SearchTool";
 
 
 export default class AIToolManager {
   private static instance: AIToolManager;
   private static readonly BUILTIN_TOOLS: ToolSet = {
-    [GetCurrentTimeToolName]: GetCurrentTimeTool
+    [GetCurrentTimeToolName]: GetCurrentTimeTool,
+    [ReadNoteByPathToolName]: ReadNoteByPathTool,
+    [ReadNoteByLinkToolName]: ReadNoteByLinkTool,
+    [QuestionToolName]: QuestionTool,
+    [FileEditToolName]: FileEditTool,
+    [WebFetchToolName]: WebFetchTool,
+    [SearchToolName]: SearchTool,
   }
 
   private allTools: ToolSet = {}

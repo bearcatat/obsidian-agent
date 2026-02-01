@@ -8,7 +8,6 @@ export const Messages = memo(
   () => {
     const { messages, isLoading } = useAgentState();
     const { containerRef, handleScroll, autoScroll, resetUserScrolling, isUserScrolling } = useAutoScroll();
-    console.log(messages)
 
     // 使用 useMemo 优化消息列表渲染
     const messageElements = useMemo(() => {

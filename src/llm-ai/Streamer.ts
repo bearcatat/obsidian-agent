@@ -27,7 +27,6 @@ export default class Streamer {
     }
 
     async handleChunk(chunk: TextStreamPart<{}>) {
-        console.log(chunk)
         const { addMessage } = useAgentLogic();
         switch (chunk.type) {
             case "start-step":
@@ -47,6 +46,5 @@ export default class Streamer {
                 addMessage(this.assistantMessage);
                 break;
         }
-        console.log(this.assistantMessage)
     }
 }
