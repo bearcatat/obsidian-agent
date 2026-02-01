@@ -3,7 +3,7 @@ import { AgentState } from '../state/agent-state-impl';
 import { AgentViewLogic } from '../logic/agent-view-logic';
 import { clone, IAgentState } from '../state/agent-state';
 import { App, TFile } from 'obsidian';
-import { ModelConfig } from '../types';
+import { MessageV2, ModelConfig } from '../types';
 
 export function useAgentState(): IAgentState {
   const [state, setState] = useState<IAgentState>(() => AgentState.getInstance());
@@ -21,9 +21,10 @@ export function useAgentState(): IAgentState {
 
 export function useAgentLogic() {
   const agentLogic = AgentViewLogic.getInstance();
-  
+
   return {
     sendMessage: (content: string) => agentLogic.sendMessage(content),
+    addMessage: async (message: MessageV2) => agentLogic.addMessage(message),
     stopLoading: () => agentLogic.stopLoading(),
     setActiveNote: (activeNote: TFile | null) => agentLogic.setActiveNote(activeNote),
     removeContextNote: (path: string) => agentLogic.removeContextNote(path),

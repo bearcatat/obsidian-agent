@@ -40,6 +40,7 @@
 		"util": "^0.12.5"
 	},
 	"dependencies": {
+		"@ai-sdk/deepseek": "^2.0.17",
 		"@dnd-kit/core": "^6.3.1",
 		"@dnd-kit/sortable": "^10.0.0",
 		"@dnd-kit/utilities": "^3.2.2",
@@ -61,6 +62,7 @@
 		"@radix-ui/react-tooltip": "^1.2.7",
 		"@types/diff-match-patch": "^1.0.36",
 		"@types/uuid": "^10.0.0",
+		"ai": "^6.0.67",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"diff-match-patch": "^1.0.5",

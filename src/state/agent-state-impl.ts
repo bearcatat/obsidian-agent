@@ -84,21 +84,23 @@ export class AgentState implements IAgentState {
     this.notify();
   }
 
-  addMessage(message: Message | MessageV2): void {
+  addMessage(message: Message | MessageV2) {
     const lastMessage = this._data.messages[this._data.messages.length - 1];
-    
+
     // 优化流式消息处理：移除之前的流式消息，如果消息id相同
     if (lastMessage && lastMessage.id === message.id) {
       this._data.messages.pop();
     }
-    
+
+    console.log(lastMessage?.id ?? 0, message.id)
+
     // 限制消息数量，防止内存无限增长
     const MAX_MESSAGES = 100;
     if (this._data.messages.length >= MAX_MESSAGES) {
       // 保留最新的消息，移除最旧的消息
       this._data.messages = this._data.messages.slice(-MAX_MESSAGES + 1);
     }
-    
+
     this._data.messages.push(message);
     this.notify();
   }

@@ -13,13 +13,13 @@ export class ToolMessage implements MessageV2 {
     public content: string;
     public role: "tool" = "tool";
     public isCustomized: boolean;
-    
+
     // 错误相关字段
     public isError: boolean = false;
     public errorCode?: string;
     public errorDetails?: Record<string, any>;
     public errorType?: string;
-    
+
     private children: React.ReactNode;
     private constructor(name: string, tool_call_id: string) {
         this.id = uuidv4();
@@ -31,7 +31,11 @@ export class ToolMessage implements MessageV2 {
     }
 
     static fromToolCall(toolCall: ToolCall): ToolMessage {
-        return new ToolMessage(toolCall.name, toolCall.id?? "");
+        return new ToolMessage(toolCall.name, toolCall.id ?? "");
+    }
+
+    static from(name: string, id: string): ToolMessage {
+        return new ToolMessage(name, id)
     }
 
     /**
@@ -52,10 +56,26 @@ export class ToolMessage implements MessageV2 {
         return message;
     }
 
+    static createErrorToolMessage2(
+        name: string,
+        id: string,
+        error: string,
+        details?: Record<string, any>,
+        errorType?: string
+    ): ToolMessage {
+        const message = new ToolMessage(name, id ?? "");
+        message.isError = true;
+        message.content = error;
+        message.errorDetails = details;
+        message.errorType = errorType || "runtime";
+        message.close(); // 错误消息立即关闭流式状态
+        return message;
+    }
+
     render(): React.ReactElement {
         if (this.isError) {
             return (
-                <ErrorToolMessageCard 
+                <ErrorToolMessageCard
                     content={this.content}
                     errorDetails={this.errorDetails}
                     errorType={this.errorType}

@@ -1,10 +1,11 @@
-import { Message, ModelConfig } from "../types";
+import { Message, MessageV2, ModelConfig } from "../types";
 import { AgentState } from "../state/agent-state-impl";
 import { App, TFile } from "obsidian";
 import ModelManager from "../llm/ModelManager";
 import Agent from "../llm/Agent";
 import { v4 as uuidv4 } from "uuid";
 import { UserMessage } from "@/messages/user-message";
+import AIAgent from "@/llm-ai/Agent";
 
 
 export class AgentViewLogic {
@@ -31,7 +32,8 @@ export class AgentViewLogic {
   async sendMessage(content: string): Promise<void> {
     // 设置加载状态
     this.state.setLoading(true);
-    this.state.setAbortController(new AbortController());
+    const abortController = new AbortController()
+    this.state.setAbortController(abortController);
 
     try {
       this.setTitleIfNewChat(content);
@@ -44,18 +46,23 @@ export class AgentViewLogic {
       // };
       const userMessage = new UserMessage(content);
       this.state.addMessage(userMessage);
-      const agent = Agent.getInstance();
-      for await (const message of agent.query(userMessage, this.state.activeNote, this.state.contextNotes)) {
-        if (message.id == "") {
-          continue;
-        }
-        this.state.addMessage(message);
-      }
+      // const agent = Agent.getInstance();
+      // for await (const message of agent.query(userMessage, this.state.activeNote, this.state.contextNotes)) {
+      //   if (message.id == "") {
+      //     continue;
+      //   }
+      //   this.state.addMessage(message);
+      // }
+      await AIAgent.getInstance().query(userMessage, this.state.activeNote, this.state.contextNotes, abortController)
     } catch (error) {
       console.error('Failed to send message:', error);
     } finally {
       this.state.setLoading(false);
     }
+  }
+
+  addMessage(message: MessageV2) {
+    this.state.addMessage(message)
   }
 
   async setTitleIfNewChat(userMessage: string): Promise<void> {

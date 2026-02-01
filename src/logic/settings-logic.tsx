@@ -3,6 +3,7 @@ import { SettingsState } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
 import ToolManager from "../tools/ToolManager";
 import MCPToolAdaptor from "../tools/MCP/MCPToolAdaptor";
+import AIToolManager from "@/tool-ai/ToolManager";
 
 export class SettingsLogic {
     private static instance: SettingsLogic;
@@ -127,6 +128,7 @@ export class SettingsLogic {
         
         // 同步更新ToolManager
         await ToolManager.getInstance().updateMCPServers(this.state.mcpServers);
+        await AIToolManager.getInstance().updateMCPServers(this.state.mcpServers);
         
         await this.saveSettings();
     }
@@ -142,6 +144,7 @@ export class SettingsLogic {
         
         // 同步更新ToolManager
         await ToolManager.getInstance().updateMCPServers(this.state.mcpServers);
+        await AIToolManager.getInstance().updateMCPServers(this.state.mcpServers);
         
         await this.saveSettings();
     }
@@ -165,6 +168,7 @@ export class SettingsLogic {
         
         // 同步更新ToolManager
         await ToolManager.getInstance().updateMCPServers(this.state.mcpServers);
+        await AIToolManager.getInstance().updateMCPServers(this.state.mcpServers);
         
         await this.saveSettings();
     }
@@ -181,6 +185,7 @@ export class SettingsLogic {
         
         // 同步更新ToolManager
         await ToolManager.getInstance().updateBuiltinTools(this.state.builtinTools);
+        await AIToolManager.getInstance().updateBuiltinTools(this.state.builtinTools);
         
         await this.saveSettings();
     }
@@ -205,6 +210,7 @@ export class SettingsLogic {
         
         // 同步更新ToolManager
         await ToolManager.getInstance().updateSubAgents(this.state.subAgents);
+        await AIToolManager.getInstance().updateSubAgents(this.state.subAgents);
         
         await this.saveSettings();
     }
@@ -220,6 +226,7 @@ export class SettingsLogic {
         
         // 同步更新ToolManager
         await ToolManager.getInstance().updateSubAgents(this.state.subAgents);
+        await AIToolManager.getInstance().updateSubAgents(this.state.subAgents);
         
         await this.saveSettings();
     }
@@ -229,6 +236,7 @@ export class SettingsLogic {
         
         // 同步更新ToolManager
         await ToolManager.getInstance().updateSubAgents(this.state.subAgents);
+        await AIToolManager.getInstance().updateSubAgents(this.state.subAgents);
         
         await this.saveSettings();
     }

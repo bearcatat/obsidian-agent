@@ -2,6 +2,7 @@ import { MessageV2 } from "@/types";
 import { v4 as uuidv4 } from 'uuid';
 import { BaseMessageLike } from "@langchain/core/messages";
 import { UserMessageCard } from "@/ui/components/agent-view/messages/message/user-message-card";
+import { ModelMessage } from "ai";
 
 export class UserMessage implements MessageV2 {
     public content: string;
@@ -22,6 +23,12 @@ export class UserMessage implements MessageV2 {
         return {
             role: "user",
             content: this.content,
+        }
+    }
+    toModelMessage(): ModelMessage {
+        return {
+            role: "user",
+            content: this.content
         }
     }
 }
