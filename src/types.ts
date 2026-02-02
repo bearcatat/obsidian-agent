@@ -5,6 +5,7 @@ import { ChatAnthropic } from "@langchain/anthropic";
 import { ToolCall } from "@langchain/core/dist/messages/tool";
 import { StructuredToolInterface } from '@langchain/core/tools';
 import { BaseMessageLike } from '@langchain/core/messages';
+import { ToolLoopAgentSettings } from 'ai';
 
 
 /**
@@ -43,7 +44,7 @@ export interface MessageV2 {
   content: string;
   reasoning_content?: string;
   render(): React.ReactElement;
-  toBaseMessageLike(): BaseMessageLike|undefined;
+  toBaseMessageLike(): BaseMessageLike | undefined;
 }
 
 export interface ModelConfig {
@@ -75,6 +76,10 @@ export type AgentModel =
 export interface ModelGenerator {
   newStreamer(modelConfig: ModelConfig): Promise<Streamer>;
   matchModel(modelConfig: ModelConfig): boolean;
+}
+
+export interface AIModelGenerator {
+  newAgent(modelConfig: ModelConfig): ToolLoopAgentSettings;
 }
 
 export type LangChainMessage = LangChainUserMessage | LangChainAssistantMessage | LangChainToolMessage;
@@ -158,7 +163,7 @@ export interface SubAgentConfig {
   tools: SubAgentToolConfig[];
 }
 
-export interface Question{
+export interface Question {
   id: string;
   question: string;
   options: string[];

@@ -66,13 +66,13 @@ export default class MCPManager {
     })
   }
 
-  async getEnabledTools(): Promise<ToolSet> {
+  async getTools(isEnabled: boolean): Promise<ToolSet> {
     const toolSet: ToolSet = {}
     await Promise.all(
       this.configs.map(async config => {
         const client = this.clients[config.name]
         if (client) {
-          const clientTools = await getClientEnabledTools(client, config)
+          const clientTools = await getClientTools(client, config, isEnabled)
           Object.entries(clientTools).forEach(([k, v]) => {
             toolSet[k] = v
           })
@@ -83,7 +83,7 @@ export default class MCPManager {
     return toolSet
   }
 
-  async getTools(config: MCPServerConfig): Promise<ToolSet> {
+  async getClientTools(config: MCPServerConfig): Promise<ToolSet> {
     return await this.clients[config.name].tools()
   }
 
@@ -96,7 +96,7 @@ export default class MCPManager {
   }
 }
 
-async function getClientEnabledTools(client: MCPClient, config: MCPServerConfig): Promise<ToolSet> {
+async function getClientTools(client: MCPClient, config: MCPServerConfig, isEnabled: Boolean): Promise<ToolSet> {
   const clientToolSet = await client.tools()
   console.log("client mcp", config, clientToolSet)
   const enabledTools = Object.entries(clientToolSet)
@@ -104,7 +104,7 @@ async function getClientEnabledTools(client: MCPClient, config: MCPServerConfig)
       if (!config.tools) {
         return false
       }
-      const toolConfig = config.tools.find(t => t.name == k && t.enabled)
+      const toolConfig = config.tools.find(t => !isEnabled || t.name == k && t.enabled)
       if (toolConfig) {
         return true
       }

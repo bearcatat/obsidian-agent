@@ -3,7 +3,6 @@ import { tool } from "ai";
 import { DESCRIPTION } from "./prompts";
 import { z } from 'zod';
 import { ToolMessage } from "@/messages/tool-message";
-import { useAgentLogic } from "@/hooks/use-agent";
 import { getGlobalApp } from "@/utils";
 import { FileEditToolMessageCard } from "@/ui/components/agent-view/messages/message/file-edit-tool-message-card";
 import { FileEdit, MessageV2 } from "@/types";

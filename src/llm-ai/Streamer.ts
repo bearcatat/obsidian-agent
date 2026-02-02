@@ -1,49 +1,51 @@
 import { useAgentLogic } from "@/hooks/use-agent";
 import { AssistantMessage } from "@/messages/assistant-message";
-import { AssistantModelMessage, ToolModelMessage, ModelMessage, ToolLoopAgent, ToolSet, TextStreamPart } from "ai";
+import { MessageV2 } from "@/types";
+import { AssistantModelMessage, ToolModelMessage, ModelMessage, ToolLoopAgent, ToolSet, TextStreamPart, StreamTextResult } from "ai";
 import { v4 as uuidv4 } from 'uuid';
 
 
 export default class Streamer {
     private agent: ToolLoopAgent;
     private assistantMessage: AssistantMessage = AssistantMessage.createEmpty("");
+    private addMessage: (message: MessageV2) => void;
 
-    constructor(agent: ToolLoopAgent) {
+    constructor(agent: ToolLoopAgent, addMessage: (message: MessageV2) => void) {
         this.agent = agent
+        this.addMessage = addMessage
     }
 
     async stream(
         messages: Array<ModelMessage>,
-        abortController: AbortController,
-    ): Promise<Array<AssistantModelMessage | ToolModelMessage>> {
+        abortSignal: AbortSignal,
+    ): Promise<StreamTextResult<{}, never>> {
         const result = await this.agent.stream({
             messages: messages,
-            abortSignal: abortController.signal,
+            abortSignal: abortSignal,
         })
         for await (const chunk of result.fullStream) {
             await this.handleChunk(chunk)
         }
-        return (await result.response).messages
+        return result
     }
 
     async handleChunk(chunk: TextStreamPart<{}>) {
-        const { addMessage } = useAgentLogic();
         switch (chunk.type) {
             case "start-step":
                 this.assistantMessage = AssistantMessage.createEmpty(uuidv4());
                 break;
             case "text-delta":
                 this.assistantMessage.appendContent(chunk.text);
-                addMessage(this.assistantMessage)
+                this.addMessage(this.assistantMessage)
                 break;
             case "reasoning-delta":
                 this.assistantMessage.appendReasoningContent(chunk.text);
-                addMessage(this.assistantMessage)
+                this.addMessage(this.assistantMessage)
                 break;
             case "finish":
             case "tool-input-start":
                 this.assistantMessage.close();
-                addMessage(this.assistantMessage);
+                this.addMessage(this.assistantMessage);
                 break;
         }
     }

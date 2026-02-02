@@ -11,6 +11,7 @@ import ModelManager from './llm/ModelManager';
 import ToolManager from './tools/ToolManager';
 import Agent from './llm/Agent';
 import AIToolManager from './tool-ai/ToolManager';
+import AIModelManager from './llm-ai/ModelManager';
 
 export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgentPlugin {
 	private uiManager: UIManager;
@@ -63,6 +64,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			AgentViewLogic.resetInstance();
 			SettingsLogic.resetInstance();
 			ModelManager.resetInstance();
+			AIModelManager.resetInstance();
 			ToolManager.resetInstance();
 			await AIToolManager.resetInstance();
 			Agent.resetInstance();

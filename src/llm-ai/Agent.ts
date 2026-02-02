@@ -1,17 +1,11 @@
-import { SettingsState } from "@/state/settings-state-impl";
-import { ModelMessage, tool, ToolLoopAgent, ToolSet, UserModelMessage } from "ai";
-import DeepSeekGenerator from "./models/deepseek";
-import { z } from 'zod';
-import { convertDateToTimeInfo } from "@/tools/Time/common/common";
+import { generateText, ModelMessage, ToolLoopAgent } from "ai";
 import Streamer from "./Streamer";
 import { UserMessage } from "@/messages/user-message";
 import { TFile } from "obsidian";
 import { getSystemPrompts, getTitleGenerationPrompt } from "./system-prompts";
 import AIToolManager from "@/tool-ai/ToolManager";
 import { MessageV2 } from "@/types";
-
-
-
+import AIModelManager from "./ModelManager";
 
 export default class AIAgent {
     private static instance: AIAgent
@@ -34,32 +28,26 @@ export default class AIAgent {
         abortController: AbortController,
         addMessage: (message: MessageV2) => void
     ) {
-        const modelConfig = SettingsState.getInstance().defaultAgentModel
-        if (!modelConfig) {
-            console.log("modelConfig is null")
-            return
-        }
-        const deepSeekModel = DeepSeekGenerator.getInstance().newModel(modelConfig)
         const systemPrompts = await getSystemPrompts();
 
         const agent = new ToolLoopAgent({
-            model: deepSeekModel.getModel(),
+            ...AIModelManager.getInstance().agentConfig,
             instructions: systemPrompts[0],
             tools: AIToolManager.getInstance().getMainAgentEnabledTools(),
             toolChoice: 'auto',
             experimental_context: {
                 addMessage: addMessage
-            }
+            },
         })
 
         const enhancedMessage = this.getFullUserMessage(message, activeNote, contextNotes)
         this.messages.push(enhancedMessage.toModelMessage())
-        const streamer = new Streamer(agent)
-        const messages = await streamer.stream(this.messages, abortController)
+        const streamer = new Streamer(agent, addMessage)
+        const result = await streamer.stream(this.messages, abortController.signal)
+        const messages = (await result.response).messages
         this.messages.push(...messages)
         console.log(this.messages)
     }
-
 
     getFullUserMessage(message: UserMessage, activeNote: TFile | null, contextNotes: TFile[]): UserMessage {
         const contextInfo = [];
@@ -81,28 +69,23 @@ export default class AIAgent {
     }
 
     async generateTitle(userMessage: string): Promise<string> {
-        const modelConfig = SettingsState.getInstance().defaultAgentModel
-        if (!modelConfig) {
-            console.log("modelConfig is null")
-            return ""
-        }
-        const deepSeekModel = DeepSeekGenerator.getInstance().newModel(modelConfig)
-        const titleSystemPrompt: ModelMessage = {
-            role: "system",
-            content: getTitleGenerationPrompt()
-        }
-        const userSystemPrompt: ModelMessage = {
-            role: "user",
-            content: userMessage
-        }
         const messages: Array<ModelMessage> = [
-            titleSystemPrompt,
-            userSystemPrompt,
+            {
+                role: "system",
+                content: getTitleGenerationPrompt()
+            },
+            {
+                role: "user",
+                content: userMessage
+            },
         ]
         try {
-            const text = await deepSeekModel.generateText(messages, {}, new AbortController, () => { })
+            const { text } = await generateText({
+                ...AIModelManager.getInstance().agentConfig,
+                messages: messages,
+                maxRetries: 3,
+            })
             return text
-
         } catch (error) {
             return ""
         }

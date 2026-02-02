@@ -8,6 +8,7 @@ import { FileEditTool, toolName as FileEditToolName } from "./FileEdit/FileEditT
 import { WebFetchTool, toolName as WebFetchToolName } from "./WebFetch/WebFetchTool";
 import { SearchTool, toolName as SearchToolName } from "./Search/SearchTool";
 import MCPManager from "./MCP/MCPManager";
+import SubAgentManager from "./SubAgent/SubAgentManager";
 
 
 export default class AIToolManager {
@@ -25,6 +26,7 @@ export default class AIToolManager {
   private builtinToolConfigs: BuiltinToolConfig[] = [];
   private mainAgentEnableTools: ToolSet = {};
   private mcpManager: MCPManager;
+  private subAgentManager: SubAgentManager;
 
 
   static getInstance(): AIToolManager {
@@ -44,6 +46,7 @@ export default class AIToolManager {
 
   async init() {
     this.mcpManager = new MCPManager()
+    this.subAgentManager = new SubAgentManager()
     await this.initializeTools()
   }
 
@@ -61,6 +64,9 @@ export default class AIToolManager {
 
   // 更新SubAgent配置
   async updateSubAgents(subAgents: SubAgentConfig[]): Promise<void> {
+    this.subAgentManager.updateSubAgents(subAgents)
+    await this.initializeTools();
+    console.log("ai subagent updated")
   }
 
   getMainAgentEnabledTools(): ToolSet {
@@ -69,24 +75,29 @@ export default class AIToolManager {
 
   // 重新初始化工具
   private async initializeTools() {
+    const allTools = {
+      ...this.getBuiltinTools(false),
+      ...await this.mcpManager.getTools(false)
+    }
     this.mainAgentEnableTools = {
-      ...this.getEnabledBuiltinTools(),
-      ...await this.mcpManager.getEnabledTools()
+      ...this.getBuiltinTools(true),
+      ...await this.mcpManager.getTools(true),
+      ...this.subAgentManager.getEnabledTools(allTools)
     }
   }
 
-  private getEnabledBuiltinTools(): ToolSet {
+  private getBuiltinTools(isEnabled: boolean): ToolSet {
     // 根据配置过滤启用的内置工具
     const enabledToolNames = new Set(
       this.builtinToolConfigs.filter(t => t.enabled).map(t => t.name)
     );
 
     const enabledBuiltinTools = Object.entries(AIToolManager.BUILTIN_TOOLS).filter(([k, v]) =>
-      v.title && enabledToolNames.has(v.title))
+      !isEnabled || v.title && enabledToolNames.has(v.title))
     return Object.fromEntries(enabledBuiltinTools);
   }
 
-    async getMCPTools(server: MCPServerConfig): Promise<ToolSet> {
-      return this.mcpManager.getTools(server);
-    }
+  async getMCPTools(server: MCPServerConfig): Promise<ToolSet> {
+    return this.mcpManager.getClientTools(server);
+  }
 }

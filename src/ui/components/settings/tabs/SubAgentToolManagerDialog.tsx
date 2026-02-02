@@ -53,19 +53,19 @@ export const SubAgentToolManagerDialog: React.FC<SubAgentToolManagerDialogProps>
         } as SubAgentToolConfig)));
       }
 
-      const availableSubAgentTools: SubAgentToolConfig[] = [];
-      for (const sa of subAgents) {
-        if (sa.name === subAgent.name) {
-          continue;
-        }
-        availableSubAgentTools.push({
-          type: "subAgent",
-          name: sa.name,
-          enabled: false // 默认禁用
-        } as SubAgentToolConfig);
-      }
+      // const availableSubAgentTools: SubAgentToolConfig[] = [];
+      // for (const sa of subAgents) {
+      //   if (sa.name === subAgent.name) {
+      //     continue;
+      //   }
+      //   availableSubAgentTools.push({
+      //     type: "subAgent",
+      //     name: sa.name,
+      //     enabled: false // 默认禁用
+      //   } as SubAgentToolConfig);
+      // }
 
-      const availableTools = [...availableBuiltinTools, ...availableMcpTools, ...availableSubAgentTools];
+      const availableTools = [...availableBuiltinTools, ...availableMcpTools];
 
       // 合并现有配置
       const toolConfigs: SubAgentToolConfig[] = availableTools.map(tool => {
