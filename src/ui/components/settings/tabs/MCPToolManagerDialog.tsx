@@ -18,8 +18,8 @@ export const MCPToolManagerDialog: React.FC<MCPToolManagerDialogProps> = ({
   close,
 }) => {
   const { modalContainer } = useTab();
-  const { addOrUpdateMCPServer, getMCPTools } = useSettingsLogic();
-  
+  const { addOrUpdateMCPServer, getAIMCPTools } = useSettingsLogic();
+
   const [tools, setTools] = useState<MCPToolConfig[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,18 +34,18 @@ export const MCPToolManagerDialog: React.FC<MCPToolManagerDialogProps> = ({
   const loadTools = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      
-      const availableTools = await getMCPTools(server);
-      
+
+      const availableTools = Object.entries(await getAIMCPTools(server))
+
       // 转换为MCPToolConfig格式
-      const toolConfigs: MCPToolConfig[] = availableTools.map(tool => {
+      const toolConfigs: MCPToolConfig[] = availableTools.map(([k, v]) => {
         // 检查是否已有配置
-        const existingConfig = server.tools?.find(t => t.name === tool.getToolName());
+        const existingConfig = server.tools?.find(t => t.name === k);
         return {
-          name: tool.getToolName(),
-          description: tool.getTool().description,
+          name: k,
+          description: v.description,
           enabled: existingConfig?.enabled ?? false // 默认禁用
         };
       });
@@ -60,7 +60,7 @@ export const MCPToolManagerDialog: React.FC<MCPToolManagerDialogProps> = ({
   };
 
   const handleToolToggle = (toolName: string, enabled: boolean) => {
-    setTools(prev => prev.map(tool => 
+    setTools(prev => prev.map(tool =>
       tool.name === toolName ? { ...tool, enabled } : tool
     ));
   };

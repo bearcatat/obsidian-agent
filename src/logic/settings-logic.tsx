@@ -4,6 +4,7 @@ import { Plugin } from "obsidian";
 import ToolManager from "../tools/ToolManager";
 import MCPToolAdaptor from "../tools/MCP/MCPToolAdaptor";
 import AIToolManager from "@/tool-ai/ToolManager";
+import { ToolSet } from "ai";
 
 export class SettingsLogic {
     private static instance: SettingsLogic;
@@ -264,6 +265,10 @@ export class SettingsLogic {
 
     async getMCPTools(server: MCPServerConfig): Promise<MCPToolAdaptor[]> {
         return ToolManager.getInstance().getMCPTools(server);
+    }
+
+    async getAIMCPTools(config: MCPServerConfig): Promise<ToolSet>{
+        return AIToolManager.getInstance().getMCPTools(config)
     }
 }
 

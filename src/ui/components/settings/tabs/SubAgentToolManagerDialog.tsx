@@ -17,9 +17,9 @@ export const SubAgentToolManagerDialog: React.FC<SubAgentToolManagerDialogProps>
   open,
   close,
 }) => {
-  const { addOrUpdateSubAgent, getMCPTools } = useSettingsLogic();
+  const { addOrUpdateSubAgent, getAIMCPTools } = useSettingsLogic();
   const { builtinTools, mcpServers, subAgents } = useSettingsState();
-  
+
   const [tools, setTools] = useState<SubAgentToolConfig[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +34,7 @@ export const SubAgentToolManagerDialog: React.FC<SubAgentToolManagerDialogProps>
   const loadTools = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // 获取所有可用的内置工具
       const availableBuiltinTools = builtinTools.map(tool => ({
@@ -45,10 +45,10 @@ export const SubAgentToolManagerDialog: React.FC<SubAgentToolManagerDialogProps>
 
       const availableMcpTools: SubAgentToolConfig[] = [];
       for (const server of mcpServers) {
-        const tools = await getMCPTools(server);
-        availableMcpTools.push(...tools.map(tool => ({
+        const tools = Object.entries(await getAIMCPTools(server));
+        availableMcpTools.push(...tools.map(([k, v]) => ({
           type: "mcp",
-          name: tool.getToolName(),
+          name: k,
           enabled: false // 默认禁用
         } as SubAgentToolConfig)));
       }
@@ -88,7 +88,7 @@ export const SubAgentToolManagerDialog: React.FC<SubAgentToolManagerDialogProps>
   };
 
   const handleToolToggle = (toolName: string, enabled: boolean) => {
-    setTools(prev => prev.map(tool => 
+    setTools(prev => prev.map(tool =>
       tool.name === toolName ? { ...tool, enabled } : tool
     ));
   };

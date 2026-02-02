@@ -12,6 +12,7 @@ export default class MCPManager {
   private clients: Record<string, MCPClient> = {};
 
   async updateMCPServers(configs: MCPServerConfig[]) {
+    console.log(configs)
     this.configs = configs
     await Promise.all(
       configs.map(async config => {
@@ -85,6 +86,14 @@ export default class MCPManager {
   async getTools(config: MCPServerConfig): Promise<ToolSet> {
     return await this.clients[config.name].tools()
   }
+
+  async closeClient() {
+    await Promise.all(
+      Object.entries(this.clients).map(async ([k, v]) => {
+        await v.close()
+      })
+    )
+  }
 }
 
 async function getClientEnabledTools(client: MCPClient, config: MCPServerConfig): Promise<ToolSet> {
@@ -95,14 +104,14 @@ async function getClientEnabledTools(client: MCPClient, config: MCPServerConfig)
       if (!config.tools) {
         return false
       }
-      const toolConfig = config.tools.find(t => t.name == k)
+      const toolConfig = config.tools.find(t => t.name == k && t.enabled)
       if (toolConfig) {
         return true
       }
       return false
     })
     .map(([k, v]) => [k, tool({
-      title: v.title ?? k,
+      title: k,
       description: v.description,
       inputSchema: v.inputSchema,
       execute: async (input, options) => {

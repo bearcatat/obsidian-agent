@@ -35,7 +35,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 		}
 	}
 
-	onunload() {
+	async onunload() {
 		console.log('Starting plugin cleanup...');
 
 		try {
@@ -64,6 +64,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			SettingsLogic.resetInstance();
 			ModelManager.resetInstance();
 			ToolManager.resetInstance();
+			await AIToolManager.resetInstance();
 			Agent.resetInstance();
 			// AgentMemoryManager没有静态方法，不需要重置
 

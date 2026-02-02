@@ -23,7 +23,7 @@ export function useSettingsState(): ISettingsState {
 
 export function useSettingsLogic() {
   const settingsLogic = SettingsLogic.getInstance();
-  
+
   return {
     // 模型管理
     addOrUpdateModel: async (model: ModelConfig, originalId?: string) => await settingsLogic.addOrUpdateModel(model, originalId),
@@ -33,12 +33,12 @@ export function useSettingsLogic() {
     // 模型设置
     setDefaultAgentModel: async (model: ModelConfig | null) => await settingsLogic.setDefaultAgentModel(model),
     setTitleModel: async (model: ModelConfig | null) => await settingsLogic.setTitleModel(model),
-    
+
     // MCP服务器配置管理
     addOrUpdateMCPServer: async (server: MCPServerConfig, originalName?: string) => await settingsLogic.addOrUpdateMCPServer(server, originalName),
     removeMCPServer: async (serverName: string) => await settingsLogic.removeMCPServer(serverName),
     reorderMCPServers: async (newServers: MCPServerConfig[]) => await settingsLogic.reorderMCPServers(newServers),
-    
+
     // 内置工具管理
     updateBuiltinTool: async (toolName: string, enabled: boolean) => await settingsLogic.updateBuiltinTool(toolName, enabled),
 
@@ -49,13 +49,14 @@ export function useSettingsLogic() {
 
     // 获取MCP工具
     getMCPTools: async (server: MCPServerConfig) => await settingsLogic.getMCPTools(server),
+    getAIMCPTools: async (server: MCPServerConfig) => await settingsLogic.getAIMCPTools(server),
   };
 }
 
 export function useSettings() {
   const state = useSettingsState();
   const logic = useSettingsLogic();
-  
+
   return {
     ...state,
     ...logic,

@@ -34,9 +34,9 @@ export default class AIToolManager {
     return AIToolManager.instance;
   }
 
-  static resetInstance(): void {
+  static async resetInstance() {
     if (AIToolManager.instance) {
-      // ToolManager.instance.mcpManager.closeClient();
+      await AIToolManager.instance.mcpManager.closeClient();
       // ToolManager.instance.subAgentManager.close();
     }
     AIToolManager.instance = undefined as any;
@@ -85,4 +85,8 @@ export default class AIToolManager {
       v.title && enabledToolNames.has(v.title))
     return Object.fromEntries(enabledBuiltinTools);
   }
+
+    async getMCPTools(server: MCPServerConfig): Promise<ToolSet> {
+      return this.mcpManager.getTools(server);
+    }
 }
