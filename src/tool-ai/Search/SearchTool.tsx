@@ -2,8 +2,8 @@ import { tool } from "ai";
 import { DESCRIPTION } from "./prompts";
 import { z } from 'zod';
 import { ToolMessage } from "@/messages/tool-message";
-import { useAgentLogic } from "@/hooks/use-agent";
 import { getGlobalApp } from "@/utils";
+import { MessageV2 } from "@/types";
 import { searchSchema, SearchParams } from "./types";
 import { searchVault, calculateTotalMatches } from "./utils/search-utils";
 import { generateSearchMetadata, formatSearchResults } from "./utils/result-formatter";
@@ -14,8 +14,8 @@ export const SearchTool = tool({
 	title: toolName,
 	description: DESCRIPTION,
 	inputSchema: searchSchema,
-	execute: async (args, { toolCallId }) => {
-		const { addMessage } = useAgentLogic()
+	execute: async (args, { toolCallId, experimental_context }) => {
+		const context = experimental_context as { addMessage: (message: MessageV2) => void }
 		try {
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
 			const params = args as SearchParams
@@ -23,11 +23,11 @@ export const SearchTool = tool({
 			toolMessage.setContent(result)
 			toolMessage.setChildren(render(params.query))
 			toolMessage.close()
-			addMessage(toolMessage)
+			context.addMessage(toolMessage)
 			return result
 		} catch (error) {
 			const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
-			addMessage(errorMessage)
+			context.addMessage(errorMessage)
 			throw error
 		}
 	}

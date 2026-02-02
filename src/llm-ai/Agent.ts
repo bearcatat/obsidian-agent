@@ -8,6 +8,7 @@ import { UserMessage } from "@/messages/user-message";
 import { TFile } from "obsidian";
 import { getSystemPrompts, getTitleGenerationPrompt } from "./system-prompts";
 import AIToolManager from "@/tool-ai/ToolManager";
+import { MessageV2 } from "@/types";
 
 
 
@@ -27,7 +28,12 @@ export default class AIAgent {
         AIAgent.instance = undefined as any;
     }
 
-    async query(message: UserMessage, activeNote: TFile | null, contextNotes: TFile[], abortController: AbortController) {
+    async query(message: UserMessage,
+        activeNote: TFile | null,
+        contextNotes: TFile[],
+        abortController: AbortController,
+        addMessage: (message: MessageV2) => void
+    ) {
         const modelConfig = SettingsState.getInstance().defaultAgentModel
         if (!modelConfig) {
             console.log("modelConfig is null")
@@ -40,7 +46,10 @@ export default class AIAgent {
             model: deepSeekModel.getModel(),
             instructions: systemPrompts[0],
             tools: AIToolManager.getInstance().getMainAgentEnabledTools(),
-            toolChoice: 'auto'
+            toolChoice: 'auto',
+            experimental_context: {
+                addMessage: addMessage
+            }
         })
 
         const enhancedMessage = this.getFullUserMessage(message, activeNote, contextNotes)

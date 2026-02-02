@@ -2,8 +2,8 @@ import { tool } from "ai";
 import { DESCRIPTION } from "./prompts";
 import { z } from 'zod';
 import { ToolMessage } from "@/messages/tool-message";
-import { useAgentLogic } from "@/hooks/use-agent";
 import { getGlobalApp } from "@/utils";
+import { MessageV2 } from "@/types";
 
 export const toolName = "readNoteByPath"
 
@@ -13,15 +13,15 @@ export const ReadNoteByPathTool = tool({
 	inputSchema: z.object({
 		filePath: z.string().describe("笔记文件的路径，例如：'项目/文档/README.md'"),
 	}),
-	execute: async ({ filePath }, { toolCallId }) => {
-		const { addMessage } = useAgentLogic()
+	execute: async ({ filePath }, { toolCallId, experimental_context }) => {
+		const context = experimental_context as { addMessage: (message: MessageV2) => void }
 		try {
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
 			const result = await readNoteByPath(filePath)
 			toolMessage.setContent(result)
 			toolMessage.setChildren(render(filePath))
 			toolMessage.close()
-			addMessage(toolMessage)
+			context.addMessage(toolMessage)
 			return result
 		} catch (error) {
 			const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
@@ -30,7 +30,7 @@ export const ReadNoteByPathTool = tool({
 				details: error instanceof Error ? error.message : "未知错误",
 				filePath
 			}))
-			addMessage(errorMessage)
+			context.addMessage(errorMessage)
 			throw error
 		}
 	}

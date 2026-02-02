@@ -2,9 +2,8 @@ import { tool } from "ai";
 import { DESCRIPTION } from "./prompts";
 import { z } from 'zod';
 import { ToolMessage } from "@/messages/tool-message";
-import { useAgentLogic } from "@/hooks/use-agent";
 import { QuestionToolMessageCard } from "@/ui/components/agent-view/messages/message/question-tool-message-card";
-import { Question } from "@/types";
+import { Question, MessageV2 } from "@/types";
 
 export const toolName = "askQuestion"
 
@@ -15,8 +14,8 @@ export const QuestionTool = tool({
 		question: z.string().describe("你要询问的问题"),
 		options: z.array(z.string()).describe("答案选项，最多4个"),
 	}),
-	execute: async ({ question, options }, { toolCallId }) => {
-		const { addMessage } = useAgentLogic()
+	execute: async ({ question, options }, { toolCallId, experimental_context }) => {
+		const context = experimental_context as { addMessage: (message: MessageV2) => void }
 		try {
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
 			const questionData: Question = {
@@ -30,19 +29,19 @@ export const QuestionTool = tool({
 			const submitAnswer = (answer: string) => { resolver(answer) }
 
 			toolMessage.setChildren(render(questionData, false, null, submitAnswer))
-			addMessage(toolMessage)
+			context.addMessage(toolMessage)
 
 			const result = await waitForAnswer()
 
 			toolMessage.setChildren(render(questionData, true, result, submitAnswer))
 			toolMessage.setContent(result)
 			toolMessage.close()
-			addMessage(toolMessage)
+			context.addMessage(toolMessage)
 
 			return result
 		} catch (error) {
 			const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
-			addMessage(errorMessage)
+			context.addMessage(errorMessage)
 			throw error
 		}
 	}

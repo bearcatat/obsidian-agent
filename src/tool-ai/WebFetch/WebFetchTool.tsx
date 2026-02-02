@@ -3,8 +3,8 @@ import { z } from "zod";
 import TurndownService from "turndown";
 import { DESCRIPTION } from "./prompts";
 import { ToolMessage } from "@/messages/tool-message";
-import { useAgentLogic } from "@/hooks/use-agent";
 import { requestUrl } from "obsidian";
+import { MessageV2 } from "@/types";
 
 const MAX_RESPONSE_SIZE = 5 * 1024 * 1024
 const DEFAULT_TIMEOUT = 30 * 1000
@@ -20,19 +20,19 @@ export const WebFetchTool = tool({
 		format: z.enum(["text", "markdown", "html"]).default("markdown").describe("The format to return the content in (text, markdown, or html). Defaults to markdown."),
 		timeout: z.number().optional().describe("Optional timeout in seconds (max 120)"),
 	}),
-	execute: async ({ url, format, timeout }, { toolCallId }) => {
-		const { addMessage } = useAgentLogic()
+	execute: async ({ url, format, timeout }, { toolCallId, experimental_context }) => {
+		const context = experimental_context as { addMessage: (message: MessageV2) => void }
 		try {
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
 			const result = await fetchWebContent({ url, format, timeout })
 			toolMessage.setContent(result)
 			toolMessage.setChildren(render(url))
 			toolMessage.close()
-			addMessage(toolMessage)
+			context.addMessage(toolMessage)
 			return result
 		} catch (error) {
 			const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
-			addMessage(errorMessage)
+			context.addMessage(errorMessage)
 			throw error
 		}
 	}

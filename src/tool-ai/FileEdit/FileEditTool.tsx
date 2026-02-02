@@ -6,7 +6,7 @@ import { ToolMessage } from "@/messages/tool-message";
 import { useAgentLogic } from "@/hooks/use-agent";
 import { getGlobalApp } from "@/utils";
 import { FileEditToolMessageCard } from "@/ui/components/agent-view/messages/message/file-edit-tool-message-card";
-import { FileEdit } from "@/types";
+import { FileEdit, MessageV2 } from "@/types";
 
 export const toolName = "editFile"
 
@@ -18,8 +18,8 @@ export const FileEditTool = tool({
 		old_string: z.string().describe("要替换的文本（在笔记中必须是唯一的，创建新笔记时为空）"),
 		new_string: z.string().describe("用于替换 old_string 的编辑后文本"),
 	}),
-	execute: async ({ file_path, old_string, new_string }, { toolCallId }) => {
-		const { addMessage } = useAgentLogic()
+	execute: async ({ file_path, old_string, new_string }, { toolCallId, experimental_context }) => {
+		const context = experimental_context as { addMessage: (message: MessageV2) => void }
 		try {
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
 			const app = getGlobalApp()
@@ -85,7 +85,7 @@ export const FileEditTool = tool({
 			}
 
 			toolMessage.setChildren(render(fileEdit, false, null, handleApply, handleReject))
-			addMessage(toolMessage)
+			context.addMessage(toolMessage)
 
 			const decision = await waitForDecision()
 
@@ -123,7 +123,7 @@ export const FileEditTool = tool({
 
 			toolMessage.setChildren(render(fileEdit, true, decision, handleApply, handleReject))
 			toolMessage.close()
-			addMessage(toolMessage)
+			context.addMessage(toolMessage)
 
 			return JSON.stringify({
 				success: decision === "apply" ? "用户接受了修改" : "用户拒绝了你的修改",
@@ -131,7 +131,7 @@ export const FileEditTool = tool({
 			})
 		} catch (error) {
 			const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
-			addMessage(errorMessage)
+			context.addMessage(errorMessage)
 			throw error
 		}
 	}

@@ -24,7 +24,7 @@ export function useAgentLogic() {
 
   return {
     sendMessage: (content: string) => agentLogic.sendMessage(content),
-    addMessage: async (message: MessageV2) => agentLogic.addMessage(message),
+    addMessage: (message: MessageV2) => agentLogic.addMessage(message),
     stopLoading: () => agentLogic.stopLoading(),
     setActiveNote: (activeNote: TFile | null) => agentLogic.setActiveNote(activeNote),
     removeContextNote: (path: string) => agentLogic.removeContextNote(path),

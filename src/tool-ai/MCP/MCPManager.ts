@@ -4,7 +4,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { tool, ToolSet } from "ai";
 import React from "react";
 import { ToolMessage } from "@/messages/tool-message";
-import { useAgentLogic } from "@/hooks/use-agent";
+import { MessageV2 } from "@/types";
 
 
 export default class MCPManager {
@@ -106,11 +106,11 @@ async function getClientEnabledTools(client: MCPClient, config: MCPServerConfig)
       description: v.description,
       inputSchema: v.inputSchema,
       execute: async (input, options) => {
-        const { addMessage } = useAgentLogic()
+        const context = options.experimental_context as { addMessage: (message: MessageV2) => void }
         const toolMessage = ToolMessage.from(k, options.toolCallId)
         toolMessage.setChildren(render(k))
         toolMessage.close()
-        addMessage(toolMessage)
+        context.addMessage(toolMessage)
         return await v.execute(input, options)
       }
     })])

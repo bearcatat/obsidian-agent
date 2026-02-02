@@ -3,8 +3,8 @@ import { tool } from "ai";
 import { DESCRIPTION } from "./prompts";
 import { z } from 'zod';
 import { ToolMessage } from "@/messages/tool-message";
-import { useAgentLogic } from "@/hooks/use-agent";
 import { getGlobalApp } from "@/utils";
+import { MessageV2 } from "@/types";
 
 export const toolName = "readNoteByLink"
 
@@ -15,15 +15,15 @@ export const ReadNoteByLinkTool = tool({
 		linkPath: z.string().describe("笔记链接路径，例如：'项目计划'"),
 		filePath: z.string().describe("当前笔记的完整路径"),
 	}),
-	execute: async ({ linkPath, filePath }, { toolCallId }) => {
-		const { addMessage } = useAgentLogic()
+	execute: async ({ linkPath, filePath }, { toolCallId, experimental_context }) => {
+		const context = experimental_context as { addMessage: (message: MessageV2) => void }
 		try {
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
 			const result = await readNoteByLink(linkPath, filePath)
 			toolMessage.setContent(result)
 			toolMessage.setChildren(render(linkPath))
 			toolMessage.close()
-			addMessage(toolMessage)
+			context.addMessage(toolMessage)
 			return result
 		} catch (error) {
 			const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
@@ -33,7 +33,7 @@ export const ReadNoteByLinkTool = tool({
 				linkPath,
 				filePath
 			}))
-			addMessage(errorMessage)
+			context.addMessage(errorMessage)
 			throw error
 		}
 	}
