@@ -53,7 +53,7 @@ export class AgentViewLogic {
       //   }
       //   this.state.addMessage(message);
       // }
-      await AIAgent.getInstance().query(userMessage, this.state.activeNote, this.state.contextNotes, abortController, this.state.addMessage)
+      await AIAgent.getInstance().query(userMessage, this.state.activeNote, this.state.contextNotes, abortController, (message: MessageV2) => this.state.addMessage(message))
     } catch (error) {
       console.error('Failed to send message:', error);
     } finally {

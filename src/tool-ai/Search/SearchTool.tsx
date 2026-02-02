@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { ToolMessage } from "@/messages/tool-message";
 import { getGlobalApp } from "@/utils";
 import { MessageV2 } from "@/types";
-import { searchSchema, SearchParams } from "./types";
+import { searchSchema, SearchParams, SearchMetadata } from "./types";
 import { searchVault, calculateTotalMatches } from "./utils/search-utils";
 import { generateSearchMetadata, formatSearchResults } from "./utils/result-formatter";
 
@@ -19,12 +19,12 @@ export const SearchTool = tool({
 		try {
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
 			const params = args as SearchParams
-			const result = await executeSearch(params)
-			toolMessage.setContent(result)
-			toolMessage.setChildren(render(params.query))
+			const { content, metadata } = await executeSearch(params)
+			toolMessage.setContent(content)
+			toolMessage.setChildren(render(params.query, metadata))
 			toolMessage.close()
 			context.addMessage(toolMessage)
-			return result
+			return content
 		} catch (error) {
 			const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
 			context.addMessage(errorMessage)
@@ -33,7 +33,7 @@ export const SearchTool = tool({
 	}
 })
 
-async function executeSearch(params: SearchParams): Promise<string> {
+async function executeSearch(params: SearchParams): Promise<{ content: string; metadata: SearchMetadata }> {
 	const app = getGlobalApp()
 	const vault = app.vault
 
@@ -52,7 +52,10 @@ async function executeSearch(params: SearchParams): Promise<string> {
 			results.length
 		)
 
-		return formatSearchResults(results, metadata, params.showContextLines)
+		return {
+			content: formatSearchResults(results, metadata, params.showContextLines),
+			metadata
+		}
 
 	} catch (error) {
 		if (error instanceof Error) {
@@ -68,10 +71,15 @@ async function executeSearch(params: SearchParams): Promise<string> {
 	}
 }
 
-function render(searchQuery: string): React.ReactNode {
+function render(searchQuery: string, metadata: SearchMetadata): React.ReactNode {
 	return (
 		<div className="tw-flex tw-items-center tw-gap-2">
 			<span>搜索: "{searchQuery}"</span>
+			{metadata.matchedFiles > 0 && (
+				<span className="tw-text-sm tw-text-muted-foreground">
+					({metadata.matchedFiles} 个文件, {metadata.totalMatches} 处匹配)
+				</span>
+			)}
 		</div>
 	)
 }
