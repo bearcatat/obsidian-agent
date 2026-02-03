@@ -28,6 +28,7 @@ export default class AIAgent {
         abortController: AbortController,
         addMessage: (message: MessageV2) => void
     ) {
+        console.log(AIModelManager.getInstance().agentConfig)
         const systemPrompts = await getSystemPrompts();
 
         const agent = new ToolLoopAgent({
@@ -81,7 +82,7 @@ export default class AIAgent {
         ]
         try {
             const { text } = await generateText({
-                ...AIModelManager.getInstance().agentConfig,
+                ...AIModelManager.getInstance().titleConfig,
                 messages: messages,
                 maxRetries: 3,
             })

@@ -113,6 +113,7 @@ export class AgentViewLogic {
       this.state.setActiveNote(activeNote);
     }
     Agent.getInstance().clearMemory();
+    AIAgent.getInstance().clearMemory();
   }
 
   setModel(model: ModelConfig): void {
