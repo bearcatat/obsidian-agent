@@ -70,8 +70,7 @@ export class AgentViewLogic {
     if (this.state.title === "New Chat") {
       // 使用 Agent 的 generateTitle 方法生成标题
       try {
-        const agent = Agent.getInstance();
-        const title = await agent.generateTitle(userMessage);
+        const title = await AIAgent.getInstance().generateTitle(userMessage);
         this.state.setTitle(title);
       } catch (error) {
         console.error('Failed to generate title:', error);

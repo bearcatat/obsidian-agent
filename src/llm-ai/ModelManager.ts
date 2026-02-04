@@ -40,7 +40,7 @@ export default class AIModelManager {
     setTitle(modelConfig: ModelConfig) {
         const generator = this.modelGenerators[modelConfig.provider]
         if (generator) {
-            this.agentConfig = generator.newAgent(modelConfig)
+            this.titleConfig = generator.newAgent(modelConfig)
         }
     }
 

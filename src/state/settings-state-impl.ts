@@ -1,6 +1,6 @@
 import { ISettingsState, SettingsStateData } from './settings-state';
 import { ModelConfig, MCPServerConfig, BuiltinToolConfig, SubAgentConfig } from '../types';
-import { getDefaultBuiltinTools } from '../tools/BuiltinTools';
+import { getDefaultBuiltinTools } from '../tool-ai/BuiltinTools';
 
 export class SettingsState implements ISettingsState {
   private static instance: SettingsState;

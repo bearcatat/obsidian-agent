@@ -1,5 +1,5 @@
 import { ModelConfig, MCPServerConfig, BuiltinToolConfig, SubAgentConfig } from '../types';
-import { getDefaultBuiltinTools } from '../tools/BuiltinTools';
+import { getDefaultBuiltinTools } from '../tool-ai/BuiltinTools';
 
 export interface ISettingsState {
   // 只保留状态属性
