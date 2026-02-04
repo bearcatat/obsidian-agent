@@ -6,10 +6,6 @@ import { SettingsLogic } from './logic/settings-logic';
 import { AgentViewLogic } from './logic/agent-view-logic';
 import { setGlobalApp, clearGlobalApp } from './utils';
 import { AgentState } from './state/agent-state-impl';
-import AgentMemoryManager from './llm/AgentMemoryManager';
-import ModelManager from './llm/ModelManager';
-import ToolManager from './tools/ToolManager';
-import Agent from './llm/Agent';
 import AIToolManager from './tool-ai/ToolManager';
 import AIModelManager from './llm-ai/ModelManager';
 
@@ -53,33 +49,23 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 				this.uiManager.cleanup();
 			}
 
-			// 3. 清理内存管理器（在重置之前）
-			console.log('Clearing agent memory...');
-			// 注意：AgentMemoryManager没有静态方法，需要创建实例
-			const memoryManager = new AgentMemoryManager();
-			memoryManager.clearMessages();
-
-			// 4. 重置单例实例
+			// 3. 重置单例实例
 			console.log('Resetting singleton instances...');
 			AgentViewLogic.resetInstance();
 			SettingsLogic.resetInstance();
-			ModelManager.resetInstance();
 			AIModelManager.resetInstance();
-			ToolManager.resetInstance();
 			await AIToolManager.resetInstance();
-			Agent.resetInstance();
-			// AgentMemoryManager没有静态方法，不需要重置
 
-			// 5. 清理全局引用
+			// 4. 清理全局引用
 			console.log('Clearing global references...');
 			clearGlobalApp();
 
-			// 6. 清理状态监听器
+			// 5. 清理状态监听器
 			console.log('Clearing state listeners...');
 			agentState.clearListeners();
 			SettingsState.getInstance().clearListeners();
 
-			// 7. 重置状态实例（可选，因为单例会在下次使用时重新创建）
+			// 6. 重置状态实例（可选，因为单例会在下次使用时重新创建）
 			console.log('Resetting state instances...');
 			AgentState.resetInstance();
 			SettingsState.resetInstance();
@@ -136,29 +122,24 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 		// 初始化工具管理器
 		try {
-			const toolManager = ToolManager.getInstance();
-			await toolManager.init();
 			const aiToolManager = AIToolManager.getInstance();
 			await aiToolManager.init();
 
 			// 初始化内置工具配置
 			const builtinTools = settingsState.builtinTools;
 			if (builtinTools && builtinTools.length > 0) {
-				await toolManager.updateBuiltinTools(builtinTools);
 				await aiToolManager.updateBuiltinTools(builtinTools)
 			}
 
 			// 初始化MCP服务器配置（只有在有配置时才初始化）
 			const mcpServers = settingsState.mcpServers;
 			if (mcpServers && mcpServers.length > 0) {
-				await toolManager.updateMCPServers(mcpServers);
 				await aiToolManager.updateMCPServers(mcpServers);
 			}
 
 			// 初始化SubAgent配置（只有在有配置时才初始化）
 			const subAgents = settingsState.subAgents;
 			if (subAgents && subAgents.length > 0) {
-				await toolManager.updateSubAgents(subAgents);
 				await aiToolManager.updateSubAgents(subAgents);
 			}
 		} catch (error) {

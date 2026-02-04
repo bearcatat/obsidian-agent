@@ -1,8 +1,6 @@
 import { ModelConfig, MCPServerConfig, SubAgentConfig } from "../types";
 import { SettingsState } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
-import ToolManager from "../tools/ToolManager";
-import MCPToolAdaptor from "../tools/MCP/MCPToolAdaptor";
 import AIToolManager from "@/tool-ai/ToolManager";
 import { ToolSet } from "ai";
 
@@ -126,11 +124,10 @@ export class SettingsLogic {
         }
         
         this.state.addOrUpdateMCPServer(server, originalName);
-        
+
         // 同步更新ToolManager
-        await ToolManager.getInstance().updateMCPServers(this.state.mcpServers);
         await AIToolManager.getInstance().updateMCPServers(this.state.mcpServers);
-        
+
         await this.saveSettings();
     }
 
@@ -142,11 +139,10 @@ export class SettingsLogic {
         }
 
         this.state.removeMCPServer(serverName);
-        
+
         // 同步更新ToolManager
-        await ToolManager.getInstance().updateMCPServers(this.state.mcpServers);
         await AIToolManager.getInstance().updateMCPServers(this.state.mcpServers);
-        
+
         await this.saveSettings();
     }
 
@@ -154,11 +150,11 @@ export class SettingsLogic {
         // 验证新服务器列表的完整性
         const currentServerNames = new Set(this.state.mcpServers.map(s => s.name));
         const newServerNames = new Set(newServers.map(s => s.name));
-        
+
         if (currentServerNames.size !== newServerNames.size) {
             throw new Error("MCP Server count mismatch during reordering");
         }
-        
+
         for (const name of currentServerNames) {
             if (!newServerNames.has(name)) {
                 throw new Error(`MCP Server "${name}" missing during reordering`);
@@ -166,11 +162,10 @@ export class SettingsLogic {
         }
 
         this.state.reorderMCPServers(newServers);
-        
+
         // 同步更新ToolManager
-        await ToolManager.getInstance().updateMCPServers(this.state.mcpServers);
         await AIToolManager.getInstance().updateMCPServers(this.state.mcpServers);
-        
+
         await this.saveSettings();
     }
 
@@ -183,11 +178,10 @@ export class SettingsLogic {
         }
         
         this.state.updateBuiltinTool(toolName, enabled);
-        
+
         // 同步更新ToolManager
-        await ToolManager.getInstance().updateBuiltinTools(this.state.builtinTools);
         await AIToolManager.getInstance().updateBuiltinTools(this.state.builtinTools);
-        
+
         await this.saveSettings();
     }
 
@@ -206,13 +200,12 @@ export class SettingsLogic {
                 throw new Error(`SubAgent with name "${subAgent.name}" already exists`);
             }
         }
-        
+
         this.state.addOrUpdateSubAgent(subAgent, originalName);
-        
+
         // 同步更新ToolManager
-        await ToolManager.getInstance().updateSubAgents(this.state.subAgents);
         await AIToolManager.getInstance().updateSubAgents(this.state.subAgents);
-        
+
         await this.saveSettings();
     }
 
@@ -222,23 +215,21 @@ export class SettingsLogic {
         if (!existingSubAgent) {
             throw new Error(`SubAgent with name "${subAgentName}" not found`);
         }
-        
+
         this.state.removeSubAgent(subAgentName);
-        
+
         // 同步更新ToolManager
-        await ToolManager.getInstance().updateSubAgents(this.state.subAgents);
         await AIToolManager.getInstance().updateSubAgents(this.state.subAgents);
-        
+
         await this.saveSettings();
     }
 
     async reorderSubAgents(newSubAgents: SubAgentConfig[]): Promise<void> {
         this.state.reorderSubAgents(newSubAgents);
-        
+
         // 同步更新ToolManager
-        await ToolManager.getInstance().updateSubAgents(this.state.subAgents);
         await AIToolManager.getInstance().updateSubAgents(this.state.subAgents);
-        
+
         await this.saveSettings();
     }
 
@@ -263,12 +254,12 @@ export class SettingsLogic {
         }
     }
 
-    async getMCPTools(server: MCPServerConfig): Promise<MCPToolAdaptor[]> {
-        return ToolManager.getInstance().getMCPTools(server);
+    async getMCPTools(server: MCPServerConfig): Promise<ToolSet> {
+        return AIToolManager.getInstance().getMCPTools(server);
     }
 
     async getAIMCPTools(config: MCPServerConfig): Promise<ToolSet>{
-        return AIToolManager.getInstance().getMCPTools(config)
+        return AIToolManager.getInstance().getMCPTools(config);
     }
 }
 

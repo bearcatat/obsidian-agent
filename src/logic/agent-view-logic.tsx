@@ -1,8 +1,6 @@
 import { Message, MessageV2, ModelConfig } from "../types";
 import { AgentState } from "../state/agent-state-impl";
 import { App, TFile } from "obsidian";
-import ModelManager from "../llm/ModelManager";
-import Agent from "../llm/Agent";
 import { v4 as uuidv4 } from "uuid";
 import { UserMessage } from "@/messages/user-message";
 import AIAgent from "@/llm-ai/Agent";
@@ -111,18 +109,15 @@ export class AgentViewLogic {
     if (activeNote) {
       this.state.setActiveNote(activeNote);
     }
-    Agent.getInstance().clearMemory();
     AIAgent.getInstance().clearMemory();
   }
 
   setModel(model: ModelConfig): void {
     this.state.setModel(model);
-    ModelManager.getInstance().setAgentModel(model);
     AIModelManager.getInstance().setAgent(model);
   }
 
   setTitleModel(model: ModelConfig): void {
-    ModelManager.getInstance().setTitleModel(model);
     AIModelManager.getInstance().setTitle(model);
   }
 }
