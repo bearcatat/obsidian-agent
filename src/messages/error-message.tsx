@@ -15,7 +15,4 @@ export class ErrorMessage implements MessageV2 {
     render(): React.ReactElement {
         return <ErrorMessageCard content={this.content} />;
     }
-    toBaseMessageLike(): undefined {
-        return undefined;
-    }
 }

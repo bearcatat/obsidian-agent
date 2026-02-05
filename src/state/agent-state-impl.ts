@@ -1,5 +1,5 @@
 import { IAgentState, AgentStateData } from './agent-state';
-import { Message, ModelConfig } from '../types';
+import { ModelConfig } from '../types';
 import { TFile } from 'obsidian';
 import { MessageV2 } from '@/types';
 
@@ -35,7 +35,7 @@ export class AgentState implements IAgentState {
   }
 
   // 只读属性访问器
-  get messages(): (Message | MessageV2)[] {
+  get messages(): (MessageV2)[] {
     return this._data.messages ? [...this._data.messages] : [];
   }
 
@@ -84,7 +84,7 @@ export class AgentState implements IAgentState {
     this.notify();
   }
 
-  addMessage(message: Message | MessageV2) {
+  addMessage(message: MessageV2) {
     const lastMessage = this._data.messages[this._data.messages.length - 1];
 
     // 优化流式消息处理：移除之前的流式消息，如果消息id相同

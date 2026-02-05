@@ -1,4 +1,4 @@
-import { Message, MessageV2, ModelConfig } from "../types";
+import { MessageV2, ModelConfig } from "../types";
 import { AgentState } from "../state/agent-state-impl";
 import { App, TFile } from "obsidian";
 import { v4 as uuidv4 } from "uuid";

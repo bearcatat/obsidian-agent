@@ -1,8 +1,7 @@
 import { memo, useMemo, useEffect, cloneElement } from "react";
 import { useAgentState } from "../../../../hooks/use-agent";
 import { useAutoScroll } from "../../../../hooks/use-auto-scroll";
-import { Message, MessageV2 } from "@/types";
-import { QuestionToolMessageCard } from "./message/question-tool-message-card";
+import { MessageV2 } from "@/types";
 
 export const Messages = memo(
   () => {
@@ -31,7 +30,7 @@ export const Messages = memo(
 
     // 监听用户消息数量变化，新用户消息时恢复自动滚动
     const userMessagesCount = useMemo(() => {
-      return messages.filter((msg): msg is Message => 'role' in msg && msg.role === 'user').length;
+      return messages.filter((msg): msg is MessageV2 => 'role' in msg && msg.role === 'user').length;
     }, [messages]);
 
     useEffect(() => {

@@ -1,9 +1,9 @@
 import { TFile } from 'obsidian';
-import { Message, MessageV2, ModelConfig } from '../types';
+import { MessageV2, ModelConfig } from '../types';
 
 export interface IAgentState {
   // 只保留状态属性
-  readonly messages: (Message | MessageV2)[];
+  readonly messages: MessageV2[];
   readonly isLoading: boolean;
   readonly activeNote: TFile | null;
   readonly isActiveNoteRemoved: boolean;
@@ -28,7 +28,7 @@ export function clone(agentState: IAgentState): IAgentState {
 
 // 状态数据接口
 export interface AgentStateData {
-  messages: (Message | MessageV2)[];
+  messages: MessageV2[];
   isLoading: boolean;
   activeNote: TFile | null;
   isActiveNoteRemoved: boolean;

@@ -1,10 +1,4 @@
 import { Plugin } from 'obsidian';
-import { ChatDeepSeek } from "@langchain/deepseek";
-import { ChatOpenAI } from "@langchain/openai";
-import { ChatAnthropic } from "@langchain/anthropic";
-import { ToolCall } from "@langchain/core/dist/messages/tool";
-import { StructuredToolInterface } from '@langchain/core/tools';
-import { BaseMessageLike } from '@langchain/core/messages';
 import { ToolLoopAgentSettings } from 'ai';
 
 
@@ -21,22 +15,6 @@ export interface IObsidianAgentPlugin extends Plugin {
   saveSettings(): Promise<void>;
 }
 
-export interface Message {
-  id: string;
-  content: string;
-  reasoning_content?: string;
-  role: "user" | "assistant" | "tool" | "thinking" | "error" | "none";
-  isStreaming: boolean;
-  // assistant message
-  tool_calls?: ToolCall[];
-  // tool message
-  name?: string;
-  call_tool_msg?: string;
-  tool_call_id?: string;
-  // sub agent
-  is_sub_agent?: boolean;
-}
-
 export interface MessageV2 {
   id: string;
   role: "user" | "assistant" | "tool" | "thinking" | "error" | "none";
@@ -44,7 +22,6 @@ export interface MessageV2 {
   content: string;
   reasoning_content?: string;
   render(): React.ReactElement;
-  toBaseMessageLike(): BaseMessageLike | undefined;
 }
 
 export interface ModelConfig {
@@ -67,50 +44,8 @@ export enum ModelProviders {
   OPENAI_FORMAT = "openai-format",
   MOONSHOT = "moonshot",
 }
-
-export type AgentModel =
-  | ChatDeepSeek
-  | ChatOpenAI
-  | ChatAnthropic
-
-export interface ModelGenerator {
-  newStreamer(modelConfig: ModelConfig): Promise<Streamer>;
-  matchModel(modelConfig: ModelConfig): boolean;
-}
-
 export interface AIModelGenerator {
   newAgent(modelConfig: ModelConfig): ToolLoopAgentSettings;
-}
-
-export type LangChainMessage = LangChainUserMessage | LangChainAssistantMessage | LangChainToolMessage;
-
-export type LangChainUserMessage = {
-  role: "user";
-  content: string;
-};
-
-export type LangChainAssistantMessage = {
-  role: "assistant";
-  content: string;
-  reasoning_content?: string;
-  tool_calls: ToolCall[];
-};
-
-export type LangChainToolMessage = {
-  role: "tool";
-  content: string;
-  name: string;
-  tool_call_id: string;
-};
-
-export interface Streamer {
-  stream(messages: any, tools: StructuredToolInterface[], abortController: AbortController): AsyncGenerator<MessageV2, void>;
-  invoke(messages: any, tools: StructuredToolInterface[], abortController: AbortController): Promise<MessageV2>;
-}
-
-export interface ToolClass {
-  getTool(): StructuredToolInterface;
-  run(toolCall: ToolCall): AsyncGenerator<MessageV2, void>;
 }
 
 // MCP Tool Configuration

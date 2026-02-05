@@ -3,7 +3,6 @@ import { ModelMessage, ToolLoopAgent, ToolLoopAgentSettings, ToolSet } from "ai"
 import AIModelManager from "./ModelManager";
 import { UserMessage } from "@/messages/user-message";
 import Streamer from "./Streamer";
-import { ToolsToMessageToolSet } from "langchain";
 
 export default class SubAgent {
     private toolset: ToolSet;
