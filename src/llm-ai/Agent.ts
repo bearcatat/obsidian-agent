@@ -4,7 +4,7 @@ import { UserMessage } from "@/messages/user-message";
 import { TFile } from "obsidian";
 import { getSystemPrompts, getTitleGenerationPrompt } from "./system-prompts";
 import AIToolManager from "@/tool-ai/ToolManager";
-import { MessageV2 } from "@/types";
+import { Context, MessageV2 } from "@/types";
 import AIModelManager from "./ModelManager";
 
 export default class AIAgent {
@@ -23,26 +23,21 @@ export default class AIAgent {
     }
 
     async query(message: UserMessage,
-        activeNote: TFile | null,
-        contextNotes: TFile[],
         abortController: AbortController,
         addMessage: (message: MessageV2) => void
     ) {
         console.log(AIModelManager.getInstance().agentConfig)
-        const systemPrompts = await getSystemPrompts();
-
         const agent = new ToolLoopAgent({
             ...AIModelManager.getInstance().agentConfig,
-            instructions: systemPrompts[0],
+            instructions: getSystemPrompts()[0],
             tools: AIToolManager.getInstance().getMainAgentEnabledTools(),
             toolChoice: 'auto',
             experimental_context: {
                 addMessage: addMessage
             },
+            maxRetries: 3,
         })
-
-        const enhancedMessage = this.getFullUserMessage(message, activeNote, contextNotes)
-        this.messages.push(enhancedMessage.toModelMessage())
+        this.messages.push(message.toModelMessage())
         const streamer = new Streamer(agent, addMessage)
         const result = await streamer.stream(this.messages, abortController.signal)
         const messages = (await result.response).messages
@@ -50,40 +45,18 @@ export default class AIAgent {
         console.log(this.messages)
     }
 
-    getFullUserMessage(message: UserMessage, activeNote: TFile | null, contextNotes: TFile[]): UserMessage {
-        const contextInfo = [];
-
-        if (activeNote) {
-            contextInfo.push(`📄 当前活动笔记: ${activeNote.path}`);
-        }
-
-        if (contextNotes.length > 0) {
-            const contextPaths = contextNotes.map(note => note.path).join(' | ');
-            contextInfo.push(`📚 相关上下文笔记: ${contextPaths}`);
-        }
-
-        const enhancedContent = contextInfo.length > 0
-            ? `## 上下文信息\n${contextInfo.join('\n')}\n\n## 用户消息\n${message.content}`
-            : message.content;
-
-        return new UserMessage(enhancedContent);
-    }
 
     async generateTitle(userMessage: string): Promise<string> {
-        const messages: Array<ModelMessage> = [
-            {
-                role: "system",
-                content: getTitleGenerationPrompt()
-            },
-            {
-                role: "user",
-                content: userMessage
-            },
-        ]
         try {
             const { text } = await generateText({
+                system: getTitleGenerationPrompt(),
                 ...AIModelManager.getInstance().titleConfig,
-                messages: messages,
+                messages: [
+                    {
+                        role: "user",
+                        content: userMessage
+                    }
+                ],
                 maxRetries: 3,
             })
             return text

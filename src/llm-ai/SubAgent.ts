@@ -5,7 +5,7 @@ import { UserMessage } from "@/messages/user-message";
 import Streamer from "./Streamer";
 
 export default class SubAgent {
-    private toolset: ToolSet;
+    private toolset: ToolSet = {};
     private messages: Array<ModelMessage> = new Array<ModelMessage>();
     private agentConfig: ToolLoopAgentSettings;
 

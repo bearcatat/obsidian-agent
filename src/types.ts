@@ -1,4 +1,4 @@
-import { Plugin } from 'obsidian';
+import { Plugin, TFile } from 'obsidian';
 import { ToolLoopAgentSettings } from 'ai';
 
 
@@ -111,4 +111,10 @@ export interface FileEdit {
   new_string: string;
   old_content?: string;  // 完整旧文件内容（用于 diff 显示）
   new_content?: string;  // 完整新文件内容（用于 diff 显示）
+}
+
+export interface Context {
+  activeNote: TFile | null;
+  notes: TFile[];
+  images: string[];
 }

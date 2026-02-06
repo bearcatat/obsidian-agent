@@ -1,4 +1,4 @@
-export async function getSystemPrompts(): Promise<string[]> {
+export function getSystemPrompts(): string[] {
   return [
     `You are Obsidian Agent, an excellent Obsidian note assistant.
 
@@ -47,7 +47,7 @@ Users will primarily ask you to perform note tasks. These include fixing errors 
   ];
 }
 
-export async function getSystemPromptsZH(): Promise<string[]> {
+export  function getSystemPromptsZH(): string[] {
   return [
     `你是 Obsidian Agent，出色的Obsidian笔记助手。
 

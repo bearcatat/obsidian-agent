@@ -1,7 +1,6 @@
-import { MessageV2, ModelConfig } from "../types";
+import { Context, MessageV2, ModelConfig } from "../types";
 import { AgentState } from "../state/agent-state-impl";
 import { App, TFile } from "obsidian";
-import { v4 as uuidv4 } from "uuid";
 import { UserMessage } from "@/messages/user-message";
 import AIAgent from "@/llm-ai/Agent";
 import AIModelManager from "@/llm-ai/ModelManager";
@@ -37,22 +36,14 @@ export class AgentViewLogic {
     try {
       this.setTitleIfNewChat(content);
       // 添加用户消息
-      // const userMessage: Message = {
-      //   id: uuidv4(),
-      //   content,
-      //   role: 'user',
-      //   isStreaming: false,
-      // };
-      const userMessage = new UserMessage(content);
+      const context: Context = {
+        activeNote: this.state.activeNote,
+        notes: this.state.contextNotes,
+        images: []
+      }
+      const userMessage = new UserMessage(content, context);
       this.state.addMessage(userMessage);
-      // const agent = Agent.getInstance();
-      // for await (const message of agent.query(userMessage, this.state.activeNote, this.state.contextNotes)) {
-      //   if (message.id == "") {
-      //     continue;
-      //   }
-      //   this.state.addMessage(message);
-      // }
-      await AIAgent.getInstance().query(userMessage, this.state.activeNote, this.state.contextNotes, abortController, (message: MessageV2) => this.state.addMessage(message))
+      await AIAgent.getInstance().query(userMessage, abortController, (message: MessageV2) => this.state.addMessage(message))
     } catch (error) {
       console.error('Failed to send message:', error);
     } finally {
