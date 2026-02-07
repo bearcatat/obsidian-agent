@@ -1,6 +1,6 @@
 import { Badge } from "@/ui/elements/badge";
 import { Button } from "@/ui/elements/button";
-import { X, Plus } from "lucide-react";
+import { X, Plus, ImageIcon } from "lucide-react";
 import { TFile } from "obsidian";
 import React, { useEffect, useCallback } from "react";
 import { AddContextNoteModel } from "./AddContextNoteModel";
@@ -31,14 +31,44 @@ function ContextNoteBadge({
   );
 }
 
+function ContextImageBadge({
+  image,
+  index,
+  removeImage,
+}: {
+  image: string;
+  index: number;
+  removeImage: (index: number) => void;
+}) {
+  return (
+    <Badge className="tw-items-center tw-py-0 tw-pl-0.5 tw-pr-0.5 tw-text-xs tw-gap-1">
+      <img
+        src={image}
+        alt={`Pasted image ${index + 1}`}
+        className="tw-w-6 tw-h-6 tw-object-cover tw-rounded"
+      />
+      <Button
+        variant="ghost2"
+        size="fit"
+        onClick={() => removeImage(index)}
+        aria-label="Remove image from context"
+      >
+        <X className="tw-size-4" />
+      </Button>
+    </Badge>
+  );
+}
+
 export const InputContext = ({
   context,
   addNote,
-  removeNote
+  removeNote,
+  removeImage
 }: {
   context: Context
   addNote: (note: TFile) => void;
-  removeNote: (note: TFile) => void
+  removeNote: (note: TFile) => void;
+  removeImage?: (index: number) => void;
 }) => {
   const app = useApp();
   if (!app) {
@@ -54,7 +84,11 @@ export const InputContext = ({
     return context.notes;
   }, [context]);
 
-  const hasContext = notes.length > 0;
+  const images = React.useMemo(() => {
+    return context.images;
+  }, [context]);
+
+  const hasContext = notes.length > 0 || images.length > 0;
 
   return (
     <div className="tw-flex tw-w-full tw-items-center tw-gap-1">
@@ -75,6 +109,14 @@ export const InputContext = ({
             key={note.path}
             note={note}
             removeNote={removeNote}
+          />
+        ))}
+        {images.map((image, index) => (
+          <ContextImageBadge
+            key={`${index}-${image.slice(0, 20)}`}
+            image={image}
+            index={index}
+            removeImage={removeImage || (() => {})}
           />
         ))}
       </div>

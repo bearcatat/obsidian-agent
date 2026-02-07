@@ -48,6 +48,20 @@ export const Input = () => {
     });
   };
 
+  const handlePasteImages = (images: string[]) => {
+    setContext(prev => ({
+      ...prev,
+      images: [...prev.images, ...images]
+    }));
+  };
+
+  const removeImageFromContext = (index: number) => {
+    setContext(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
+
   const addNoteToContext = (note: TFile) => {
     if (!context.notes.some(n => n.path === note.path)) {
       setContext(prev => ({ ...prev, notes: [...prev.notes, note] }));
@@ -66,7 +80,8 @@ export const Input = () => {
       <InputContext
         context={context}
         addNote={addNoteToContext}
-        removeNote={removeNoteFromContext} />
+        removeNote={removeNoteFromContext}
+        removeImage={removeImageFromContext} />
       <div className="tw-relative">
         <Textarea
           value={message}
@@ -74,6 +89,7 @@ export const Input = () => {
           onKeyDown={onKeyDown}
           disabled={isLoading}
           onDropFiles={handleDropFiles}
+          onPasteImages={handlePasteImages}
         />
       </div>
       <InputButtom onSend={onSend} />

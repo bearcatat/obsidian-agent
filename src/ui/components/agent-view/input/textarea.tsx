@@ -11,6 +11,7 @@ interface TextareaProps {
   disabled?: boolean;
   className?: string;
   onDropFiles?: (files: TFile[]) => void;
+  onPasteImages?: (images: string[]) => void;
 }
 
 export const Textarea: React.FC<TextareaProps> = ({
@@ -20,7 +21,8 @@ export const Textarea: React.FC<TextareaProps> = ({
   placeholder,
   disabled = false,
   className,
-  onDropFiles
+  onDropFiles,
+  onPasteImages
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -122,6 +124,45 @@ export const Textarea: React.FC<TextareaProps> = ({
     onChange(e.target.value);
   };
 
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items || !onPasteImages) return;
+
+    const images: string[] = [];
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          if (file.size > MAX_SIZE) {
+            console.warn(`Image ${file.name || 'pasted image'} exceeds 5MB limit`);
+            continue;
+          }
+
+          try {
+            const base64 = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const result = reader.result as string;
+                resolve(result);
+              };
+              reader.readAsDataURL(file);
+            });
+            images.push(base64);
+          } catch (error) {
+            console.error('Failed to read pasted image:', error);
+          }
+        }
+      }
+    }
+
+    if (images.length > 0) {
+      onPasteImages(images);
+    }
+  };
+
   return (
     <textarea
       ref={textareaRef}
@@ -134,6 +175,7 @@ export const Textarea: React.FC<TextareaProps> = ({
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      onPaste={handlePaste}
       className={cn(
         "tw-w-full tw-min-h-[40px] tw-max-h-[120px] tw-resize-none tw-bg-transparent",
         "tw-border-none tw-outline-none tw-text-normal tw-text-sm",
