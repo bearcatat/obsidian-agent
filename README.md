@@ -12,14 +12,7 @@ A powerful Obsidian plugin that integrates AI assistant functionality to help yo
 - **Intelligent Dialogue**: Natural language conversations based on configured AI models
 - **Context Awareness**: Automatically retrieves current note and contextual note content
 - **Multi-model Support**: Supports DeepSeek, OpenAI, Anthropic, Moonshot, and other models
-
-### 🖼️ Image Support
-- **Paste Images**: Paste images directly from clipboard into the chat input
-  - Automatically converts images to base64 format
-  - Supports PNG, JPEG, GIF, WebP, and other formats
-  - 5MB size limit per image
-  - Visual thumbnail preview with individual removal
-- **Context Integration**: Images are included as context for AI understanding and analysis
+- **Image Support**: Paste images from clipboard to include them in the conversation context
 
 ### 🛠️ Tool Ecosystem
 - **Built-in Tools**:
@@ -68,14 +61,6 @@ Extend plugin functionality through Model Context Protocol:
 2. AI will automatically analyze the current note and context
 3. Call relevant tools as needed to obtain information
 4. Receive intelligent responses and suggestions
-
-### Using Images in Chat
-1. Copy an image (screenshot, file, etc.) to your clipboard
-2. Click the chat input box and paste (Ctrl+V / Cmd+V)
-3. The image will appear as a thumbnail badge in the context area
-4. Click the X button on the badge to remove individual images
-5. Send your message - images will be sent as context to the AI
-6. All context (images and notes) is automatically cleared after sending
 
 ### Tool Usage Examples
 The AI assistant will automatically call relevant tools based on your needs:
