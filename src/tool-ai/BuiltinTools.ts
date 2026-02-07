@@ -28,6 +28,11 @@ export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
     enabled: true,
   },
   {
+    name: "write",
+    description: "Create or overwrite a note",
+    enabled: true,
+  },
+  {
     name: "webFetch",
     description: "Fetch content from a URL",
     enabled: true,

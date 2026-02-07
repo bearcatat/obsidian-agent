@@ -6,8 +6,11 @@ import { ToolMessage } from "@/messages/tool-message";
 import { getGlobalApp } from "@/utils";
 import { FileEditToolMessageCard } from "@/ui/components/agent-view/messages/message/file-edit-tool-message-card";
 import { FileEdit, MessageV2 } from "@/types";
+import { diff_match_patch } from "diff-match-patch";
 
 export const toolName = "editFile"
+
+const dmp = new diff_match_patch()
 
 interface FrontmatterResult {
   hasFrontmatter: boolean;
@@ -33,6 +36,29 @@ function extractFrontmatter(content: string): FrontmatterResult {
 
 function normalizeWhitespace(text: string): string {
   return text.replace(/\s+/g, ' ').trim()
+}
+
+function createDiff(oldText: string, newText: string): string {
+  const diffs = dmp.diff_main(oldText, newText)
+  dmp.diff_cleanupSemantic(diffs)
+  
+  let result = ''
+  for (const [op, text] of diffs) {
+    if (op === 0) {
+      result += text
+    } else if (op === -1) {
+      const lines = text.split('\n')
+      for (const line of lines) {
+        result += `-${line}\n`
+      }
+    } else if (op === 1) {
+      const lines = text.split('\n')
+      for (const line of lines) {
+        result += `+${line}\n`
+      }
+    }
+  }
+  return result.trim()
 }
 
 function findBestMatch(
@@ -96,7 +122,7 @@ export const FileEditTool = tool({
 	description: DESCRIPTION,
 	inputSchema: z.object({
 		file_path: z.string().describe("要修改笔记的路径（相对于 vault 根目录，例如：'项目/文档/README.md'）"),
-		old_string: z.string().describe("要替换的文本（在笔记中必须是唯一的，创建新笔记时为空）"),
+		old_string: z.string().describe("要替换的文本（在笔记中必须是唯一的）"),
 		new_string: z.string().describe("用于替换 old_string 的编辑后文本"),
 		replaceAll: z.boolean().optional().describe("是否替换所有匹配项（默认 false，仅替换第一个匹配）").default(false),
 	}),
@@ -122,36 +148,33 @@ export const FileEditTool = tool({
 				}
 			}
 
-			const isNewFile = !old_string || old_string.trim() === ''
 			const file = vault.getAbstractFileByPath(relativePath) as TFile | null
+
+			if (!file) {
+				throw new Error(`文件不存在: 路径 "${relativePath}" 对应的文件不存在。请使用 write 工具创建新文件。`)
+			}
 
 			let oldContent = ''
 			let newContent = ''
 
-			if (isNewFile) {
-				newContent = new_string
-			} else {
-				if (!file) {
-					throw new Error(`文件不存在: 路径 "${relativePath}" 对应的文件不存在`)
-				}
-
-				try {
-					oldContent = await vault.read(file)
-				} catch (error) {
-					throw new Error(`读取文件失败: ${error instanceof Error ? error.message : "未知错误"}`)
-				}
-
-				const matchResult = findBestMatch(oldContent, old_string, new_string, replaceAll || false)
-
-				if (!matchResult.matched) {
-					if (matchResult.protected && matchResult.message) {
-						throw new Error(matchResult.message)
-					}
-					throw new Error(`old_string 不匹配: 在文件中找不到匹配的 old_string`)
-				}
-
-				newContent = matchResult.content
+			try {
+				oldContent = await vault.read(file)
+			} catch (error) {
+				throw new Error(`读取文件失败: ${error instanceof Error ? error.message : "未知错误"}`)
 			}
+
+			const matchResult = findBestMatch(oldContent, old_string, new_string, replaceAll || false)
+
+			if (!matchResult.matched) {
+				if (matchResult.protected && matchResult.message) {
+					throw new Error(matchResult.message)
+				}
+				throw new Error(`old_string 不匹配: 在文件中找不到匹配的 old_string`)
+			}
+
+			newContent = matchResult.content
+
+			const diff = createDiff(oldContent, newContent)
 
 			let resolver: (value: "apply" | "reject") => void
 			const waitForDecision = () => new Promise<"apply" | "reject">((resolve) => { resolver = resolve })
@@ -174,21 +197,7 @@ export const FileEditTool = tool({
 
 			if (decision === "apply") {
 				try {
-					if (isNewFile) {
-						const dirPath = relativePath.substring(0, relativePath.lastIndexOf('/'))
-						if (dirPath && dirPath !== '.' && dirPath !== '') {
-							const dirExists = await vault.adapter.exists(dirPath)
-							if (!dirExists) {
-								await vault.adapter.mkdir(dirPath)
-							}
-						}
-						await vault.create(relativePath, newContent)
-					} else {
-						if (!file) {
-							throw new Error("文件不存在")
-						}
-						await vault.process(file, () => newContent)
-					}
+					await vault.process(file!, () => newContent)
 				} catch (error) {
 					toolMessage.setContent(JSON.stringify({
 						error: "文件操作失败",
@@ -207,8 +216,9 @@ export const FileEditTool = tool({
 			context.addMessage(toolMessage)
 
 			return JSON.stringify({
-				success: decision === "apply" ? "用户接受了修改" : "用户拒绝了你的修改",
-				file_path: relativePath
+				success: decision === "apply" ? "编辑成功" : "用户拒绝",
+				file_path: relativePath,
+				diff,
 			})
 		} catch (error) {
 			const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)

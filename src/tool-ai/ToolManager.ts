@@ -5,6 +5,7 @@ import { ReadNoteByPathTool, toolName as ReadNoteByPathToolName } from "./ReadNo
 import { ReadNoteByLinkTool, toolName as ReadNoteByLinkToolName } from "./ReadNote/ReadNoteByLink/ReadNoteByLinkTool";
 import { QuestionTool, toolName as QuestionToolName } from "./Question/QuestionTool";
 import { FileEditTool, toolName as FileEditToolName } from "./FileEdit/FileEditTool";
+import { WriteTool, toolName as WriteToolName } from "./FileEdit/WriteTool";
 import { WebFetchTool, toolName as WebFetchToolName } from "./WebFetch/WebFetchTool";
 import { SearchTool, toolName as SearchToolName } from "./Search/SearchTool";
 import MCPManager from "./MCP/MCPManager";
@@ -19,6 +20,7 @@ export default class AIToolManager {
     [ReadNoteByLinkToolName]: ReadNoteByLinkTool,
     [QuestionToolName]: QuestionTool,
     [FileEditToolName]: FileEditTool,
+    [WriteToolName]: WriteTool,
     [WebFetchToolName]: WebFetchTool,
     [SearchToolName]: SearchTool,
   }
