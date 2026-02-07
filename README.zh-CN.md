@@ -4,8 +4,6 @@
 [![许可证](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
 [![Obsidian](https://img.shields.io/badge/Obsidian-0.15.0+-purple.svg)](https://obsidian.md)
 
-> **UI 代码部分源于 [@logancyang/obsidian-copilot](https://github.com/logancyang/obsidian-copilot) 项目**
-
 一个强大的 Obsidian 插件，将 AI 助手功能直接集成到您的笔记工作流中。无需离开 Obsidian 即可与 AI 对话、管理工具并提升工作效率。
 
 [English Documentation](./README.md)
@@ -21,7 +19,7 @@
 
 ## ✨ 功能特性
 
-### 🤖 AI 对话
+### AI 对话
 - **自然对话** - 使用最先进的语言模型与 AI 聊天
 - **上下文感知** - 自动将当前笔记和相关笔记纳入对话
 - **多模型支持** - 支持 DeepSeek、OpenAI、Anthropic、月之暗面等
@@ -40,11 +38,6 @@
 
 ## 📦 安装
 
-### 从 Obsidian 社区插件安装
-1. 打开 Obsidian 设置 → 社区插件
-2. 搜索 "Obsidian Agent"
-3. 点击安装，然后启用
-
 ### 手动安装
 1. 从 [GitHub Releases](https://github.com/bearcatat/obsidian-agent/releases) 下载最新版本
 2. 解压到 `.obsidian/plugins/obsidian-agent/`
@@ -52,7 +45,7 @@
 
 ## 🚀 快速开始
 
-1. **打开插件** - 点击左侧边栏的 🤖 图标或使用命令面板
+1. **打开插件** - 点击左侧边栏的图标或使用命令面板
 2. **配置模型** - 在设置 → Obsidian Agent → 模型中添加 API 密钥
 3. **开始对话** - 输入问题并按回车
 4. **添加上下文** - 拖拽笔记或粘贴图片以纳入对话
@@ -79,7 +72,6 @@
 1. 前往设置 → Obsidian Agent → 子代理
 2. 点击"添加子代理"
 3. 定义系统提示词并选择工具
-4. 在对话中用 "@子代理名称" 调用
 
 ## 🔧 配置说明
 
@@ -98,17 +90,14 @@
 2. 添加服务器配置（stdio/http/sse）
 3. 启用每个服务器的工具
 
-流行的 MCP 服务器：
-- [playwright-mcp](https://github.com/microsoft/playwright-mcp) - 浏览器自动化
-- [bocha-search-mcp](https://github.com/BochaAI/bocha-search-mcp) - 网页搜索
-
 ## 📄 许可证
 
 本项目采用 [AGPL-3.0](LICENSE) 许可证。
 
 ## 🙏 致谢
 
-- UI 组件源于 [obsidian-copilot](https://github.com/logancyang/obsidian-copilot) by @logancyang
+- [obsidian-copilot](https://github.com/logancyang/obsidian-copilot) by @logancyang
+- [opencode](https://github.com/anomalyco/opencode)
 
 ---
 

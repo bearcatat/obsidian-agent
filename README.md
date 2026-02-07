@@ -4,8 +4,6 @@
 [![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
 [![Obsidian](https://img.shields.io/badge/Obsidian-0.15.0+-purple.svg)](https://obsidian.md)
 
-> **UI code partially derived from [@logancyang/obsidian-copilot](https://github.com/logancyang/obsidian-copilot) project**
-
 A powerful Obsidian plugin that brings AI assistant capabilities directly into your note-taking workflow. Chat with AI, manage tools, and enhance your productivity without leaving Obsidian.
 
 [中文文档](./README.zh-CN.md)
@@ -21,7 +19,7 @@ A powerful Obsidian plugin that brings AI assistant capabilities directly into y
 
 ## ✨ Features
 
-### 🤖 AI Chat
+### AI Chat
 - **Natural Conversations** - Chat with AI using state-of-the-art language models
 - **Context Aware** - Automatically includes current note and related notes in conversations
 - **Multi-Model Support** - DeepSeek, OpenAI, Anthropic, Moonshot, and more
@@ -40,11 +38,6 @@ A powerful Obsidian plugin that brings AI assistant capabilities directly into y
 
 ## 📦 Installation
 
-### From Obsidian Community Plugins
-1. Open Obsidian Settings → Community Plugins
-2. Search for "Obsidian Agent"
-3. Click Install, then Enable
-
 ### Manual Installation
 1. Download the latest release from [GitHub Releases](https://github.com/bearcatat/obsidian-agent/releases)
 2. Extract to `.obsidian/plugins/obsidian-agent/`
@@ -52,7 +45,7 @@ A powerful Obsidian plugin that brings AI assistant capabilities directly into y
 
 ## 🚀 Quick Start
 
-1. **Open the Plugin** - Click the 🤖 icon in the left sidebar or use the command palette
+1. **Open the Plugin** - Click the icon in the left sidebar or use the command palette
 2. **Configure a Model** - Add your API key in Settings → Obsidian Agent → Models
 3. **Start Chatting** - Type your question and press Enter
 4. **Add Context** - Drag notes or paste images to include them in the conversation
@@ -79,7 +72,6 @@ Create specialized assistants for specific workflows:
 1. Go to Settings → Obsidian Agent → SubAgents
 2. Click "Add SubAgent"
 3. Define the system prompt and select tools
-4. Invoke with "@SubAgentName" in chat
 
 ## 🔧 Configuration
 
@@ -98,17 +90,14 @@ Extend functionality with external tools:
 2. Add server configuration (stdio/http/sse)
 3. Enable desired tools from each server
 
-Popular MCP servers:
-- [playwright-mcp](https://github.com/microsoft/playwright-mcp) - Browser automation
-- [bocha-search-mcp](https://github.com/BochaAI/bocha-search-mcp) - Web search
-
 ## 📄 License
 
 This project is licensed under the [AGPL-3.0](LICENSE) license.
 
 ## 🙏 Acknowledgments
 
-- UI components derived from [obsidian-copilot](https://github.com/logancyang/obsidian-copilot) by @logancyang
+- [obsidian-copilot](https://github.com/logancyang/obsidian-copilot) by @logancyang
+- [opencode](https://github.com/anomalyco/opencode)
 
 ---
 
