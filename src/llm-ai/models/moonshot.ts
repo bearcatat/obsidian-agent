@@ -30,15 +30,17 @@ export default class MoonshotGenerator {
     }
 
     newAgent(modelConfig: ModelConfig): ToolLoopAgentSettings {
-        // Force topP to 0.95 for kimi-k2.5 model
-        const topP = modelConfig.name === 'kimi-k2.5' ? 0.95 : modelConfig.topP;
+        // Force topP to 0.95 and frequencyPenalty to 0 for kimi-k2.5 model
+        const isKimiK25 = modelConfig.name === 'kimi-k2.5';
+        const topP = isKimiK25 ? 0.95 : modelConfig.topP;
+        const frequencyPenalty = isKimiK25 ? 0 : modelConfig.frequencyPenalty;
         
         return {
             model: this.createModel(modelConfig),
             temperature: modelConfig.temperature,
             maxOutputTokens: modelConfig.maxTokens,
             topP: topP,
-            frequencyPenalty: modelConfig.frequencyPenalty,
+            frequencyPenalty: frequencyPenalty,
         }
     }
 }
