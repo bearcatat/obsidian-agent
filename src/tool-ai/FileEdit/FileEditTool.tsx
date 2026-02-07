@@ -9,6 +9,88 @@ import { FileEdit, MessageV2 } from "@/types";
 
 export const toolName = "editFile"
 
+interface FrontmatterResult {
+  hasFrontmatter: boolean;
+  frontmatter: string;
+  body: string;
+}
+
+function extractFrontmatter(content: string): FrontmatterResult {
+  const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
+  if (match) {
+    return {
+      hasFrontmatter: true,
+      frontmatter: match[1],
+      body: match[2]
+    }
+  }
+  return {
+    hasFrontmatter: false,
+    frontmatter: '',
+    body: content
+  }
+}
+
+function normalizeWhitespace(text: string): string {
+  return text.replace(/\s+/g, ' ').trim()
+}
+
+function findBestMatch(
+  oldContent: string,
+  old_string: string,
+  replaceStr: string,
+  replaceAll: boolean
+): { matched: boolean; content: string; protected: boolean; message?: string } {
+  const extracted = extractFrontmatter(oldContent)
+
+  if (extracted.hasFrontmatter && extracted.frontmatter.includes(old_string)) {
+    return {
+      matched: false,
+      content: oldContent,
+      protected: true,
+      message: 'old_string 位于 frontmatter 元数据中，禁止直接修改。如需修改元数据，请明确指定 frontmatter 区域。'
+    }
+  }
+
+  const exactMatch = extracted.body.includes(old_string)
+  if (exactMatch) {
+    const newBody = replaceAll
+      ? extracted.body.split(old_string).join(replaceStr)
+      : extracted.body.replace(old_string, replaceStr)
+    return {
+      matched: true,
+      content: extracted.hasFrontmatter
+        ? `---\n${extracted.frontmatter}\n---\n${newBody}`
+        : newBody,
+      protected: false
+    }
+  }
+
+  const trimmedOld = normalizeWhitespace(old_string)
+  if (trimmedOld) {
+    const lines = extracted.body.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      if (normalizeWhitespace(lines[i]) === trimmedOld) {
+        const newLines = [...lines]
+        newLines[i] = replaceStr
+        return {
+          matched: true,
+          content: extracted.hasFrontmatter
+            ? `---\n${extracted.frontmatter}\n---\n${newLines.join('\n')}`
+            : newLines.join('\n'),
+          protected: false
+        }
+      }
+    }
+  }
+
+  return {
+    matched: false,
+    content: oldContent,
+    protected: false
+  }
+}
+
 export const FileEditTool = tool({
 	title: toolName,
 	description: DESCRIPTION,
@@ -16,8 +98,9 @@ export const FileEditTool = tool({
 		file_path: z.string().describe("要修改笔记的路径（相对于 vault 根目录，例如：'项目/文档/README.md'）"),
 		old_string: z.string().describe("要替换的文本（在笔记中必须是唯一的，创建新笔记时为空）"),
 		new_string: z.string().describe("用于替换 old_string 的编辑后文本"),
+		replaceAll: z.boolean().optional().describe("是否替换所有匹配项（默认 false，仅替换第一个匹配）").default(false),
 	}),
-	execute: async ({ file_path, old_string, new_string }, { toolCallId, experimental_context }) => {
+	execute: async ({ file_path, old_string, new_string, replaceAll }, { toolCallId, experimental_context }) => {
 		const context = experimental_context as { addMessage: (message: MessageV2) => void }
 		try {
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
@@ -58,15 +141,16 @@ export const FileEditTool = tool({
 					throw new Error(`读取文件失败: ${error instanceof Error ? error.message : "未知错误"}`)
 				}
 
-				const occurrences = (oldContent.match(new RegExp(old_string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length
-				if (occurrences === 0) {
+				const matchResult = findBestMatch(oldContent, old_string, new_string, replaceAll || false)
+
+				if (!matchResult.matched) {
+					if (matchResult.protected && matchResult.message) {
+						throw new Error(matchResult.message)
+					}
 					throw new Error(`old_string 不匹配: 在文件中找不到匹配的 old_string`)
 				}
-				if (occurrences > 1) {
-					throw new Error(`old_string 不唯一: old_string 在文件中出现了 ${occurrences} 次，必须唯一`)
-				}
 
-				newContent = oldContent.replace(old_string, new_string)
+				newContent = matchResult.content
 			}
 
 			let resolver: (value: "apply" | "reject") => void
@@ -103,9 +187,7 @@ export const FileEditTool = tool({
 						if (!file) {
 							throw new Error("文件不存在")
 						}
-						await vault.process(file, (content: string) => {
-							return content.replace(old_string, new_string)
-						})
+						await vault.process(file, () => newContent)
 					}
 				} catch (error) {
 					toolMessage.setContent(JSON.stringify({
