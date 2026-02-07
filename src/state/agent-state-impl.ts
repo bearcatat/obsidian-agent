@@ -1,6 +1,5 @@
 import { IAgentState, AgentStateData } from './agent-state';
 import { ModelConfig } from '../types';
-import { TFile } from 'obsidian';
 import { MessageV2 } from '@/types';
 
 
@@ -13,9 +12,6 @@ export class AgentState implements IAgentState {
     this._data = {
       messages: [],
       isLoading: false,
-      activeNote: null,
-      isActiveNoteRemoved: false,
-      contextNotes: [],
       title: 'New Chat',
       model: null,
       abortController: null,
@@ -41,18 +37,6 @@ export class AgentState implements IAgentState {
 
   get isLoading(): boolean {
     return this._data.isLoading;
-  }
-
-  get activeNote(): TFile | null {
-    return this._data.activeNote;
-  }
-
-  get isActiveNoteRemoved(): boolean {
-    return this._data.isActiveNoteRemoved;
-  }
-
-  get contextNotes(): TFile[] {
-    return this._data.contextNotes;
   }
 
   get title(): string {
@@ -103,43 +87,6 @@ export class AgentState implements IAgentState {
     this.notify();
   }
 
-  setActiveNote(activeNote: TFile | null): void {
-    if (this._data.isActiveNoteRemoved) {
-      return;
-    }
-    this._data.activeNote = activeNote;
-    this.notify();
-  }
-
-  addContextNote(note: TFile, isActive: boolean): void {
-    try {
-      if (isActive) {
-        this._data.activeNote = note;
-        this._data.isActiveNoteRemoved = false;
-      }
-      if (this._data.contextNotes.find((n) => n.path === note.path)) {
-        return; // 如果已经存在，则不添加
-      }
-      this._data.contextNotes = [...this._data.contextNotes, note];
-    } finally {
-      this.notify();
-    }
-  }
-
-  removeContextNote(path: string): void {
-    if (this._data.activeNote?.path === path) {
-      this._data.isActiveNoteRemoved = true;
-      this._data.activeNote = null;
-    }
-    this._data.contextNotes = this._data.contextNotes.filter((note) => note.path !== path);
-    this.notify();
-  }
-
-  setIsActiveNoteRemoved(isActiveNoteRemoved: boolean): void {
-    this._data.isActiveNoteRemoved = isActiveNoteRemoved;
-    this.notify();
-  }
-
   setTitle(title: string): void {
     this._data.title = title;
     this.notify();
@@ -158,9 +105,6 @@ export class AgentState implements IAgentState {
   resetForNewChat(): void {
     this._data.messages = [];
     this._data.isLoading = false;
-    this._data.activeNote = null;
-    this._data.isActiveNoteRemoved = false;
-    this._data.contextNotes = [];
     this._data.title = 'New Chat';
     this._data.abortController = null;
     this.notify();

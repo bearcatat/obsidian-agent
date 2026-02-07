@@ -27,7 +27,7 @@ export class AgentViewLogic {
   }
 
   // 业务逻辑方法
-  async sendMessage(content: string): Promise<void> {
+  async sendMessage(content: string, context: Context): Promise<void> {
     // 设置加载状态
     this.state.setLoading(true);
     const abortController = new AbortController()
@@ -36,11 +36,6 @@ export class AgentViewLogic {
     try {
       this.setTitleIfNewChat(content);
       // 添加用户消息
-      const context: Context = {
-        activeNote: this.state.activeNote,
-        notes: this.state.contextNotes,
-        images: []
-      }
       const userMessage = new UserMessage(content, context);
       this.state.addMessage(userMessage);
       await AIAgent.getInstance().query(userMessage, abortController, (message: MessageV2) => this.state.addMessage(message))
@@ -76,19 +71,6 @@ export class AgentViewLogic {
     this.state.setLoading(false);
   }
 
-  // 活动笔记相关业务逻辑
-  setActiveNote(activeNote: TFile | null): void {
-    this.state.setActiveNote(activeNote);
-  }
-
-  addContextNote(note: TFile, isActive: boolean): void {
-    this.state.addContextNote(note, isActive);
-  }
-
-  removeContextNote(path: string): void {
-    this.state.removeContextNote(path);
-  }
-
   setTitle(title: string): void {
     this.state.setTitle(title);
   }
@@ -97,9 +79,6 @@ export class AgentViewLogic {
     this.stopLoading();
     const activeNote = app?.workspace.getActiveFile();
     this.state.resetForNewChat();
-    if (activeNote) {
-      this.state.setActiveNote(activeNote);
-    }
     AIAgent.getInstance().clearMemory();
   }
 

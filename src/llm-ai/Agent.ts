@@ -1,10 +1,9 @@
 import { generateText, ModelMessage, ToolLoopAgent } from "ai";
 import Streamer from "./Streamer";
 import { UserMessage } from "@/messages/user-message";
-import { TFile } from "obsidian";
 import { getSystemPrompts, getTitleGenerationPrompt } from "./system-prompts";
 import AIToolManager from "@/tool-ai/ToolManager";
-import { Context, MessageV2 } from "@/types";
+import { MessageV2 } from "@/types";
 import AIModelManager from "./ModelManager";
 
 export default class AIAgent {

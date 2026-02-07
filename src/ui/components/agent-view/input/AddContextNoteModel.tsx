@@ -1,13 +1,14 @@
 import { FuzzySuggestModal, TFile } from "obsidian";
 import { App } from "obsidian";
-import { useAgentLogic } from "../../../../hooks/use-agent";
 
 export class AddContextNoteModel extends FuzzySuggestModal<TFile> {
     private activeNote: TFile | null;
+    private addNoteToContext: (note: TFile) => void;
 
-    constructor(app: App) {
+    constructor(app: App, addNoteToContext: (note: TFile) => void) {
         super(app);
         this.activeNote = app.workspace.getActiveFile();
+        this.addNoteToContext = addNoteToContext;
     }
 
     getItems(): TFile[] {
@@ -31,8 +32,9 @@ export class AddContextNoteModel extends FuzzySuggestModal<TFile> {
     }
 
     onChooseItem(item: TFile, evt: MouseEvent | KeyboardEvent): void {
-        const { addContextNote } = useAgentLogic();
-        const isActive = this.app.workspace.getActiveFile()?.path === item.path;
-        addContextNote(item, isActive);
+        // const { addContextNote } = useAgentLogic();
+        // const isActive = this.app.workspace.getActiveFile()?.path === item.path;
+        // addContextNote(item, isActive);
+        this.addNoteToContext(item)
     }
 }

@@ -5,27 +5,24 @@ import { TFile } from "obsidian";
 import React, { useEffect, useCallback } from "react";
 import { AddContextNoteModel } from "./AddContextNoteModel";
 import { useApp } from "@/hooks/app-context";
-import { useAgentLogic, useAgentState } from "@/hooks/use-agent";
-import { debounce } from "@/ui/components/utils";
+import { Context } from "@/types";
 
 function ContextNoteBadge({
   note,
-  isActive = false,
+  removeNote,
 }: {
   note: TFile;
-  isActive: boolean;
+  removeNote: (note: TFile) => void;
 }) {
-  const { removeContextNote } = useAgentLogic();
   return (
     <Badge className="tw-items-center tw-py-0 tw-pl-2 tw-pr-0.5 tw-text-xs">
       <div className="tw-flex tw-items-center tw-gap-1">
         <span className="tw-max-w-40 tw-truncate">{note.basename}</span>
-        {isActive && <span className="tw-text-xs tw-text-faint">Current</span>}
       </div>
       <Button
         variant="ghost2"
         size="fit"
-        onClick={() => removeContextNote(note.path)}
+        onClick={() => removeNote(note)}
         aria-label="Remove from context"
       >
         <X className="tw-size-4" />
@@ -34,55 +31,28 @@ function ContextNoteBadge({
   );
 }
 
-interface ContextNote {
-  note: TFile;
-  isActive: boolean;
-}
-
-export const InputContext: React.FC = () => {
-
-  const { activeNote, isActiveNoteRemoved, contextNotes } = useAgentState();
-  const { setActiveNote } = useAgentLogic();
-
+export const InputContext = ({
+  context,
+  addNote,
+  removeNote
+}: {
+  context: Context
+  addNote: (note: TFile) => void;
+  removeNote: (note: TFile) => void
+}) => {
   const app = useApp();
   if (!app) {
     return null;
   }
 
   const onAddContext = () => {
-    const model = new AddContextNoteModel(app);
+    const model = new AddContextNoteModel(app, addNote);
     model.open();
   };
 
-  // 使用防抖函数处理文件变化
-  const handleActiveFileChange = useCallback(
-    debounce(() => {
-      const activeNote = app.workspace.getActiveFile();
-      if (activeNote) {
-        setActiveNote(activeNote);
-      }
-    }, 100),
-    [app.workspace, setActiveNote]
-  );
-
-  useEffect(() => {
-    const activeLeafChangeEventRef = app.workspace.on("active-leaf-change", handleActiveFileChange);
-    const fileOpenEventRef = app.workspace.on("file-open", handleActiveFileChange);
-
-    return () => {
-      app.workspace.offref(activeLeafChangeEventRef);
-      app.workspace.offref(fileOpenEventRef);
-    };
-  }, [app.workspace, handleActiveFileChange]);
-
   const notes = React.useMemo(() => {
-    const notesWithoutActiveNote = contextNotes.filter((note) => (note.path != activeNote?.path))
-    const notes = notesWithoutActiveNote.map((note) => ({ note, isActive: false } as ContextNote));
-    if (activeNote && !isActiveNoteRemoved) {
-      notes.unshift({ note: activeNote, isActive: true } as ContextNote);
-    }
-    return notes;
-  }, [contextNotes, activeNote, isActiveNoteRemoved]);
+    return context.notes;
+  }, [context]);
 
   const hasContext = notes.length > 0;
 
@@ -102,9 +72,9 @@ export const InputContext: React.FC = () => {
       <div className="tw-flex tw-flex-1 tw-flex-wrap tw-gap-1">
         {notes.map((note) => (
           <ContextNoteBadge
-            key={note.note.path}
-            note={note.note}
-            isActive={note.isActive}
+            key={note.path}
+            note={note}
+            removeNote={removeNote}
           />
         ))}
       </div>

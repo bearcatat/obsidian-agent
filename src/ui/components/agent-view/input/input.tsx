@@ -5,16 +5,20 @@ import { Textarea } from './textarea';
 import { useAgentLogic, useAgentState } from '../../../../hooks/use-agent';
 import { useApp } from '../../../../hooks/app-context';
 import { TFile } from 'obsidian';
+import { Context } from '@/types';
 
-export interface InputProps {
-}
-
-export const Input: React.FC<InputProps> = () => {
-  const [message, setMessage] = useState('');
-  const { isLoading } = useAgentState();
-  const { sendMessage, addContextNote } = useAgentLogic();
+export const Input = () => {
   const app = useApp();
-  const placeholder =  `输入消息...`
+  const emptyContext: Context = {
+    activeNote: null,
+    notes: [],
+    images: [],
+  }
+
+  const [message, setMessage] = useState('');
+  const [context, setContext] = useState<Context>(emptyContext)
+  const { isLoading } = useAgentState();
+  const { sendMessage } = useAgentLogic();
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -25,28 +29,49 @@ export const Input: React.FC<InputProps> = () => {
 
   const onSend = () => {
     if (!message.trim() || isLoading) return;
-    sendMessage(message.trim());
-    setMessage('');
+    const activeNote = app?.workspace.getActiveFile() ?? null;
+    const newContext = { ...context, activeNote };
+    sendMessage(message.trim(), newContext);
+    clear();
   };
 
+  const clear = () => {
+    setMessage('');
+    setContext(emptyContext);
+  }
+
   const handleDropFiles = (files: TFile[]) => {
-    if (!app) return;
-    const activeFile = app.workspace.getActiveFile();
-    files.forEach(file => {
-      const isActive = activeFile?.path === file.path;
-      addContextNote(file, isActive);
+    setContext(prev => {
+      const existingPaths = new Set(prev.notes.map(n => n.path));
+      const uniqueFiles = files.filter(file => !existingPaths.has(file.path));
+      return { ...prev, notes: [...prev.notes, ...uniqueFiles] };
     });
   };
 
+  const addNoteToContext = (note: TFile) => {
+    if (!context.notes.some(n => n.path === note.path)) {
+      setContext(prev => ({ ...prev, notes: [...prev.notes, note] }));
+    }
+  }
+
+  const removeNoteFromContext = (note: TFile) => {
+    setContext(prev => ({
+      ...prev,
+      notes: prev.notes.filter(n => n.path !== note.path)
+    }));
+  }
+
   return (
     <div className="tw-flex tw-w-full tw-flex-col tw-gap-0.5 tw-rounded-md tw-border tw-border-solid tw-border-border tw-px-1 tw-pb-1 tw-pt-2 tw-@container/chat-input">
-      <InputContext />
+      <InputContext
+        context={context}
+        addNote={addNoteToContext}
+        removeNote={removeNoteFromContext} />
       <div className="tw-relative">
         <Textarea
           value={message}
           onChange={setMessage}
           onKeyDown={onKeyDown}
-          placeholder={placeholder}
           disabled={isLoading}
           onDropFiles={handleDropFiles}
         />
