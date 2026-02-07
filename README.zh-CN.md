@@ -1,86 +1,106 @@
 # Obsidian Agent
 
-> **UI代码部分源于 [@logancyang/obsidian-copilot](https://github.com/logancyang/obsidian-copilot) 项目**
+[![版本](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/bearcatat/obsidian-agent/releases)
+[![许可证](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
+[![Obsidian](https://img.shields.io/badge/Obsidian-0.15.0+-purple.svg)](https://obsidian.md)
 
-一个强大的 Obsidian 插件，集成了 AI 助手功能，帮助您更高效地管理和使用您的笔记。
+> **UI 代码部分源于 [@logancyang/obsidian-copilot](https://github.com/logancyang/obsidian-copilot) 项目**
+
+一个强大的 Obsidian 插件，将 AI 助手功能直接集成到您的笔记工作流中。无需离开 Obsidian 即可与 AI 对话、管理工具并提升工作效率。
 
 [English Documentation](./README.md)
 
+## 📑 目录
+
+- [功能特性](#-功能特性)
+- [安装](#-安装)
+- [快速开始](#-快速开始)
+- [使用指南](#-使用指南)
+- [配置说明](#-配置说明)
+- [许可证](#-许可证)
+
 ## ✨ 功能特性
 
-### 🤖 AI 聊天助手
-- **智能对话**: 基于配置的 AI 模型进行自然语言对话
-- **上下文感知**: 自动获取当前笔记和上下文笔记内容
-- **多模型支持**: 支持 DeepSeek、OpenAI、Anthropic、月之暗面等多种模型
-- **图片支持**: 支持从剪贴板粘贴图片到对话上下文
+### 🤖 AI 对话
+- **自然对话** - 使用最先进的语言模型与 AI 聊天
+- **上下文感知** - 自动将当前笔记和相关笔记纳入对话
+- **多模型支持** - 支持 DeepSeek、OpenAI、Anthropic、月之暗面等
+- **图片支持** - 从剪贴板粘贴图片到对话中
 
-### 🛠️ 工具生态系统
-- **内置工具**: 
-  - 时间工具：获取当前时间信息，支持时间范围查询
-  - 笔记读取：通过路径或链接读取笔记内容（支持 `[[笔记名称]]` 格式）
-  - 提问工具：AI 助手可以向用户提问，提供多个选项供用户选择，实现交互式对话
-  - 文件编辑：编辑文件内容，支持差异预览和用户确认，支持创建新文件
-  - WebFetch：从URL获取内容并转换为markdown、文本或HTML格式
-  - **本地搜索**：在本地Markdown文件中搜索内容，支持完整正则表达式、文件名/内容搜索和路径过滤
-- **MCP 服务器**: 支持 Model Context Protocol 服务器，扩展自定义工具
-- **SubAgent 子代理**: 创建专门的AI助手，处理特定任务和领域
-- **工具管理**: 灵活启用/禁用各种工具，支持工具权限配置
+### 🛠️ 可扩展工具
+- **内置工具** - 时间、笔记读取、文件编辑、网页获取、本地搜索
+- **MCP 服务器** - 通过 Model Context Protocol 扩展功能
+- **子代理** - 创建专门的 AI 助手处理特定任务
+- **工具管理** - 精细控制工具启用和权限
 
-### ⚙️ 灵活的配置系统
-- **模型配置**: 可配置 API 密钥、基础 URL、温度、最大令牌数等参数
-- **设置持久化**: 所有配置自动保存到本地，重启后生效
+### ⚙️ 灵活配置
+- 可自定义 API 端点、温度、最大令牌数
+- 设置跨会话持久保存
+- 支持每个模型独立配置
 
-## 🎯 核心功能详解
+## 📦 安装
 
-### SubAgent 子代理系统
-SubAgent 允许您创建专门的 AI 助手，每个子代理都有：
-- **专属系统提示**: 定义子代理的专业领域和行为
-- **独立模型配置**: 为不同任务选择最适合的AI模型
-- **工具权限管理**: 精确控制子代理可使用的工具
-- **独立对话历史**: 每个子代理维护独立的对话上下文
+### 从 Obsidian 社区插件安装
+1. 打开 Obsidian 设置 → 社区插件
+2. 搜索 "Obsidian Agent"
+3. 点击安装，然后启用
 
-**使用场景**：
-- 创建专门用于网页搜索的助手，你可以为它搭配[playwright-mcp](https://github.com/microsoft/playwright-mcp)和[bocha-search-mcp](https://github.com/BochaAI/bocha-search-mcp)工具
-- 创建专门用于判断笔记是否存在疏漏的助手
+### 手动安装
+1. 从 [GitHub Releases](https://github.com/bearcatat/obsidian-agent/releases) 下载最新版本
+2. 解压到 `.obsidian/plugins/obsidian-agent/`
+3. 重新加载 Obsidian 并启用插件
 
-### MCP 服务器集成
-通过 Model Context Protocol 扩展插件功能：
-- **协议支持**: 支持stdio、http和sse三种协议
-- **服务器管理**: 支持添加、编辑、删除 MCP 服务器配置
-- **工具发现**: 自动发现和注册 MCP 服务器提供的工具
-- **权限控制**: 可单独管理每个 MCP 服务器的工具启用状态
+## 🚀 快速开始
+
+1. **打开插件** - 点击左侧边栏的 🤖 图标或使用命令面板
+2. **配置模型** - 在设置 → Obsidian Agent → 模型中添加 API 密钥
+3. **开始对话** - 输入问题并按回车
+4. **添加上下文** - 拖拽笔记或粘贴图片以纳入对话
 
 ## 📖 使用指南
 
-### 启动 AI 助手
-- 点击左侧边栏的 Obsidian Agent 图标
-- 或使用命令面板搜索 "Obsidian Agent"
+### 基础对话
+直接输入问题并按回车。AI 会自动分析当前笔记并智能回复。
 
-### 与 AI 对话
-1. 在聊天界面输入您的问题
-2. AI 会自动分析当前笔记和上下文
-3. 根据需要调用相关工具获取信息
-4. 获得智能回复和建议
+### 使用上下文
+- **笔记** - 拖拽笔记或点击"添加上下文"按钮
+- **图片** - 粘贴图片（Ctrl+V）添加视觉上下文
+- **当前笔记** - 当前打开的笔记自动纳入上下文
 
 ### 工具使用示例
-AI 助手会根据您的需求自动调用相关工具：
-- **时间查询**: "现在几点了？"、"这个月是几月？"
-- **笔记分析**: "帮我查看这篇笔记有没有疏漏"、"分析笔记关系"
-- **文件编辑**: "更新这篇笔记的简介部分"、"创建包含这个内容的新文件"
-- **交互式提问**: AI 助手在需要确认用户意图时，会主动提问并提供选项供您选择
-- **本地搜索**: "搜索包含'项目计划'的笔记"、"查找文件名包含'README'的文件"、"使用正则表达式搜索日期格式：\d{4}-\d{2}-\d{2}"、"在'项目/文档/'目录中搜索'API设计'"
-- **SubAgent 调用**: "让编程助手帮我优化这段代码"
+自然地提问，AI 会自动使用合适的工具：
+- "现在几点了？"
+- "查找所有提到'项目计划'的笔记"
+- "帮我改进这篇笔记的结构"
+- "在我的日记中搜索待办事项"
 
-## 🔧 模型配置说明
+### 子代理
+为特定工作流创建专门的助手：
+1. 前往设置 → Obsidian Agent → 子代理
+2. 点击"添加子代理"
+3. 定义系统提示词并选择工具
+4. 在对话中用 "@子代理名称" 调用
 
-### 支持的模型提供商
-- **DeepSeek**: 支持直接 API 调用
-- **OpenAI**: 支持直接 API 调用和兼容格式
-- **Anthropic**: 支持直接 API 调用，不包含 thinking 功能
-- **月之暗面 (Moonshot)**: 仅支持代理转发 API
+## 🔧 配置说明
 
-### 月之暗面模型特殊说明
-由于浏览器的同源策略限制，月之暗面模型需要通过代理服务器转发请求。
+### 支持的模型
+
+| 提供商 | 直接 API | 说明 |
+|--------|---------|------|
+| DeepSeek | ✅ | 完整支持 |
+| OpenAI | ✅ | 包括兼容 API |
+| Anthropic | ✅ | 不包含思考模式 |
+| 月之暗面 | ⚠️ | 需要代理（CORS）|
+
+### MCP 服务器
+通过外部工具扩展功能：
+1. 设置 → Obsidian Agent → MCP 服务器
+2. 添加服务器配置（stdio/http/sse）
+3. 启用每个服务器的工具
+
+流行的 MCP 服务器：
+- [playwright-mcp](https://github.com/microsoft/playwright-mcp) - 浏览器自动化
+- [bocha-search-mcp](https://github.com/BochaAI/bocha-search-mcp) - 网页搜索
 
 ## 📄 许可证
 
@@ -88,16 +108,8 @@ AI 助手会根据您的需求自动调用相关工具：
 
 ## 🙏 致谢
 
-- UI 代码部分源于 [@logancyang/obsidian-copilot](https://github.com/logancyang/obsidian-copilot) 项目
-  - 感谢开源社区提供的优秀UI组件，让开发者能够专注于核心功能开发
-
-## 📞 支持
-
-如果您遇到问题或有建议，请：
-1. 查看 [Issues](https://github.com/your-username/obsidian-agent/issues) 页面
-2. 创建新的 Issue 描述问题
-3. 提供详细的错误信息和复现步骤
+- UI 组件源于 [obsidian-copilot](https://github.com/logancyang/obsidian-copilot) by @logancyang
 
 ---
 
-**让 AI 助手成为您笔记管理的最佳伙伴！** 🚀
+**为 Obsidian 社区用 ❤️ 制作**

@@ -1,86 +1,106 @@
 # Obsidian Agent
 
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/bearcatat/obsidian-agent/releases)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
+[![Obsidian](https://img.shields.io/badge/Obsidian-0.15.0+-purple.svg)](https://obsidian.md)
+
 > **UI code partially derived from [@logancyang/obsidian-copilot](https://github.com/logancyang/obsidian-copilot) project**
 
-A powerful Obsidian plugin that integrates AI assistant functionality to help you manage and use your notes more efficiently.
+A powerful Obsidian plugin that brings AI assistant capabilities directly into your note-taking workflow. Chat with AI, manage tools, and enhance your productivity without leaving Obsidian.
 
 [中文文档](./README.zh-CN.md)
 
+## 📑 Table of Contents
+
+- [Features](#-features)
+- [Installation](#-installation)
+- [Quick Start](#-quick-start)
+- [Usage Guide](#-usage-guide)
+- [Configuration](#-configuration)
+- [License](#-license)
+
 ## ✨ Features
 
-### 🤖 AI Chat Assistant
-- **Intelligent Dialogue**: Natural language conversations based on configured AI models
-- **Context Awareness**: Automatically retrieves current note and contextual note content
-- **Multi-model Support**: Supports DeepSeek, OpenAI, Anthropic, Moonshot, and other models
-- **Image Support**: Paste images from clipboard to include them in the conversation context
+### 🤖 AI Chat
+- **Natural Conversations** - Chat with AI using state-of-the-art language models
+- **Context Aware** - Automatically includes current note and related notes in conversations
+- **Multi-Model Support** - DeepSeek, OpenAI, Anthropic, Moonshot, and more
+- **Image Support** - Paste images from clipboard into conversations
 
-### 🛠️ Tool Ecosystem
-- **Built-in Tools**:
-  - Time tools: Get current time information, support time range queries
-  - Note reading: Read note content by path or link (supports `[[note name]]` format)
-  - Question tool: AI assistant can ask questions to users with multiple choice options for interactive dialogue
-  - File editing: Edit file content with diff preview and user confirmation, support creating new files
-  - WebFetch: Fetch content from URLs and convert to markdown, text, or HTML format
-  - **Local Search**: Search for content in local Markdown files with full regex support, filename/content search, and path filtering
-- **MCP Servers**: Support Model Context Protocol servers to extend custom tools
-- **SubAgent**: Create specialized AI assistants to handle specific tasks and domains
-- **Tool Management**: Flexibly enable/disable various tools with permission configuration
+### 🛠️ Extensible Tools
+- **Built-in Tools** - Time, note reading, file editing, web fetching, local search
+- **MCP Servers** - Extend with Model Context Protocol servers
+- **SubAgents** - Create specialized AI assistants for specific tasks
+- **Tool Management** - Enable/disable tools with granular permissions
 
-### ⚙️ Flexible Configuration System
-- **Model Configuration**: Configurable API keys, base URLs, temperature, max tokens, and other parameters
-- **Settings Persistence**: All configurations are automatically saved locally and persist after restart
+### ⚙️ Flexible Configuration
+- Customizable API endpoints, temperature, max tokens
+- Persistent settings across sessions
+- Per-model configuration support
 
-## 🎯 Core Features Explained
+## 📦 Installation
 
-### SubAgent System
-SubAgent allows you to create specialized AI assistants, each with:
-- **Dedicated System Prompts**: Define the professional domain and behavior of the sub-agent
-- **Independent Model Configuration**: Choose the most suitable AI model for different tasks
-- **Tool Permission Management**: Precisely control the tools that sub-agents can use
-- **Independent Conversation History**: Each sub-agent maintains independent conversation context
+### From Obsidian Community Plugins
+1. Open Obsidian Settings → Community Plugins
+2. Search for "Obsidian Agent"
+3. Click Install, then Enable
 
-**Use Cases**:
-- Create a specialized assistant for web search using [playwright-mcp](https://github.com/microsoft/playwright-mcp) and [bocha-search-mcp](https://github.com/BochaAI/bocha-search-mcp) tools
-- Create a specialized assistant for detecting gaps in notes
+### Manual Installation
+1. Download the latest release from [GitHub Releases](https://github.com/bearcatat/obsidian-agent/releases)
+2. Extract to `.obsidian/plugins/obsidian-agent/`
+3. Reload Obsidian and enable the plugin
 
-### MCP Server Integration
-Extend plugin functionality through Model Context Protocol:
-- **Protocol Support**: Support for stdio, http, and sse protocols
-- **Server Management**: Support for adding, editing, and deleting MCP server configurations
-- **Tool Discovery**: Automatically discover and register tools provided by MCP servers
-- **Permission Control**: Manage tool enablement status for each MCP server individually
+## 🚀 Quick Start
 
-## 📖 User Guide
+1. **Open the Plugin** - Click the 🤖 icon in the left sidebar or use the command palette
+2. **Configure a Model** - Add your API key in Settings → Obsidian Agent → Models
+3. **Start Chatting** - Type your question and press Enter
+4. **Add Context** - Drag notes or paste images to include them in the conversation
 
-### Starting the AI Assistant
-- Click the Obsidian Agent icon in the left sidebar
-- Or use the command palette to search for "Obsidian Agent"
+## 📖 Usage Guide
 
-### Chatting with AI
-1. Enter your question in the chat interface
-2. AI will automatically analyze the current note and context
-3. Call relevant tools as needed to obtain information
-4. Receive intelligent responses and suggestions
+### Basic Chat
+Simply type your question and press Enter. The AI will automatically analyze your current note and respond intelligently.
 
-### Tool Usage Examples
-The AI assistant will automatically call relevant tools based on your needs:
-- **Time Queries**: "What time is it now?" "What month is this?"
-- **Note Analysis**: "Help me check if this note has any gaps" "Analyze note relationships"
-- **File Editing**: "Update the introduction section in this note" "Create a new file with this content"
-- **Interactive Questions**: The AI assistant will proactively ask questions with multiple choice options when it needs to clarify user intent
-- **Local Search**: "Search for notes containing 'project plan'" "Find files with 'README' in the filename" "Search for date patterns using regex: \d{4}-\d{2}-\d{2}" "Search in 'projects/docs/' directory for 'API design'"
-- **SubAgent Calls**: "Let the programming assistant help me optimize this code"
+### Using Context
+- **Notes** - Drag and drop notes or click "Add Context" to include them
+- **Images** - Paste images (Ctrl+V) to add visual context
+- **Active Note** - The currently open note is automatically included
 
-## 🔧 Model Configuration Guide
+### Tool Examples
+Ask naturally and the AI will use appropriate tools:
+- "What's the current time?"
+- "Find all notes mentioning 'project plan'"
+- "Help me improve this note's structure"
+- "Search for TODO items in my journal"
 
-### Supported Model Providers
-- **DeepSeek**: Supports direct API calls
-- **OpenAI**: Supports direct API calls and compatible formats
-- **Anthropic**: Supports direct API calls, without thinking functionality
-- **Moonshot**: Only supports proxy-forwarded API
+### SubAgents
+Create specialized assistants for specific workflows:
+1. Go to Settings → Obsidian Agent → SubAgents
+2. Click "Add SubAgent"
+3. Define the system prompt and select tools
+4. Invoke with "@SubAgentName" in chat
 
-### Special Notes for Moonshot Models
-Due to browser same-origin policy restrictions, Moonshot models require proxy server forwarding.
+## 🔧 Configuration
+
+### Supported Models
+
+| Provider | Direct API | Notes |
+|----------|-----------|-------|
+| DeepSeek | ✅ | Full support |
+| OpenAI | ✅ | Including compatible APIs |
+| Anthropic | ✅ | No thinking mode |
+| Moonshot | ⚠️ | Requires proxy (CORS) |
+
+### MCP Servers
+Extend functionality with external tools:
+1. Settings → Obsidian Agent → MCP Servers
+2. Add server configuration (stdio/http/sse)
+3. Enable desired tools from each server
+
+Popular MCP servers:
+- [playwright-mcp](https://github.com/microsoft/playwright-mcp) - Browser automation
+- [bocha-search-mcp](https://github.com/BochaAI/bocha-search-mcp) - Web search
 
 ## 📄 License
 
@@ -88,16 +108,8 @@ This project is licensed under the [AGPL-3.0](LICENSE) license.
 
 ## 🙏 Acknowledgments
 
-- UI code partially derived from [@logancyang/obsidian-copilot](https://github.com/logancyang/obsidian-copilot) project
-  - Thanks to the open-source community for providing excellent UI components, allowing developers to focus on core functionality development
-
-## 📞 Support
-
-If you encounter issues or have suggestions, please:
-1. Check the [Issues](https://github.com/your-username/obsidian-agent/issues) page
-2. Create a new Issue to describe the problem
-3. Provide detailed error information and reproduction steps
+- UI components derived from [obsidian-copilot](https://github.com/logancyang/obsidian-copilot) by @logancyang
 
 ---
 
-**Let AI assistants become your best partner in note management!** 🚀
+**Made with ❤️ for the Obsidian community**
