@@ -1,6 +1,7 @@
 import { ISettingsState, SettingsStateData } from './settings-state';
 import { ModelConfig, MCPServerConfig, BuiltinToolConfig, SubAgentConfig } from '../types';
 import { getDefaultBuiltinTools } from '../tool-ai/BuiltinTools';
+import AIModelManager from '../llm-ai/ModelManager';
 
 export class SettingsState implements ISettingsState {
   private static instance: SettingsState;
@@ -69,17 +70,30 @@ export class SettingsState implements ISettingsState {
   }
 
   addOrUpdateModel(model: ModelConfig, originalId?: string): void {
-    const existingIndex = this._data.models.findIndex(m => m.id === (originalId || model.id));
+    const targetId = originalId || model.id;
+    const existingIndex = this._data.models.findIndex(m => m.id === targetId);
 
     if (existingIndex >= 0) {
       // 更新现有模型
-      this._data.models = this._data.models.map((model, index) =>
-        index === existingIndex ? model : model
-      );
       this._data.models[existingIndex] = model;
     } else {
       // 添加新模型
       this._data.models = [...this._data.models, model];
+    }
+
+    // Check if the updated model is being used by AIModelManager and reconfigure if needed
+    const modelManager = AIModelManager.getInstance();
+    
+    // Check if this model is the default agent model
+    if (this._data.defaultAgentModel?.id === targetId) {
+      this._data.defaultAgentModel = model;
+      modelManager.setAgent(model);
+    }
+    
+    // Check if this model is the title model
+    if (this._data.titleModel?.id === targetId) {
+      this._data.titleModel = model;
+      modelManager.setTitle(model);
     }
 
     this.notify();
