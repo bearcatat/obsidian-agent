@@ -22,7 +22,7 @@ A powerful Obsidian plugin that brings AI assistant capabilities directly into y
 ### AI Chat
 - **Natural Conversations** - Chat with AI using state-of-the-art language models
 - **Context Aware** - Automatically includes current note and related notes in conversations
-- **Multi-Model Support** - DeepSeek, OpenAI, Anthropic, Moonshot, and more
+- **Multi-Model Support** - DeepSeek, OpenAI, Anthropic, Moonshot, Google Gemini, and more
 - **Image Support** - Paste images from clipboard into conversations
 
 ### 🛠️ Extensible Tools
@@ -83,6 +83,7 @@ Create specialized assistants for specific workflows:
 | OpenAI | ✅ | Including compatible APIs |
 | Anthropic | ✅ | No thinking mode |
 | Moonshot | ⚠️ | Requires proxy (CORS) |
+| Google Gemini | ✅ | Full support |
 
 ### MCP Servers
 Extend functionality with external tools:
