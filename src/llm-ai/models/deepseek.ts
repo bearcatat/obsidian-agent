@@ -33,6 +33,7 @@ export default class DeepSeekGenerator {
             maxOutputTokens: modelConfig.maxTokens,
             topP: modelConfig.topP,
             frequencyPenalty: modelConfig.frequencyPenalty,
+            presencePenalty: modelConfig.presencePenalty,
         }
     }
 }

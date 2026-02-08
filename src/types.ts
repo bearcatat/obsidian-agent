@@ -34,6 +34,7 @@ export interface ModelConfig {
   maxTokens?: number;
   topP?: number;
   frequencyPenalty?: number;
+  presencePenalty?: number;
 }
 
 // Model Providers

@@ -17,8 +17,8 @@ export default class MoonshotGenerator {
     }
 
     createModel(modelConfig: ModelConfig): LanguageModelV3 {
-        if (!modelConfig.baseUrl){
-            throw("empty base url")
+        if (!modelConfig.baseUrl) {
+            throw ("empty base url")
         }
         const openai = createOpenAICompatible({
             baseURL: modelConfig.baseUrl,
@@ -34,10 +34,11 @@ export default class MoonshotGenerator {
         const isKimiK25 = modelConfig.name === 'kimi-k2.5';
         const topP = isKimiK25 ? 0.95 : modelConfig.topP;
         const frequencyPenalty = isKimiK25 ? 0 : modelConfig.frequencyPenalty;
-        
+        const temperature = isKimiK25 ? 1 : modelConfig.temperature;
+
         return {
             model: this.createModel(modelConfig),
-            temperature: modelConfig.temperature,
+            temperature: temperature,
             maxOutputTokens: modelConfig.maxTokens,
             topP: topP,
             frequencyPenalty: frequencyPenalty,
