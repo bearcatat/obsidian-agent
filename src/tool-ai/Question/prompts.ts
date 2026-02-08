@@ -1,56 +1,20 @@
-export const DESCRIPTION = `这是一个向用户提问的工具，用于在需要用户输入或确认时，以交互式的方式向用户提问并获取答案。
+export const DESCRIPTION = `Use this tool when you need to ask the user questions during execution. This allows you to:
+1. Gather user preferences or requirements
+2. Clarify ambiguous instructions
+3. Get decisions on implementation choices as you work
+4. Offer choices to the user about what direction to take.
 
-使用此工具前：
+Usage notes:
+- When \`custom\` is enabled (default), a "Type your own answer" option is added automatically; don't include "Other" or catch-all options
+- Answers are returned as arrays of labels; set \`multiple: true\` to allow selecting more than one
+- If you recommend a specific option, make that the first option in the list and add "(Recommended)" at the end of the label
 
-确保问题清晰明确，选项能够覆盖用户可能的选择
-
-要向用户提问，请提供以下内容：
-1. question：要询问用户的问题文本（必须清晰明确，避免模糊表达）
-2. options：答案选项数组（最多4个选项，每个选项应该是简洁明了的短句）
-
-该工具将以单选的形式向用户展示问题和选项，等待用户选择后继续执行。
-
-使用此工具的关键要求：
-
-1. 问题设计：
-   - 问题必须具体明确，避免模糊或歧义
-   - 问题应该与当前任务上下文相关
-   - 一次只问一个关键问题，避免信息过载
-
-2. 选项设计：
-   - 选项数量：2-4个，推荐3个选项
-   - 选项应该互斥且覆盖所有可能的情况
-   - 选项文本应该简洁明了，易于理解
-   - 可以包含"取消"或"跳过"选项，让用户有退出选择
-
-3. 使用时机：
-   - 当需要用户确认操作时（如是否执行某个任务）
-   - 当需要用户选择下一步操作时（如选择处理方式）
-   - 当需要用户提供必要信息但无法从上下文中推断时
-   - 当需要澄清用户意图时
-
-使用场景：
-
-1. 确认操作场景：
-   - 在回答完问题后，询问用户是否希望执行相关操作
-   - 例如："你是否希望我帮你实施这些改进？我可以帮你：1. 创建新文件 2. 修改现有文件 3. 取消"
-
-2. 选择处理方式场景：
-   - 当有多种处理方式时，让用户选择偏好的方式
-   - 例如："你希望如何处理这个任务？1. 立即执行 2. 先查看详情 3. 稍后处理"
-
-3. 澄清意图场景：
-   - 当用户需求不够明确时，通过提问来澄清
-   - 例如："你希望修改哪个文件？1. 文件A 2. 文件B 3. 两个都修改"
-
-4. 测验或测试场景：
-   - 用于知识测验、选择题测试等场景
-   - 例如："以下哪个选项是正确的？1. 选项A 2. 选项B 3. 选项C"
-
-注意事项：
-
-- 问题应该与当前对话上下文相关，避免问无关的问题
-- 选项应该覆盖所有合理的情况，避免用户无法选择合适选项
-- 在用户回答后，根据答案继续执行相应的操作，不要重复询问相同的问题
-
-记住：使用此工具的目的是提高用户体验和任务执行的准确性，而不是为了提问而提问。`
+Parameters:
+- questions: Array of questions to ask. Each question contains:
+  - question: Complete question text (must be clear and unambiguous)
+  - header: Very short label (max 30 chars) - optional, for quick context
+  - options: Array of choices, each with:
+    - label: Display text (1-5 words, concise)
+    - description: Explanation of choice - optional
+  - multiple: Allow selecting multiple choices - optional, default false
+  - custom: Allow typing a custom answer - optional, default true`

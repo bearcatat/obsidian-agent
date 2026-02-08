@@ -11,34 +11,56 @@ export const QuestionTool = tool({
 	title: toolName,
 	description: DESCRIPTION,
 	inputSchema: z.object({
-		question: z.string().describe("你要询问的问题"),
-		options: z.array(z.string()).describe("答案选项，最多4个"),
+		questions: z.array(z.object({
+			question: z.string().describe("Complete question"),
+			header: z.string().describe("Very short label (max 30 chars)").optional(),
+			options: z.array(z.object({
+				label: z.string().describe("Display text (1-5 words, concise)"),
+				description: z.string().describe("Explanation of choice").optional(),
+			})).describe("Available choices"),
+			multiple: z.boolean().optional().describe("Allow selecting multiple choices"),
+			custom: z.boolean().optional().describe("Allow typing a custom answer (default: true)"),
+		})).describe("Questions to ask"),
 	}),
-	execute: async ({ question, options }, { toolCallId, experimental_context }) => {
+	execute: async ({ questions }, { toolCallId, experimental_context }) => {
 		const context = experimental_context as { addMessage: (message: MessageV2) => void }
 		try {
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
-			const questionData: Question = {
-				id: toolCallId ?? "",
-				question,
-				options,
+			const questionData: Question[] = questions.map((q, index) => ({
+				id: `${toolCallId ?? ""}-${index}`,
+				question: q.question,
+				options: q.options,
+				header: q.header,
+				multiple: q.multiple,
+				custom: q.custom,
+			}))
+
+			let resolvers: ((value: string[]) => void)[] = []
+			const waitForAnswers = () => new Promise<string[]>((resolve) => {
+				resolvers.push(resolve)
+			})
+			const submitAnswer = (index: number, answer: string[]) => {
+				if (resolvers[index]) {
+					resolvers[index](answer)
+					resolvers[index] = null as any
+				}
 			}
 
-			let resolver: (value: string) => void
-			const waitForAnswer = () => new Promise<string>((resolve) => { resolver = resolve })
-			const submitAnswer = (answer: string) => { resolver(answer) }
-
-			toolMessage.setChildren(render(questionData, false, null, submitAnswer))
+			toolMessage.setChildren(render(questionData, false, [], submitAnswer))
 			context.addMessage(toolMessage)
 
-			const result = await waitForAnswer()
+			const results: string[][] = []
+			for (let i = 0; i < questions.length; i++) {
+				const answer = await waitForAnswers()
+				results.push(answer)
+			}
 
-			toolMessage.setChildren(render(questionData, true, result, submitAnswer))
-			toolMessage.setContent(result)
+			toolMessage.setChildren(render(questionData, true, results, submitAnswer))
+			toolMessage.setContent(JSON.stringify(results))
 			toolMessage.close()
 			context.addMessage(toolMessage)
 
-			return result
+			return results
 		} catch (error) {
 			const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
 			context.addMessage(errorMessage)
@@ -47,18 +69,23 @@ export const QuestionTool = tool({
 	}
 })
 
-function render(
-	question: Question,
-	origin_answered_state: boolean,
-	answered: string | null,
-	onAnswer: (answer: string) => void
-): React.ReactNode {
-	return (
-		<QuestionToolMessageCard
-			question={question}
-			origin_answered_state={origin_answered_state}
-			answer={answered}
-			onAnswer={onAnswer}
-		/>
-	)
-}
+	function render(
+		questions: Question[],
+		origin_answered_state: boolean,
+		answered: string[][],
+		onAnswer: (index: number, answer: string[]) => void
+	): React.ReactNode {
+		return (
+			<div className="tw-flex tw-flex-col tw-gap-2">
+				{questions.map((question, index) => (
+					<QuestionToolMessageCard
+						key={question.id}
+						question={question}
+						origin_answered_state={origin_answered_state}
+						answer={answered[index] ?? null}
+						onAnswer={(answer) => onAnswer(index, answer)}
+					/>
+				))}
+			</div>
+		)
+	}

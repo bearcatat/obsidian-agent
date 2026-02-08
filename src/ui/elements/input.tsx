@@ -22,4 +22,24 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 );
 Input.displayName = "Input";
 
-export { Input };
+const TransparentInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
+  ({ className, type, ...props }, ref) => {
+    return (
+      <input
+        type={type}
+        className={cn(
+          "!tw-h-9 !tw-min-w-[50px] !tw-rounded-md !tw-border tw-border-solid !tw-border-transparent !tw-bg-transparent !tw-px-2 !tw-py-1 !tw-transition-colors",
+          "focus-visible:!tw-outline-none focus-visible:!tw-ring-0 focus-visible:!tw-shadow-none",
+          "placeholder:tw-text-muted",
+          "tw-flex tw-w-full !tw-shadow-none disabled:tw-cursor-not-allowed disabled:tw-opacity-50",
+          className
+        )}
+        ref={ref}
+        {...props}
+      />
+    );
+  }
+);
+TransparentInput.displayName = "TransparentInput";
+
+export { Input, TransparentInput };

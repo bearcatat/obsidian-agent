@@ -98,10 +98,18 @@ export interface SubAgentConfig {
   tools: SubAgentToolConfig[];
 }
 
+export interface QuestionOption {
+  label: string;
+  description?: string;
+}
+
 export interface Question {
   id: string;
   question: string;
-  options: string[];
+  options: QuestionOption[];
+  header?: string;
+  multiple?: boolean;
+  custom?: boolean;
 }
 
 export interface FileEdit {
