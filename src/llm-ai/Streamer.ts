@@ -1,7 +1,6 @@
-import { useAgentLogic } from "@/hooks/use-agent";
 import { AssistantMessage } from "@/messages/assistant-message";
 import { MessageV2 } from "@/types";
-import { AssistantModelMessage, ToolModelMessage, ModelMessage, ToolLoopAgent, ToolSet, TextStreamPart, StreamTextResult } from "ai";
+import { ModelMessage, ToolLoopAgent, ToolSet, TextStreamPart, StreamTextResult } from "ai";
 import { v4 as uuidv4 } from 'uuid';
 
 
