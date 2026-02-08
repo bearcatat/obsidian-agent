@@ -36,9 +36,12 @@ export const QuestionTool = tool({
 			}))
 
 			let resolvers: ((value: string[]) => void)[] = []
-			const waitForAnswers = () => new Promise<string[]>((resolve) => {
-				resolvers.push(resolve)
-			})
+			const promises: Promise<string[]>[] = questions.map(
+				() =>
+					new Promise<string[]>((resolve) => {
+						resolvers.push(resolve)
+					})
+			)
 			const submitAnswer = (index: number, answer: string[]) => {
 				if (resolvers[index]) {
 					resolvers[index](answer)
@@ -49,12 +52,8 @@ export const QuestionTool = tool({
 			toolMessage.setChildren(render(questionData, false, [], submitAnswer))
 			context.addMessage(toolMessage)
 
-			const results: string[][] = []
-			for (let i = 0; i < questions.length; i++) {
-				const answer = await waitForAnswers()
-				results.push(answer)
-			}
-
+			const results: string[][] = await Promise.all(promises)
+			
 			toolMessage.setChildren(render(questionData, true, results, submitAnswer))
 			toolMessage.setContent(JSON.stringify(results))
 			toolMessage.close()
@@ -69,23 +68,23 @@ export const QuestionTool = tool({
 	}
 })
 
-	function render(
-		questions: Question[],
-		origin_answered_state: boolean,
-		answered: string[][],
-		onAnswer: (index: number, answer: string[]) => void
-	): React.ReactNode {
-		return (
-			<div className="tw-flex tw-flex-col tw-gap-2">
-				{questions.map((question, index) => (
-					<QuestionToolMessageCard
-						key={question.id}
-						question={question}
-						origin_answered_state={origin_answered_state}
-						answer={answered[index] ?? null}
-						onAnswer={(answer) => onAnswer(index, answer)}
-					/>
-				))}
-			</div>
-		)
-	}
+function render(
+	questions: Question[],
+	origin_answered_state: boolean,
+	answered: string[][],
+	onAnswer: (index: number, answer: string[]) => void
+): React.ReactNode {
+	return (
+		<div className="tw-flex tw-flex-col tw-gap-2">
+			{questions.map((question, index) => (
+				<QuestionToolMessageCard
+					key={question.id}
+					question={question}
+					origin_answered_state={origin_answered_state}
+					answer={answered[index] ?? null}
+					onAnswer={(answer) => onAnswer(index, answer)}
+				/>
+			))}
+		</div>
+	)
+}
