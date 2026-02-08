@@ -3,6 +3,7 @@ import { CommonProviderModelConfig } from "./CommonProviderModelConfig"
 import { OpenAIModelConfig } from "./OpenAIModelConfig"
 import { MoonshotModelConfig } from "./MoonshotModelConfig"
 import { GoogleModelConfig } from "./GoogleModelConfig"
+import { DeepSeekModelConfig } from "./DeepSeekModelConfig"
 
 export const ProviderModelConfig = ({ model, debouncedSetModel }: {
     model: ModelConfig
@@ -11,7 +12,7 @@ export const ProviderModelConfig = ({ model, debouncedSetModel }: {
     return (
         <div className="tw-space-y-3">
             {model.provider === ModelProviders.DEEPSEEK && (
-                <CommonProviderModelConfig model={model} debouncedSetModel={debouncedSetModel} />
+                <DeepSeekModelConfig model={model} debouncedSetModel={debouncedSetModel} />
             )}
             {model.provider === ModelProviders.OPENAI && (
                 <OpenAIModelConfig model={model} debouncedSetModel={debouncedSetModel} />
