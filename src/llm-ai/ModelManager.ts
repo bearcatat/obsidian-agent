@@ -5,6 +5,7 @@ import AnthropicGenerator from "./models/anthropic";
 import OpenAIGenerator from "./models/openai";
 import MoonshotGenerator from "./models/moonshot";
 import OpenAIFormatGenerator from "./models/openai-format";
+import GoogleGenerator from "./models/google";
 
 export default class AIModelManager {
     private static instance: AIModelManager;
@@ -17,6 +18,7 @@ export default class AIModelManager {
         [ModelProviders.OPENAI]: OpenAIGenerator.getInstance(),
         [ModelProviders.MOONSHOT]: MoonshotGenerator.getInstance(),
         [ModelProviders.OPENAI_FORMAT]: OpenAIFormatGenerator.getInstance(),
+        [ModelProviders.GOOGLE]: GoogleGenerator.getInstance(),
     }
 
     static getInstance(): AIModelManager {

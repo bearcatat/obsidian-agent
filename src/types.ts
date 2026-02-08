@@ -44,6 +44,7 @@ export enum ModelProviders {
   ANTHROPIC = "anthropic",
   OPENAI_FORMAT = "openai-format",
   MOONSHOT = "moonshot",
+  GOOGLE = "google",
 }
 export interface AIModelGenerator {
   newAgent(modelConfig: ModelConfig): ToolLoopAgentSettings;

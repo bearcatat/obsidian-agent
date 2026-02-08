@@ -2,6 +2,7 @@ import { ModelConfig, ModelProviders } from "@/types"
 import { CommonProviderModelConfig } from "./CommonProviderModelConfig"
 import { OpenAIModelConfig } from "./OpenAIModelConfig"
 import { MoonshotModelConfig } from "./MoonshotModelConfig"
+import { GoogleModelConfig } from "./GoogleModelConfig"
 
 export const ProviderModelConfig = ({ model, debouncedSetModel }: {
     model: ModelConfig
@@ -23,6 +24,9 @@ export const ProviderModelConfig = ({ model, debouncedSetModel }: {
             )}
             {model.provider === ModelProviders.MOONSHOT && (
                 <MoonshotModelConfig model={model} debouncedSetModel={debouncedSetModel} />
+            )}
+            {model.provider === ModelProviders.GOOGLE && (
+                <GoogleModelConfig model={model} debouncedSetModel={debouncedSetModel} />
             )}
         </div>
     )
