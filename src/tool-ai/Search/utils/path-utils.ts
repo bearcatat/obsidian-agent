@@ -2,23 +2,23 @@ import { TFile } from "obsidian";
 import { SearchError, SearchErrorType } from "../types";
 
 /**
- * 验证搜索路径
+ * Validate search path
  */
 export function validateSearchPath(path?: string): string | undefined {
   if (!path) return undefined;
   
-  // 清理路径：移除开头和结尾的斜杠，统一使用正斜杠
+  // Clean path: remove leading and trailing slashes, use forward slashes
   const cleanPath = path
-    .replace(/\\/g, '/') // 统一使用正斜杠
-    .replace(/^\/+/, '') // 移除开头的斜杠
-    .replace(/\/+$/, ''); // 移除结尾的斜杠
+    .replace(/\\/g, '/') // Use forward slashes
+    .replace(/^\/+/, '') // Remove leading slashes
+    .replace(/\/+$/, ''); // Remove trailing slashes
   
   if (!cleanPath) return undefined;
   
-  // 检查路径是否包含非法字符或路径遍历
+  // Check for invalid characters or path traversal
   if (cleanPath.includes('..') || cleanPath.includes('//')) {
     throw new SearchError(
-      "搜索路径包含非法字符",
+      "Search path contains invalid characters",
       SearchErrorType.VALIDATION_ERROR,
       { path }
     );
@@ -28,7 +28,7 @@ export function validateSearchPath(path?: string): string | undefined {
 }
 
 /**
- * 根据路径过滤文件
+ * Filter files by path
  */
 export function filterFilesByPath(files: TFile[], path?: string): TFile[] {
   if (!path) return files;
@@ -36,9 +36,8 @@ export function filterFilesByPath(files: TFile[], path?: string): TFile[] {
   const normalizedPath = path.endsWith('/') ? path : path + '/';
   
   return files.filter(file => {
-    // 检查文件是否在指定路径下
+    // Check if file is under the specified path
     return file.path.startsWith(normalizedPath) || 
-           file.path === path; // 允许精确匹配文件
+           file.path === path; // Allow exact file match
   });
 }
-

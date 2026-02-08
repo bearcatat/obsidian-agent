@@ -1,31 +1,31 @@
-export const DESCRIPTION = `本地文件搜索工具
+export const DESCRIPTION = `Local file search tool
 
-功能特性：
-- 支持内容搜索和文件名搜索
-- 支持完整的正则表达式语法
-- 可配置大小写敏感
-- 支持路径过滤
-- 显示匹配行的上下文
+Features:
+- Supports content search and file name search
+- Supports full regular expression syntax
+- Configurable case sensitivity
+- Supports path filtering
+- Shows context of matching lines
 
-使用场景：
-1. 在vault中查找包含特定关键词的笔记
-2. 通过正则表达式进行复杂模式匹配
-3. 在特定目录中搜索文件
-4. 快速定位相关文档
+Usage scenarios:
+1. Find notes containing specific keywords in the vault
+2. Use regular expressions for complex pattern matching
+3. Search files in specific directories
+4. Quickly locate related documents
 
-注意事项：
-- 默认搜索整个vault，可通过path参数限制搜索范围
-- 正则表达式使用JavaScript语法
-- 搜索结果默认限制50条，可通过limit参数调整
-- 大vault搜索可能需要较长时间
+Notes:
+- Default searches the entire vault; use the path parameter to limit search scope
+- Regular expressions use JavaScript syntax
+- Search results are limited to 50 by default; use the limit parameter to adjust
+- Large vault searches may take longer
 
-示例：
-1. 简单文本搜索：搜索包含"项目计划"的笔记
-2. 正则表达式搜索：使用正则表达式查找日期格式
-3. 文件名搜索：查找以"README"开头的文件
-4. 路径限制搜索：在"项目/文档/"目录中搜索
+Examples:
+1. Simple text search: Search for notes containing "project plan"
+2. Regular expression search: Use regex to find date formats
+3. File name search: Find files starting with "README"
+4. Path-restricted search: Search in "project/docs/" directory
 
-错误处理：
-- 无效的正则表达式会返回明确的错误信息
-- 不存在的搜索路径会提示路径错误
-- 搜索超时会自动终止并返回已找到的结果`;
+Error handling:
+- Invalid regular expressions return clear error messages
+- Non-existent search paths prompt path errors
+- Search timeouts automatically terminate and return results found so far`;

@@ -4,7 +4,7 @@ import { createSearchPattern, searchInText, searchInFilename } from "./regex-uti
 import { filterFilesByPath, validateSearchPath } from "./path-utils";
 
 /**
- * 搜索vault中的Markdown文件
+ * Search Markdown files in vault
  */
 export async function searchVault(
   vault: Vault,
@@ -13,19 +13,19 @@ export async function searchVault(
   const startTime = Date.now();
   
   try {
-    // 验证搜索路径
+    // Validate search path
     const validatedPath = validateSearchPath(params.path);
     
-    // 获取所有Markdown文件
+    // Get all Markdown files
     const allFiles = vault.getMarkdownFiles();
     
-    // 路径过滤
+    // Filter files by path
     const filteredFiles = filterFilesByPath(allFiles, validatedPath);
     
     if (filteredFiles.length === 0) {
       if (validatedPath) {
         throw new SearchError(
-          `在路径 "${validatedPath}" 下未找到Markdown文件`,
+          `No Markdown files found in path "${validatedPath}"`,
           SearchErrorType.PATH_NOT_FOUND,
           { path: validatedPath }
         );
@@ -33,14 +33,14 @@ export async function searchVault(
       return [];
     }
     
-    // 创建搜索模式
+    // Create search pattern
     const searchPattern = createSearchPattern(
       params.query,
       params.useRegex,
       params.caseSensitive
     );
     
-    // 并行搜索文件
+    // Search files in parallel
     const searchPromises = filteredFiles.map(async (file): Promise<SearchResult | null> => {
       try {
         const result: SearchResult = {
@@ -49,18 +49,18 @@ export async function searchVault(
           filenameMatch: false,
         };
         
-        // 文件名搜索
+        // Filename search
         if (params.searchType !== "content") {
           if (searchInFilename(file.name, searchPattern, params.caseSensitive)) {
             result.filenameMatch = true;
-            // 如果只需要文件名搜索，直接返回
+            // If only filename search is needed, return directly
             if (params.searchType === "filename") {
               return result;
             }
           }
         }
         
-        // 内容搜索（如果需要）
+        // Content search (if needed)
         if (params.searchType !== "filename" && !result.filenameMatch) {
           const content = await vault.cachedRead(file);
           const matches = searchInText(content, searchPattern, params.showContextLines);
@@ -69,32 +69,32 @@ export async function searchVault(
           }
         }
         
-        // 只返回有匹配结果的文件
+        // Only return files with matching results
         if (result.filenameMatch || result.matches.length > 0) {
           return result;
         }
         
         return null;
       } catch (error) {
-        // 单个文件搜索失败，记录错误但继续搜索其他文件
-        console.warn(`搜索文件 "${file.path}" 时出错:`, error);
+        // Log error for single file but continue searching other files
+        console.warn(`Error searching file "${file.path}":`, error);
         return null;
       }
     });
     
-    // 等待所有搜索完成
+    // Wait for all searches to complete
     const searchResults = await Promise.all(searchPromises);
     
-    // 过滤掉null结果并排序
+    // Filter out null results and sort
     const validResults = searchResults
       .filter((result): result is SearchResult => result !== null)
       .sort(sortSearchResults);
     
-    // 应用数量限制
+    // Apply limit
     const limitedResults = validResults.slice(0, params.limit);
     
     const searchTime = Date.now() - startTime;
-    console.log(`搜索完成: 搜索了 ${filteredFiles.length} 个文件，找到 ${limitedResults.length} 个匹配文件，耗时 ${searchTime}ms`);
+    console.log(`Search completed: Searched ${filteredFiles.length} files, found ${limitedResults.length} matching files, took ${searchTime}ms`);
     
     return limitedResults;
     
@@ -103,9 +103,9 @@ export async function searchVault(
       throw error;
     }
     
-    // 其他错误转换为SearchError
+    // Other errors converted to SearchError
     throw new SearchError(
-      `搜索失败: ${error instanceof Error ? error.message : String(error)}`,
+      `Search failed: ${error instanceof Error ? error.message : String(error)}`,
       SearchErrorType.VAULT_ERROR,
       { originalError: error }
     );
@@ -113,10 +113,10 @@ export async function searchVault(
 }
 
 /**
- * 搜索结果排序函数
+ * Search result sorting function
  */
 function sortSearchResults(a: SearchResult, b: SearchResult): number {
-  // 优先按匹配数量排序
+  // Sort by match count first
   const aScore = a.matches.length + (a.filenameMatch ? 1 : 0);
   const bScore = b.matches.length + (b.filenameMatch ? 1 : 0);
   
@@ -124,21 +124,21 @@ function sortSearchResults(a: SearchResult, b: SearchResult): number {
     return bScore - aScore;
   }
   
-  // 其次按文件修改时间排序（新的在前）
+  // Then sort by file modification time (newer first)
   try {
-    // @ts-ignore - TFile可能有stat属性
+    // @ts-ignore - TFile may have stat property
     const aTime = a.file.stat?.mtime || 0;
-    // @ts-ignore - TFile可能有stat属性
+    // @ts-ignore - TFile may have stat property
     const bTime = b.file.stat?.mtime || 0;
     return bTime - aTime;
   } catch {
-    // 如果无法获取修改时间，按文件名排序
+    // Fallback to sorting by filename if modification time cannot be obtained
     return a.file.name.localeCompare(b.file.name);
   }
 }
 
 /**
- * 计算总匹配数
+ * Calculate total match count
  */
 export function calculateTotalMatches(results: SearchResult[]): number {
   return results.reduce((total, result) => {

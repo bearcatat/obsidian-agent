@@ -1,36 +1,8 @@
-export const DESCRIPTION = `这是一个通过笔记路径读取笔记内容的工具。
+export const DESCRIPTION = `Reads notes from the Obsidian vault.
 
-# 功能说明
-此工具可以根据提供的笔记路径直接读取Obsidian知识库中的笔记文件内容。
-
-# 参数说明
-- **filePath**: 笔记文件的路径
-
-# 路径格式说明
-- **笔记路径**: 相对于vault根目录的路径，例如：'项目/文档/README.md'
-
-# 返回格式
-成功时返回格式化的笔记内容：
-\`\`\`
-title: 笔记名
-note path: 笔记路径
-
-文件内容...
-\`\`\`
-
-失败时返回JSON格式的错误信息：
-\`\`\`json
-{
-  "error": "错误类型",
-  "details": "详细错误信息"
-}
-\`\`\`
-
-# 使用场景
-**场景1: 当工具返回结果包含笔记路径时，而且你不知道笔记内容时**
-- 操作: 使用filePath="项目/文档/README.md"读取笔记内容
-
-# 注意事项
-- 当你已经知道笔记内容时，不要使用这个工具
-- 不要对同一路径的笔记使用这个工具
+Usage:
+- filePath: Path relative to vault root (e.g., 'project/docs/README.md')
+- Returns formatted note content with title and path
+- Use this tool when you need to understand note content before editing
+- You can call this tool multiple times in a single response for multiple notes
 `;

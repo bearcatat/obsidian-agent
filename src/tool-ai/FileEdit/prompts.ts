@@ -1,66 +1,14 @@
-export const DESCRIPTION = `这是一个用于编辑笔记的工具。
+export const DESCRIPTION = `Performs exact string replacements in Obsidian notes.
 
-使用此工具前：
+Usage:
+- Use the ReadNoteByPath/ReadNoteByLink tool before editing to understand the note's content
+- Provide file_path, old_string, new_string, and optional replaceAll (default false)
+- This tool cannot create new notes. Use the write tool to create notes
 
-使用 ReadNoteByPath/ReadNoteByLink 工具了解笔记的内容和上下文
-
-
-要进行笔记编辑，请提供以下内容：
-1. file_path：要修改笔记的路径（相对于 vault 根目录，例如：'项目/文档/README.md'）
-2. old_string：要替换的文本（在笔记中必须是唯一的）
-3. new_string：用于替换 old_string 的编辑后文本
-4. replaceAll：可选，是否替换所有匹配项（默认为 false，只替换第一个匹配）
-
-该工具将在指定笔记中用 new_string 替换 old_string 的实例。
-
-重要说明：
-- 此工具不能创建新笔记，如需创建新笔记，请使用 write 工具
-- 文件必须已存在才能进行编辑
-
-元数据保护：
-- YAML frontmatter（--- 之间的内容）受到保护
-- 如果 old_string 位于 frontmatter 中，工具将拒绝执行
-- 只有明确指定 frontmatter 区域才能修改元数据
-
-重要：修改内容长度限制
-- old_string 和 new_string 的内容不宜过长，如果修改内容过大可能会被截断
-- 如果需要进行大量修改，请将修改拆分为多个较小的编辑操作
-- 每次编辑应该专注于一个逻辑单元（如一个段落、一个章节、一个列表项、一个代码块等）
-- 对于大段内容的修改，建议分多次调用此工具，每次修改一部分
-
-使用此工具的关键要求：
-
-1. 唯一性：old_string 必须唯一标识您要更改的特定实例。这意味着：
-   - 包含更改点之前至少 3-5 行的上下文
-   - 包含更改点之后至少 3-5 行的上下文
-   - 包含笔记中出现的所有空格、换行、缩进和周围文本
-
-2. 单实例：此工具一次只能更改一个实例（除非设置 replaceAll 为 true）。如果您需要更改多个实例：
-   - 为每个实例单独调用此工具，或
-   - 设置 replaceAll: true 替换所有匹配项
-   - 每次调用都必须使用广泛的上下文唯一标识其特定实例（除非使用 replaceAll）
-
-3. 验证：使用此工具前：
-   - 检查目标文本在笔记中存在多少个实例
-   - 如果存在多个实例，收集足够的上下文来唯一标识每个实例，或使用 replaceAll
-   - 为每个实例计划单独的工具调用
-
-4. 修改后验证：完成编辑后：
-   - 必须使用 ReadNoteByPath 工具读取修改后的笔记
-   - 确认修改是否正确完成，检查内容是否符合预期
-   - 如果发现错误，需要再次调用此工具进行修正
-
-警告：如果您不遵循这些要求：
-   - 如果 old_string 匹配多个位置且 replaceAll 为 false，工具将失败
-   - 如果 old_string 不完全匹配（包括空格和换行），工具将失败
-   - 如果您没有包含足够的上下文，您可能会更改错误的实例
-   - 如果 old_string 位于 frontmatter 中，工具将拒绝执行
-
-创建笔记：
-- 请使用 write 工具创建新笔记
-
-记住：当对同一笔记进行多个编辑时，您应该更喜欢在单个消息中使用对此工具的多次调用来发送所有编辑，而不是在多个消息中每次使用单个调用。
-记住：修改完后，必须使用 ReadNoteByPath 工具读取修改后的笔记，确认修改是否正确完成，然后再继续后续操作。
-记住：修改完后，不需要重复说明修改后的内容，用户有UI可以查看修改后的内容。
-记住：如果修改内容过大（超过5行），必须分多次修改，每次修改一个较小的部分，避免内容被截断。
-`
+Important:
+- The edit will FAIL if old_string is not found in the note
+- The edit will FAIL if old_string is found multiple times (use replaceAll to replace all)
+- old_string must uniquely identify the instance - include sufficient surrounding context
+- YAML frontmatter (---) is protected and cannot be modified
+- Split large modifications into smaller edit operations
+`;

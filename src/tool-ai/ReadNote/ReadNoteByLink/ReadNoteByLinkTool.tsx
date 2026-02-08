@@ -28,8 +28,8 @@ export const ReadNoteByLinkTool = tool({
 		} catch (error) {
 			const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
 			errorMessage.setContent(JSON.stringify({
-				error: "读取链接笔记失败",
-				details: error instanceof Error ? error.message : "未知错误",
+				error: "Failed to read linked note",
+				details: error instanceof Error ? error.message : "unknown error",
 				linkPath,
 				filePath
 			}))
@@ -46,7 +46,7 @@ async function readNoteByLink(linkPath: string, filePath: string): Promise<strin
 
 	const linkedNote = metadataCache.getFirstLinkpathDest(getLinkpath(linkPath), filePath)
 	if (!linkedNote) {
-		throw new Error(`链接笔记不存在: 链接 "${linkPath}" 对应的笔记不存在`)
+		throw new Error(`Linked note does not exist: The note for link "${linkPath}" does not exist`)
 	}
 
 	try {
@@ -55,7 +55,7 @@ async function readNoteByLink(linkPath: string, filePath: string): Promise<strin
 		const text = await vault.read(linkedNote)
 		return genResult(fileName, path, linkPath, text)
 	} catch (error) {
-		throw new Error(`读取链接笔记时发生错误: ${error instanceof Error ? error.message : "未知错误"}`)
+		throw new Error(`Error reading linked note: ${error instanceof Error ? error.message : "unknown error"}`)
 	}
 }
 

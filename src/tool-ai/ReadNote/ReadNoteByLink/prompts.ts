@@ -1,96 +1,21 @@
-export const DESCRIPTION = ` 这是一个读取笔记链接内容的工具。
+export const DESCRIPTION = `Reads linked notes from the Obsidian vault.
 
-# 笔记链接定义
-笔记链接指使用 [[笔记名称]] 语法创建的 Markdown 链接。链接内容位于双中括号 [[ 与 ]] 之间。我们需要提取链接内容的主链接：
-    - 笔记名称：如 [[项目计划]], 笔记链接应该是 "项目计划"
-    - 笔记链接：如 [[文件夹A/子笔记]], 笔记链接应该是 "文件夹A/子笔记"
-    - 标题跳转：如 [[读书笔记#精彩语句]], 笔记链接应该是 "读书笔记"
-    - 自定义显示文本（可选）：如 [[2025-07-27|今日笔记]], 笔记链接应该是 "2025-07-27"
-    - 笔记块链接：如 [[笔记名称^块名称]], 笔记链接应该是 "笔记名称"
+# Note Link Definition
+Note links use [[note name]] syntax in Markdown. Extract the main link from between [[ and ]]:
+- Note name: [[Project Plan]] → "Project Plan"
+- Sub-path: [[Folder A/Sub Note]] → "Folder A/Sub Note"
+- Header jump: [[Reading Notes#Highlights]] → "Reading Notes"
+- Display text: [[2025-07-27|Today's Note]] → "2025-07-27"
+- Block link: [[Note Name^Block Name]] → "Note Name"
 
-# 工具参数说明
-要进行笔记链接的解析，提供以下内容：
-    - **linkPath**: 参考笔记链接定义，提供提取后的笔记路径（不包含 [[ ]] 符号、显示文本、标题跳转和块引用）
-    - **filePath**: 当前笔记的完整路径
+Usage:
+- linkPath: The extracted note path from [[link]] format (without brackets)
+- filePath: The current note's full path for resolving the link
+- Returns formatted note content with metadata
 
-# 使用示例
-假设当前笔记路径为 \`编程/JavaScript/ES6/箭头函数.md\`
-以下为笔记内容：
-\`\`\`markdown
-# 项目文档
-[[编程/Python/数据结构/列表|Python 列表]]: 这是 Python 列表笔记的链接
-[[会议记录/2024/Q1规划|Q1规划会议]]: 这是 Q1规划会议笔记的链接
-[[个人/目标/2024]]: 这是 2024年目标笔记的链接
-[[读书笔记#精彩语句]]: 跳转到特定章节
-\`\`\`
-
-提取示例：
-**示例1**：
-    - 原始链接: \`[[编程/Python/数据结构/列表|Python 列表]]\`
-    - linkPath: \`"编程/Python/数据结构/列表"\`
-    - filePath: \`"编程/JavaScript/ES6/箭头函数.md"\`
-
-**示例2**：
-    - 原始链接: \`[[个人/目标/2024]]\`
-    - linkPath: \`"个人/目标/2024"\`
-    - filePath: \`"编程/JavaScript/ES6/箭头函数.md"\`
-
-**示例3**：
-    - 原始链接: \`[[读书笔记#精彩语句]]\`
-    - linkPath: \`"读书笔记"\`
-    - filePath: \`"编程/JavaScript/ES6/箭头函数.md"\`
-
-# 使用场景
-**场景 1: 检查笔记疏漏**
-    **用户输入**: "帮我查看一下这篇笔记有没有疏漏"
-    **操作**: 如果笔记中包含 \`[[笔记名称]]\` 格式的链接，且你不确定链接对应的内容，请主动使用此工具获取笔记内容。可以多次调用此工具。
-
-**场景 2: 分析笔记关系**
-    **用户输入**: "这个笔记和其他笔记的关系？"
-    **操作**: 扫描笔记中的 \`[[笔记名称]]\` 链接，使用此工具获取每个链接笔记的内容，分析引用关系。
-
-**场景 3: 验证链接有效性**
-    **用户输入**: "检查一下这些链接是否都有效"
-    **操作**: 遍历笔记中的所有 \`[[笔记名称]]\` 链接，使用此工具验证链接指向的笔记是否存在。
-
-# 关键要求
-1. **去重原则**: 同一个笔记链接，只调用一次工具。这意味着
-    - 当同一份笔记同时包含了多个相同的笔记链接时，只调用一次工具。
-    - 当不同笔记中同时包含相同的笔记链接时，也只调用一次工具。
-
-2. **主动调用**: 可以主动多次调用此工具来获取多个链接笔记的内容。你可以：
-    - 在笔记中找到多个笔记链接，并使用此工具获取每个链接笔记的内容。
-    - 在获取了笔记内容后，继续寻找笔记中的其他链接，并使用此工具获取每个链接笔记的内容。
-
-3. **优先级**: 当遇到 \`[[笔记名称]]\` 格式的链接时，优先考虑使用此工具。
-
-警告：
-1. 如果你已经知道笔记内容，请不要使用此工具。
+Key requirements:
+- Deduplication: Call this tool only once for the same note link
+- Priority: Use this tool when encountering [[note name]] links
+- Warning: Do not use if you already know the note content
 `;
 
-export const DESCRIPTION_COMPRESSED = `这是一个读取笔记链接内容的工具。
-
-# 笔记链接定义
-从 [[笔记名称]] 格式中提取主链接：
-- 笔记名称：[[项目计划]] → "项目计划"
-- 子路径：[[文件夹A/子笔记]] → "文件夹A/子笔记"
-- 标题跳转：[[读书笔记#精彩语句]] → "读书笔记"
-- 显示文本：[[2025-07-27|今日笔记]] → "2025-07-27"
-- 块链接：[[笔记名称^块名称]] → "笔记名称"
-
-# 参数说明
-- **linkPath**: 提取后的笔记路径（不包含 [[ ]] 符号、显示文本、标题跳转和块引用）
-- **filePath**: 当前笔记的完整路径
-
-# 使用场景
-**检查笔记疏漏**: 当笔记包含 [[笔记名称]] 链接且不确定内容时，主动获取链接笔记内容
-**分析笔记关系**: 扫描笔记中的链接，获取每个链接笔记内容分析引用关系
-**验证链接有效性**: 遍历笔记中的所有链接，验证指向的笔记是否存在
-
-# 关键要求
-1. **去重原则**: 同一个笔记链接只调用一次工具
-2. **主动调用**: 可以多次调用此工具获取多个链接笔记内容
-3. **优先级**: 遇到 [[笔记名称]] 格式链接时优先考虑使用此工具
-
-警告：如果已经知道笔记内容，请不要使用此工具。
-`;

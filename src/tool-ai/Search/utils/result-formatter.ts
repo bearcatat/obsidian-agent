@@ -1,7 +1,7 @@
 import { SearchResult, SearchMetadata } from "../types";
 
 /**
- * 格式化搜索结果
+ * Format search results
  */
 export function formatSearchResults(
   results: SearchResult[],
@@ -9,20 +9,20 @@ export function formatSearchResults(
   showContextLines: number = 1
 ): string {
   if (results.length === 0) {
-    return "未找到匹配的文件。";
+    return "No matching files found.";
   }
 
   const output: string[] = [];
   
-  // 添加摘要信息
-  output.push(`## 搜索结果 (共找到 ${metadata.matchedFiles} 个文件，${metadata.totalMatches} 处匹配)`);
-  output.push(`搜索耗时: ${metadata.searchTime}ms`);
+  // Add summary information
+  output.push(`## Search Results (${metadata.matchedFiles} files found, ${metadata.totalMatches} matches)`);
+  output.push(`Search time: ${metadata.searchTime}ms`);
   if (metadata.truncated) {
-    output.push(`*注：结果已截断，只显示前 ${results.length} 个文件*`);
+    output.push(`*Note: Results truncated, showing only first ${results.length} files*`);
   }
   output.push("");
 
-  // 格式化每个文件的结果
+  // Format results for each file
   for (const result of results) {
     output.push(formatFileResult(result));
   }
@@ -31,54 +31,54 @@ export function formatSearchResults(
 }
 
 /**
- * 格式化单个文件的结果
+ * Format result for a single file
  */
 function formatFileResult(result: SearchResult): string {
   const output: string[] = [];
   
-  // 文件标题
+  // File title
   const fileIcon = result.filenameMatch ? "📁" : "📄";
   output.push(`### ${fileIcon} ${result.file.name}`);
-  output.push(`路径: ${result.file.path}`);
+  output.push(`Path: ${result.file.path}`);
   output.push("");
 
   if (result.filenameMatch) {
-    output.push("*(文件名匹配)*");
+    output.push("*(Filename match)*");
     output.push("");
   }
 
-  // 匹配内容
+  // Matched content
   if (result.matches.length > 0) {
-    output.push("匹配内容:");
+    output.push("Matched content:");
     
     for (const match of result.matches) {
       output.push(formatMatch(match));
     }
   }
 
-  output.push(""); // 文件间的空行
+  output.push(""); // Empty line between files
   return output.join("\n");
 }
 
 /**
- * 格式化单个匹配项
+ * Format a single match
  */
 function formatMatch(match: SearchResult["matches"][0]): string {
   const output: string[] = [];
   
-  // 添加上下文行（如果有）
+  // Add context lines (if any)
   if (match.contextBefore && match.contextBefore.length > 0) {
     for (const contextLine of match.contextBefore) {
       output.push(`  ${contextLine}`);
     }
   }
   
-  // 高亮匹配行
+  // Highlight matching line
   const lineText = match.lineText;
   const highlightedLine = highlightMatchInLine(lineText, match.startIndex, match.endIndex);
-  output.push(`- 行 ${match.lineNumber}: ${highlightedLine}`);
+  output.push(`- Line ${match.lineNumber}: ${highlightedLine}`);
   
-  // 添加下下文行（如果有）
+  // Add context lines after (if any)
   if (match.contextAfter && match.contextAfter.length > 0) {
     for (const contextLine of match.contextAfter) {
       output.push(`  ${contextLine}`);
@@ -89,7 +89,7 @@ function formatMatch(match: SearchResult["matches"][0]): string {
 }
 
 /**
- * 在行文本中高亮匹配部分
+ * Highlight matching part in line text
  */
 function highlightMatchInLine(lineText: string, startIndex: number, endIndex: number): string {
   if (startIndex < 0 || endIndex > lineText.length || startIndex >= endIndex) {
@@ -104,7 +104,7 @@ function highlightMatchInLine(lineText: string, startIndex: number, endIndex: nu
 }
 
 /**
- * 生成搜索元数据
+ * Generate search metadata
  */
 export function generateSearchMetadata(
   totalFiles: number,

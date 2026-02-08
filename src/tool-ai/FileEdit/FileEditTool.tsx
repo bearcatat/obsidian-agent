@@ -74,7 +74,7 @@ function findBestMatch(
       matched: false,
       content: oldContent,
       protected: true,
-      message: 'old_string 位于 frontmatter 元数据中，禁止直接修改。如需修改元数据，请明确指定 frontmatter 区域。'
+      message: 'old_string is located in frontmatter metadata and is protected from direct modification. Please explicitly specify the frontmatter region to modify metadata.'
     }
   }
 
@@ -151,7 +151,7 @@ export const FileEditTool = tool({
 			const file = vault.getAbstractFileByPath(relativePath) as TFile | null
 
 			if (!file) {
-				throw new Error(`文件不存在: 路径 "${relativePath}" 对应的文件不存在。请使用 write 工具创建新文件。`)
+				throw new Error(`File does not exist: The file at path "${relativePath}" does not exist. Please use the write tool to create a new file.`)
 			}
 
 			let oldContent = ''
@@ -160,7 +160,7 @@ export const FileEditTool = tool({
 			try {
 				oldContent = await vault.read(file)
 			} catch (error) {
-				throw new Error(`读取文件失败: ${error instanceof Error ? error.message : "未知错误"}`)
+				throw new Error(`Failed to read file: ${error instanceof Error ? error.message : "unknown error"}`)
 			}
 
 			const matchResult = findBestMatch(oldContent, old_string, new_string, replaceAll || false)
@@ -169,7 +169,7 @@ export const FileEditTool = tool({
 				if (matchResult.protected && matchResult.message) {
 					throw new Error(matchResult.message)
 				}
-				throw new Error(`old_string 不匹配: 在文件中找不到匹配的 old_string`)
+				throw new Error(`old_string mismatch: No matching old_string found in the file`)
 			}
 
 			newContent = matchResult.content
@@ -200,14 +200,14 @@ export const FileEditTool = tool({
 					await vault.process(file!, () => newContent)
 				} catch (error) {
 					toolMessage.setContent(JSON.stringify({
-						error: "文件操作失败",
-						details: error instanceof Error ? error.message : "未知错误",
+						error: "File operation failed",
+						details: error instanceof Error ? error.message : "unknown error",
 					}))
 				}
 			} else {
 				toolMessage.setContent(JSON.stringify({
 					cancelled: true,
-					message: "用户拒绝了文件编辑",
+					message: "User rejected the file edit",
 				}))
 			}
 
@@ -216,7 +216,7 @@ export const FileEditTool = tool({
 			context.addMessage(toolMessage)
 
 			return JSON.stringify({
-				success: decision === "apply" ? "编辑成功" : "用户拒绝",
+				success: decision === "apply" ? "Edit successful" : "User rejected",
 				file_path: relativePath,
 				diff,
 			})

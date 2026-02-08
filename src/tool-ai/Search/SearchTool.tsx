@@ -61,23 +61,23 @@ async function executeSearch(params: SearchParams): Promise<{ content: string; m
 		if (error instanceof Error) {
 			let errorMessage = error.message
 			if (errorMessage.includes("Invalid regex")) {
-				throw new Error(`无效的正则表达式: ${error.message}`)
+				throw new Error(`Invalid regular expression: ${error.message}`)
 			} else if (errorMessage.includes("path not found")) {
-				throw new Error(`搜索路径不存在: ${error.message}`)
+				throw new Error(`Search path not found: ${error.message}`)
 			}
 			throw error
 		}
-		throw new Error(`搜索失败: ${String(error)}`)
+		throw new Error(`Search failed: ${String(error)}`)
 	}
 }
 
 function render(searchQuery: string, metadata: SearchMetadata): React.ReactNode {
 	return (
 		<div className="tw-flex tw-items-center tw-gap-2">
-			<span>搜索: "{searchQuery}"</span>
+			<span>Search: "{searchQuery}"</span>
 			{metadata.matchedFiles > 0 && (
 				<span className="tw-text-sm tw-text-muted-foreground">
-					({metadata.matchedFiles} 个文件, {metadata.totalMatches} 处匹配)
+					({metadata.matchedFiles} files, {metadata.totalMatches} matches)
 				</span>
 			)}
 		</div>

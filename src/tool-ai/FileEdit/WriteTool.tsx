@@ -80,7 +80,7 @@ export const WriteTool = tool({
         try {
           oldContent = await vault.read(file)
         } catch (error) {
-          throw new Error(`读取文件失败: ${error instanceof Error ? error.message : "未知错误"}`)
+  				throw new Error(`Failed to read file: ${error instanceof Error ? error.message : "unknown error"}`)
         }
       }
 
@@ -119,28 +119,28 @@ export const WriteTool = tool({
             await vault.create(relativePath, content)
           }
         } catch (error) {
-          toolMessage.setContent(JSON.stringify({
-            error: "文件写入失败",
-            details: error instanceof Error ? error.message : "未知错误",
-          }))
+  				toolMessage.setContent(JSON.stringify({
+  					error: "File write failed",
+  					details: error instanceof Error ? error.message : "unknown error",
+  				}))
         }
-      } else {
-        toolMessage.setContent(JSON.stringify({
-          cancelled: true,
-          message: "用户拒绝了文件写入",
-        }))
-      }
+  		} else {
+  				toolMessage.setContent(JSON.stringify({
+  					cancelled: true,
+  					message: "User rejected the file write",
+  				}))
+  		}
 
       toolMessage.setChildren(render(writeResult, true, decision, handleApply, handleReject))
       toolMessage.close()
       context.addMessage(toolMessage)
 
-      return JSON.stringify({
-        success: decision === "apply" ? "写入成功" : "用户拒绝",
-        file_path: relativePath,
-        is_new_file: !exists,
-        diff,
-      })
+  			return JSON.stringify({
+  				success: decision === "apply" ? "Write successful" : "User rejected",
+  				file_path: relativePath,
+  				is_new_file: !exists,
+  				diff,
+  			})
     } catch (error) {
       const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
       context.addMessage(errorMessage)

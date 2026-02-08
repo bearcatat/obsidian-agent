@@ -2,7 +2,7 @@ import { TFile } from "obsidian";
 import { z } from "zod";
 
 /**
- * 搜索参数
+ * Search parameters
  */
 export interface SearchParams {
   query: string;
@@ -15,7 +15,7 @@ export interface SearchParams {
 }
 
 /**
- * 匹配结果
+ * Match result
  */
 export interface Match {
   lineNumber: number;
@@ -27,7 +27,7 @@ export interface Match {
 }
 
 /**
- * 搜索结果
+ * Search result
  */
 export interface SearchResult {
   file: TFile;
@@ -36,7 +36,7 @@ export interface SearchResult {
 }
 
 /**
- * 搜索错误类型
+ * Search error types
  */
 export enum SearchErrorType {
   INVALID_REGEX = "invalid_regex",
@@ -48,7 +48,7 @@ export enum SearchErrorType {
 }
 
 /**
- * 搜索错误类
+ * Search error class
  */
 export class SearchError extends Error {
   constructor(
@@ -62,44 +62,44 @@ export class SearchError extends Error {
 }
 
 /**
- * 搜索参数验证Schema
+ * Search parameters validation schema
  */
 export const searchSchema = z.object({
   query: z.string()
-    .min(1, "搜索关键词不能为空")
-    .describe("搜索关键词或正则表达式（支持完整正则语法）"),
+    .min(1, "Search query cannot be empty")
+    .describe("Search keyword or regular expression (full regex syntax supported)"),
   
   searchType: z.enum(["content", "filename", "both"])
     .default("both")
-    .describe("搜索类型：content（内容搜索）、filename（文件名搜索）、both（两者都搜索）"),
+    .describe("Search type: content (content search), filename (filename search), both (search both)"),
   
   caseSensitive: z.boolean()
     .default(false)
-    .describe("是否区分大小写（默认不区分）"),
+    .describe("Whether to be case sensitive (default: false)"),
   
   useRegex: z.boolean()
     .default(false)
-    .describe("是否使用正则表达式（默认使用简单文本匹配）"),
+    .describe("Whether to use regular expression (default: simple text matching)"),
   
   limit: z.number()
-    .min(1, "结果数量限制至少为1")
-    .max(200, "结果数量限制最多为200")
+    .min(1, "Result limit must be at least 1")
+    .max(200, "Result limit cannot exceed 200")
     .default(50)
-    .describe("返回结果数量限制（1-200，默认50）"),
+    .describe("Limit on number of returned results (1-200, default 50)"),
   
   path: z.string()
     .optional()
-    .describe("搜索路径（相对vault根目录，如'项目/文档/'，留空则搜索整个vault）"),
+    .describe("Search path (relative to vault root, e.g., 'project/docs/', leave empty to search entire vault)"),
   
   showContextLines: z.number()
-    .min(0, "上下文行数不能为负数")
-    .max(5, "上下文行数最多为5")
+    .min(0, "Context line count cannot be negative")
+    .max(5, "Context line count cannot exceed 5")
     .default(1)
-    .describe("显示匹配行上下文的行数（0-5，默认1）"),
+    .describe("Number of context lines to show for matching lines (0-5, default 1)"),
 });
 
 /**
- * 搜索元数据
+ * Search metadata
  */
 export interface SearchMetadata {
   totalFiles: number;
