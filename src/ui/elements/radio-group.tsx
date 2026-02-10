@@ -26,7 +26,23 @@ const RadioGroupItem = React.forwardRef<
     <RadioGroupPrimitive.Item
       ref={ref}
       className={cn(
-        "tw-aspect-square tw-h-4 tw-w-4 tw-rounded-full tw-border tw-border-primary tw-text-primary tw-shadow focus:tw-outline-none focus-visible:tw-ring-1 focus-visible:tw-ring-ring disabled:tw-cursor-not-allowed disabled:tw-opacity-50",
+        // 基础结构
+        "tw-peer tw-aspect-square tw-size-4 tw-rounded-full tw-border tw-border-interactive-accent tw-shrink-0",
+
+        // 基础视觉
+        "!tw-bg-transparent tw-p-0 !tw-shadow tw-transition-colors",
+
+        // hover = checkbox 行为
+        "hover:!tw-bg-interactive-accent hover:!tw-text-on-accent",
+
+        // checked = checkbox 行为
+        "data-[state=checked]:!tw-bg-interactive-accent data-[state=checked]:!tw-text-on-accent",
+
+        // focus / a11y
+        "focus-visible:tw-outline-none focus-visible:tw-ring-1 focus-visible:tw-ring-ring",
+
+        // disabled
+        "disabled:tw-cursor-default disabled:tw-opacity-50",
         className
       )}
       {...props}
