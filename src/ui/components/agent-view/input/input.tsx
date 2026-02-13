@@ -4,8 +4,9 @@ import { InputButtom } from './buttom';
 import { Textarea } from './textarea';
 import { useAgentLogic, useAgentState } from '../../../../hooks/use-agent';
 import { useApp } from '../../../../hooks/app-context';
-import { TFile } from 'obsidian';
+
 import { Context } from '@/types';
+import { InputEditor } from './InputEditor';
 
 export const Input = () => {
   const app = useApp();
@@ -20,7 +21,7 @@ export const Input = () => {
   const { isLoading } = useAgentState();
   const { sendMessage } = useAgentLogic();
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onSend();
@@ -40,14 +41,6 @@ export const Input = () => {
     setContext(emptyContext);
   }
 
-  const handleDropFiles = (files: TFile[]) => {
-    setContext(prev => {
-      const existingPaths = new Set(prev.notes.map(n => n.path));
-      const uniqueFiles = files.filter(file => !existingPaths.has(file.path));
-      return { ...prev, notes: [...prev.notes, ...uniqueFiles] };
-    });
-  };
-
   const handlePasteImages = (images: string[]) => {
     setContext(prev => ({
       ...prev,
@@ -62,33 +55,17 @@ export const Input = () => {
     }));
   };
 
-  const addNoteToContext = (note: TFile) => {
-    if (!context.notes.some(n => n.path === note.path)) {
-      setContext(prev => ({ ...prev, notes: [...prev.notes, note] }));
-    }
-  }
-
-  const removeNoteFromContext = (note: TFile) => {
-    setContext(prev => ({
-      ...prev,
-      notes: prev.notes.filter(n => n.path !== note.path)
-    }));
-  }
-
   return (
     <div className="tw-flex tw-w-full tw-flex-col tw-gap-0.5 tw-rounded-md tw-border tw-border-solid tw-border-border tw-px-1 tw-pb-1 tw-pt-2 tw-@container/chat-input">
       <InputContext
         context={context}
-        addNote={addNoteToContext}
-        removeNote={removeNoteFromContext}
         removeImage={removeImageFromContext} />
       <div className="tw-relative">
-        <Textarea
+        <InputEditor
           value={message}
           onChange={setMessage}
           onKeyDown={onKeyDown}
           disabled={isLoading}
-          onDropFiles={handleDropFiles}
           onPasteImages={handlePasteImages}
         />
       </div>
