@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import { InputEditor, InputEditorRef } from "../../input/InputEditor";
 import { MessageCard } from "./message-card";
 
 type Props = {
@@ -5,11 +7,17 @@ type Props = {
 }
 
 export function UserMessageCard({ content }: Props) {
+    const editorRef = useRef<InputEditorRef>(null);
+
     return (
         <MessageCard has_border={true}>
-            <div className="tw-whitespace-pre-wrap tw-break-words tw-text-[calc(var(--font-text-size)_-_2px)] tw-font-normal">
-                {content}
-            </div>
+            <InputEditor
+                ref={editorRef}
+                value={content}
+                onChange={() => {}}
+                disabled={true}
+                className="tw-max-h-none"
+            />
         </MessageCard>
     )
 }

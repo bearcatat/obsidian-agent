@@ -66,6 +66,7 @@ export const Input = () => {
           onKeyDown={onKeyDown}
           disabled={isLoading}
           onPasteImages={handlePasteImages}
+          className="tw-min-h-[80px]"
         />
       </div>
       <InputButtom onSend={onSend} />

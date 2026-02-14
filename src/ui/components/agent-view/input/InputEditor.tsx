@@ -6,9 +6,10 @@ import { TFile } from 'obsidian';
 import { useApp } from '../../../../hooks/app-context';
 import { cn } from '../../../elements/utils';
 
-const MIN_HEIGHT = 80;
 const MAX_HEIGHT = 240;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
+// ==================== Types ====================
 
 interface InputEditorProps {
   value: string;
@@ -26,17 +27,16 @@ export interface InputEditorRef {
   getEditorView: () => EditorView | null;
 }
 
-const createEditorTheme = () => EditorView.theme({
+// ==================== Editor Theme (Visual Only) ====================
+
+const editorTheme = EditorView.theme({
   '&': {
-    minHeight: `${MIN_HEIGHT}px`,
-    maxHeight: `${MAX_HEIGHT}px`,
     fontSize: '0.875rem',
     lineHeight: '1.625',
     fontFamily: 'inherit'
   },
   '.cm-content': {
     padding: '8px 0',
-    minHeight: `${MIN_HEIGHT - 16}px`,
     caretColor: 'var(--text-normal)'
   },
   '.cm-line': {
@@ -53,12 +53,12 @@ const createEditorTheme = () => EditorView.theme({
   }
 });
 
-// WikiLink 正则匹配
+// ==================== WikiLink Processing ====================
+
 const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
 
-// 解析 WikiLink 获取显示文本
 const parseWikiLink = (link: string): { fileName: string; displayName: string } => {
-  const content = link.slice(2, -2); // 去掉 [[ 和 ]]
+  const content = link.slice(2, -2);
   const pipeIndex = content.indexOf('|');
   if (pipeIndex > 0) {
     return {
@@ -72,7 +72,6 @@ const parseWikiLink = (link: string): { fileName: string; displayName: string } 
   };
 };
 
-// WikiLink Badge Widget
 class WikiLinkWidget extends WidgetType {
   constructor(
     private linkText: string,
@@ -103,7 +102,6 @@ class WikiLinkWidget extends WidgetType {
   }
 }
 
-// 创建 WikiLink Plugin
 const createWikiLinkPlugin = (app: any) => ViewPlugin.fromClass(class {
   decorations: any;
 
@@ -112,22 +110,20 @@ const createWikiLinkPlugin = (app: any) => ViewPlugin.fromClass(class {
   }
 
   update(update: ViewUpdate) {
-    if (update.docChanged || update.viewportChanged) {
+    if (update.docChanged) {
       this.decorations = this.buildDecorations(update.view);
     }
   }
 
   buildDecorations(view: EditorView) {
     const decorations: Range<Decoration>[] = [];
-    const { from, to } = view.viewport;
-    const text = view.state.doc.sliceString(from, to);
-    
+    const text = view.state.doc.toString();
 
     let match;
     wikiLinkRegex.lastIndex = 0;
 
     while ((match = wikiLinkRegex.exec(text)) !== null) {
-      const start = from + match.index;
+      const start = match.index;
       const end = start + match[0].length;
       const linkText = match[0];
       const { fileName } = parseWikiLink(linkText);
@@ -148,8 +144,16 @@ const createWikiLinkPlugin = (app: any) => ViewPlugin.fromClass(class {
   provide: plugin => EditorView.atomicRanges.of(view => view.plugin(plugin)?.decorations ?? Decoration.none)
 });
 
-const getClassNames = (isDragging: boolean, className?: string) => cn(
-  "tw-w-full tw-min-h-[80px] tw-max-h-[240px] tw-bg-transparent",
+// ==================== Utilities ====================
+
+const adjustHeight = (scrollDOM: HTMLElement) => {
+  scrollDOM.style.height = 'auto';
+  const newHeight = Math.min(scrollDOM.scrollHeight, MAX_HEIGHT);
+  scrollDOM.style.height = `${newHeight}px`;
+};
+
+const getContainerClassNames = (isDragging: boolean, className?: string) => cn(
+  "tw-w-full tw-bg-transparent",
   "tw-border-none tw-outline-none tw-text-normal tw-text-sm",
   "tw-placeholder-text-muted tw-leading-relaxed",
   "focus:tw-ring-0 focus:tw-outline-none",
@@ -157,13 +161,17 @@ const getClassNames = (isDragging: boolean, className?: string) => cn(
   className
 );
 
+// ==================== Component ====================
+
 export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
   value, onChange, onKeyDown, placeholder, disabled = false, className, onPasteImages
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const editableCompartmentRef = useRef<Compartment | null>(null);
-  const placeholderCompartmentRef = useRef<Compartment | null>(null);
+  const compartmentsRef = useRef<{
+    editable: Compartment | null;
+    placeholder: Compartment | null;
+  }>({ editable: null, placeholder: null });
   const [isDragging, setIsDragging] = useState(false);
   const app = useApp();
 
@@ -173,17 +181,8 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
     getEditorView: () => viewRef.current
   }));
 
-  const adjustHeight = () => {
-    const view = viewRef.current;
-    if (!view) return;
-
-    const scrollDOM = view.scrollDOM;
-    scrollDOM.style.height = 'auto';
-    const newHeight = Math.min(Math.max(scrollDOM.scrollHeight, MIN_HEIGHT), MAX_HEIGHT);
-    scrollDOM.style.height = `${newHeight}px`;
-  };
-
-  const processDrop = (dataTransfer: DataTransfer | null) => {
+  // Process obsidian drop
+  const processDrop = (dataTransfer: DataTransfer | null): boolean => {
     if (!app || !dataTransfer) return false;
 
     const view = viewRef.current;
@@ -202,13 +201,10 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
       try {
         const urlObj = new URL(url);
         if (urlObj.protocol !== 'obsidian:') return null;
-
         const fileParam = urlObj.searchParams.get('file');
         if (!fileParam) return null;
-
         let filePath = decodeURIComponent(fileParam);
         if (!hasExtension(filePath)) filePath += '.md';
-
         return filePath;
       } catch {
         return null;
@@ -217,10 +213,8 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
 
     const tryAddFile = (input: string) => {
       if (!input || processedPaths.has(input)) return;
-
       const filePath = parseObsidianUrl(input);
       if (!filePath || processedPaths.has(filePath)) return;
-
       const abstractFile = app.vault.getAbstractFileByPath(filePath);
       if (abstractFile instanceof TFile) {
         files.push(abstractFile);
@@ -249,49 +243,51 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
     return true;
   };
 
+  // Initialize editor
   useEffect(() => {
     if (!containerRef.current) return;
 
     const editableCompartment = new Compartment();
     const placeholderCompartment = new Compartment();
-    editableCompartmentRef.current = editableCompartment;
-    placeholderCompartmentRef.current = placeholderCompartment;
+    compartmentsRef.current = { editable: editableCompartment, placeholder: placeholderCompartment };
 
     const view = new EditorView({
       state: EditorState.create({
         doc: value,
         extensions: [
           minimalSetup,
+          editorTheme,
+          createWikiLinkPlugin(app),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onChange(update.state.doc.toString());
-              adjustHeight();
+              setTimeout(() => adjustHeight(update.view.scrollDOM), 0);
             }
           }),
           keymap.of([
             { key: 'Enter', run: () => false },
             { key: 'Shift-Enter', run: () => false }
           ]),
-          createEditorTheme(),
           editableCompartment.of(EditorView.editable.of(!disabled)),
-          placeholderCompartment.of(placeholder ? cmPlaceholder(placeholder) : []),
-          createWikiLinkPlugin(app)
+          placeholderCompartment.of(placeholder ? cmPlaceholder(placeholder) : [])
         ]
       }),
       parent: containerRef.current
     });
 
     viewRef.current = view;
-    adjustHeight();
+
+    // Initial height adjustment
+    setTimeout(() => adjustHeight(view.scrollDOM), 0);
 
     return () => {
       view.destroy();
       viewRef.current = null;
-      editableCompartmentRef.current = null;
-      placeholderCompartmentRef.current = null;
+      compartmentsRef.current = { editable: null, placeholder: null };
     };
   }, []);
 
+  // Sync external value
   useEffect(() => {
     const view = viewRef.current;
     if (!view) return;
@@ -302,20 +298,23 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
     }
   }, [value]);
 
+  // Dynamic reconfigure: disabled
   useEffect(() => {
     const view = viewRef.current;
-    const compartment = editableCompartmentRef.current;
+    const compartment = compartmentsRef.current.editable;
     if (!view || !compartment) return;
     view.dispatch({ effects: compartment.reconfigure(EditorView.editable.of(!disabled)) });
   }, [disabled]);
 
+  // Dynamic reconfigure: placeholder
   useEffect(() => {
     const view = viewRef.current;
-    const compartment = placeholderCompartmentRef.current;
+    const compartment = compartmentsRef.current.placeholder;
     if (!view || !compartment) return;
     view.dispatch({ effects: compartment.reconfigure(placeholder ? cmPlaceholder(placeholder) : []) });
   }, [placeholder]);
 
+  // Handle paste images
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !onPasteImages) return;
@@ -328,10 +327,8 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
 
       for (const item of Array.from(items)) {
         if (!item.type.startsWith('image/')) continue;
-
         const file = item.getAsFile();
         if (!file) continue;
-
         if (file.size > MAX_IMAGE_SIZE) {
           console.warn(`Image ${file.name || 'pasted image'} exceeds 5MB limit`);
           continue;
@@ -359,6 +356,7 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
     return () => container.removeEventListener('paste', handlePaste);
   }, [onPasteImages]);
 
+  // Handle obsidian drop
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -377,7 +375,7 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
 
     container.addEventListener('drop', handleDropCapture, true);
     return () => container.removeEventListener('drop', handleDropCapture, true);
-  }, [app]);
+  }, [processDrop]);
 
   const setDragState = (e: React.DragEvent<HTMLDivElement>, dragging: boolean) => {
     e.preventDefault();
@@ -394,7 +392,7 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
       onDragLeave={(e) => setDragState(e, false)}
       onDrop={(e) => setDragState(e, false)}
       onKeyDown={onKeyDown}
-      className={getClassNames(isDragging, className)}
+      className={getContainerClassNames(isDragging, className)}
     />
   );
 });
