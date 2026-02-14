@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
-import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view';
-import { EditorState, Compartment } from '@codemirror/state';
+import { EditorView, keymap, placeholder as cmPlaceholder, Decoration, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
+import { EditorState, Compartment, Range } from '@codemirror/state';
 import { minimalSetup } from 'codemirror';
 import { TFile } from 'obsidian';
 import { useApp } from '../../../../hooks/app-context';
@@ -51,6 +51,101 @@ const createEditorTheme = () => EditorView.theme({
   '.cm-cursor': {
     borderLeftColor: 'var(--text-normal)'
   }
+});
+
+// WikiLink 正则匹配
+const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
+
+// 解析 WikiLink 获取显示文本
+const parseWikiLink = (link: string): { fileName: string; displayName: string } => {
+  const content = link.slice(2, -2); // 去掉 [[ 和 ]]
+  const pipeIndex = content.indexOf('|');
+  if (pipeIndex > 0) {
+    return {
+      fileName: content.slice(0, pipeIndex),
+      displayName: content.slice(pipeIndex + 1)
+    };
+  }
+  return {
+    fileName: content,
+    displayName: content.split('/').pop() || content
+  };
+};
+
+// WikiLink Badge Widget
+class WikiLinkWidget extends WidgetType {
+  constructor(
+    private linkText: string,
+    private onOpen: () => void
+  ) {
+    super();
+  }
+
+  eq(other: WikiLinkWidget): boolean {
+    return other.linkText === this.linkText;
+  }
+
+  toDOM(): HTMLElement {
+    const { displayName } = parseWikiLink(this.linkText);
+    const span = document.createElement('span');
+    span.className = 'tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium tw-bg-[var(--interactive-accent)] tw-text-[var(--text-on-accent)] tw-cursor-pointer hover:tw-opacity-80 tw-transition-opacity tw-mx-0.5';
+    span.textContent = displayName;
+    span.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.onOpen();
+    });
+    return span;
+  }
+
+  ignoreEvent(): boolean {
+    return false;
+  }
+}
+
+// 创建 WikiLink Plugin
+const createWikiLinkPlugin = (app: any) => ViewPlugin.fromClass(class {
+  decorations: any;
+
+  constructor(view: EditorView) {
+    this.decorations = this.buildDecorations(view);
+  }
+
+  update(update: ViewUpdate) {
+    if (update.docChanged || update.viewportChanged) {
+      this.decorations = this.buildDecorations(update.view);
+    }
+  }
+
+  buildDecorations(view: EditorView) {
+    const decorations: Range<Decoration>[] = [];
+    const { from, to } = view.viewport;
+    const text = view.state.doc.sliceString(from, to);
+    
+
+    let match;
+    wikiLinkRegex.lastIndex = 0;
+
+    while ((match = wikiLinkRegex.exec(text)) !== null) {
+      const start = from + match.index;
+      const end = start + match[0].length;
+      const linkText = match[0];
+      const { fileName } = parseWikiLink(linkText);
+
+      decorations.push(Decoration.replace({
+        widget: new WikiLinkWidget(linkText, () => {
+          if (app) {
+            app.workspace.openLinkText(fileName, '', false);
+          }
+        }),
+        inclusive: false
+      }).range(start, end));
+    }
+    return Decoration.set(decorations);
+  }
+}, {
+  decorations: v => v.decorations,
+  provide: plugin => EditorView.atomicRanges.of(view => view.plugin(plugin)?.decorations ?? Decoration.none)
 });
 
 const getClassNames = (isDragging: boolean, className?: string) => cn(
@@ -107,13 +202,13 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
       try {
         const urlObj = new URL(url);
         if (urlObj.protocol !== 'obsidian:') return null;
-        
+
         const fileParam = urlObj.searchParams.get('file');
         if (!fileParam) return null;
-        
+
         let filePath = decodeURIComponent(fileParam);
         if (!hasExtension(filePath)) filePath += '.md';
-        
+
         return filePath;
       } catch {
         return null;
@@ -122,10 +217,10 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
 
     const tryAddFile = (input: string) => {
       if (!input || processedPaths.has(input)) return;
-      
+
       const filePath = parseObsidianUrl(input);
       if (!filePath || processedPaths.has(filePath)) return;
-      
+
       const abstractFile = app.vault.getAbstractFileByPath(filePath);
       if (abstractFile instanceof TFile) {
         files.push(abstractFile);
@@ -144,12 +239,12 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
 
     const cursorPos = view.state.selection.main.head;
     const wikiLinks = files.map(file => `[[${file.path}|${file.basename}]]`).join(' ');
-    
+
     view.dispatch({
       changes: { from: cursorPos, to: cursorPos, insert: wikiLinks },
       selection: { anchor: cursorPos + wikiLinks.length, head: cursorPos + wikiLinks.length }
     });
-    
+
     view.focus();
     return true;
   };
@@ -179,7 +274,8 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
           ]),
           createEditorTheme(),
           editableCompartment.of(EditorView.editable.of(!disabled)),
-          placeholderCompartment.of(placeholder ? cmPlaceholder(placeholder) : [])
+          placeholderCompartment.of(placeholder ? cmPlaceholder(placeholder) : []),
+          createWikiLinkPlugin(app)
         ]
       }),
       parent: containerRef.current
@@ -232,10 +328,10 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
 
       for (const item of Array.from(items)) {
         if (!item.type.startsWith('image/')) continue;
-        
+
         const file = item.getAsFile();
         if (!file) continue;
-        
+
         if (file.size > MAX_IMAGE_SIZE) {
           console.warn(`Image ${file.name || 'pasted image'} exceeds 5MB limit`);
           continue;
@@ -270,10 +366,10 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
     const handleDropCapture = (e: DragEvent) => {
       const plainData = e.dataTransfer?.getData('text/plain');
       if (!plainData?.startsWith('obsidian://')) return;
-      
+
       e.preventDefault();
       e.stopPropagation();
-      
+
       if (processDrop(e.dataTransfer)) {
         setIsDragging(false);
       }
