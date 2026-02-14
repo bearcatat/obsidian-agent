@@ -31,3 +31,4 @@ CLAUDE.md
 AGENTS.md
 
 .claude
+dist/manifest.json

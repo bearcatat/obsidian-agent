@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { InputContext } from './context';
 import { InputButtom } from './buttom';
-import { Textarea } from './textarea';
 import { useAgentLogic, useAgentState } from '../../../../hooks/use-agent';
 import { useApp } from '../../../../hooks/app-context';
 
