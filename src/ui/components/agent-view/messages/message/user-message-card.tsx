@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { InputEditor, InputEditorRef } from "../../input/InputEditor";
+import { RichTextViewer, RichTextViewerRef } from "../../input/RichTextViewer";
 import { MessageCard } from "./message-card";
 
 type Props = {
@@ -7,16 +7,13 @@ type Props = {
 }
 
 export function UserMessageCard({ content }: Props) {
-    const editorRef = useRef<InputEditorRef>(null);
+    const viewerRef = useRef<RichTextViewerRef>(null);
 
     return (
         <MessageCard has_border={true}>
-            <InputEditor
-                ref={editorRef}
-                value={content}
-                onChange={() => {}}
-                disabled={true}
-                className="tw-max-h-none"
+            <RichTextViewer
+                ref={viewerRef}
+                content={content}
             />
         </MessageCard>
     )

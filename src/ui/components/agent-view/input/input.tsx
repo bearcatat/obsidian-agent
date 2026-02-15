@@ -59,16 +59,13 @@ export const Input = () => {
       <InputContext
         context={context}
         removeImage={removeImageFromContext} />
-      <div className="tw-relative">
-        <InputEditor
-          value={message}
-          onChange={setMessage}
-          onKeyDown={onKeyDown}
-          disabled={isLoading}
-          onPasteImages={handlePasteImages}
-          className="tw-min-h-[80px]"
-        />
-      </div>
+      <InputEditor
+        value={message}
+        onChange={setMessage}
+        onKeyDown={onKeyDown}
+        disabled={isLoading}
+        onPasteImages={handlePasteImages}
+      />
       <InputButtom onSend={onSend} />
     </div>
   );

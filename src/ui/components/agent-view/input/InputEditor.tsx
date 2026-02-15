@@ -1,13 +1,13 @@
 import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
-import { EditorView, keymap, placeholder as cmPlaceholder, Decoration, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
-import { EditorState, Compartment, Range } from '@codemirror/state';
+import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view';
+import { EditorState, Compartment } from '@codemirror/state';
 import { minimalSetup } from 'codemirror';
 import { TFile } from 'obsidian';
 import { useApp } from '../../../../hooks/app-context';
 import { cn } from '../../../elements/utils';
-
-const MAX_HEIGHT = 240;
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+import { editorTheme } from './cm-config/theme';
+import { createWikiLinkPlugin } from './cm-config/wiki-link-plugin';
+import { MAX_IMAGE_SIZE, adjustHeight } from './cm-config/utils';
 
 // ==================== Types ====================
 
@@ -26,140 +26,6 @@ export interface InputEditorRef {
   blur: () => void;
   getEditorView: () => EditorView | null;
 }
-
-// ==================== Editor Theme (Visual Only) ====================
-
-const editorTheme = EditorView.theme({
-  '&': {
-    fontSize: '0.875rem',
-    lineHeight: '1.625',
-    fontFamily: 'inherit'
-  },
-  '.cm-content': {
-    padding: '8px 0',
-    caretColor: 'var(--text-normal)'
-  },
-  '.cm-line': {
-    padding: '0 4px'
-  },
-  '&.cm-focused': {
-    outline: 'none'
-  },
-  '.cm-placeholder': {
-    color: 'var(--text-muted)'
-  },
-  '.cm-cursor': {
-    borderLeftColor: 'var(--text-normal)'
-  }
-});
-
-// ==================== WikiLink Processing ====================
-
-const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
-
-const parseWikiLink = (link: string): { fileName: string; displayName: string } => {
-  const content = link.slice(2, -2);
-  const pipeIndex = content.indexOf('|');
-  if (pipeIndex > 0) {
-    return {
-      fileName: content.slice(0, pipeIndex),
-      displayName: content.slice(pipeIndex + 1)
-    };
-  }
-  return {
-    fileName: content,
-    displayName: content.split('/').pop() || content
-  };
-};
-
-class WikiLinkWidget extends WidgetType {
-  constructor(
-    private linkText: string,
-    private onOpen: () => void
-  ) {
-    super();
-  }
-
-  eq(other: WikiLinkWidget): boolean {
-    return other.linkText === this.linkText;
-  }
-
-  toDOM(): HTMLElement {
-    const { displayName } = parseWikiLink(this.linkText);
-    const span = document.createElement('span');
-    span.className = 'tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium tw-bg-[var(--interactive-accent)] tw-text-[var(--text-on-accent)] tw-cursor-pointer hover:tw-opacity-80 tw-transition-opacity tw-mx-0.5';
-    span.textContent = displayName;
-    span.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      this.onOpen();
-    });
-    return span;
-  }
-
-  ignoreEvent(): boolean {
-    return false;
-  }
-}
-
-const createWikiLinkPlugin = (app: any) => ViewPlugin.fromClass(class {
-  decorations: any;
-
-  constructor(view: EditorView) {
-    this.decorations = this.buildDecorations(view);
-  }
-
-  update(update: ViewUpdate) {
-    if (update.docChanged) {
-      this.decorations = this.buildDecorations(update.view);
-    }
-  }
-
-  buildDecorations(view: EditorView) {
-    const decorations: Range<Decoration>[] = [];
-    const text = view.state.doc.toString();
-
-    let match;
-    wikiLinkRegex.lastIndex = 0;
-
-    while ((match = wikiLinkRegex.exec(text)) !== null) {
-      const start = match.index;
-      const end = start + match[0].length;
-      const linkText = match[0];
-      const { fileName } = parseWikiLink(linkText);
-
-      decorations.push(Decoration.replace({
-        widget: new WikiLinkWidget(linkText, () => {
-          if (app) {
-            app.workspace.openLinkText(fileName, '', false);
-          }
-        }),
-        inclusive: false
-      }).range(start, end));
-    }
-    return Decoration.set(decorations);
-  }
-}, {
-  decorations: v => v.decorations,
-  provide: plugin => EditorView.atomicRanges.of(view => view.plugin(plugin)?.decorations ?? Decoration.none)
-});
-
-// ==================== Utilities ====================
-
-const adjustHeight = (scrollDOM: HTMLElement) => {
-  scrollDOM.style.height = 'auto';
-  const newHeight = Math.min(scrollDOM.scrollHeight, MAX_HEIGHT);
-  scrollDOM.style.height = `${newHeight}px`;
-};
-
-const getContainerClassNames = (isDragging: boolean, className?: string) => cn(
-  "tw-w-full tw-bg-transparent",
-  "tw-border-none tw-outline-none tw-text-normal tw-text-sm",
-  "tw-placeholder-text-muted tw-leading-relaxed",
-  "focus:tw-ring-0 focus:tw-outline-none",
-  isDragging && "tw-border tw-border-solid tw-border-blue-500 tw-bg-blue-50 dark:tw-bg-blue-900/20",
-  className
-);
 
 // ==================== Component ====================
 
@@ -261,7 +127,7 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onChange(update.state.doc.toString());
-              setTimeout(() => adjustHeight(update.view.scrollDOM), 0);
+              setTimeout(() => adjustHeight(update.view.scrollDOM, 80), 0);
             }
           }),
           keymap.of([
@@ -277,9 +143,6 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
 
     viewRef.current = view;
 
-    // Initial height adjustment
-    setTimeout(() => adjustHeight(view.scrollDOM), 0);
-
     return () => {
       view.destroy();
       viewRef.current = null;
@@ -287,7 +150,7 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
     };
   }, []);
 
-  // Sync external value
+  // Sync external value and adjust height
   useEffect(() => {
     const view = viewRef.current;
     if (!view) return;
@@ -295,6 +158,7 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
     const currentValue = view.state.doc.toString();
     if (value !== currentValue) {
       view.dispatch({ changes: { from: 0, to: currentValue.length, insert: value } });
+      setTimeout(() => adjustHeight(view.scrollDOM, 80), 0);
     }
   }, [value]);
 
@@ -392,7 +256,7 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
       onDragLeave={(e) => setDragState(e, false)}
       onDrop={(e) => setDragState(e, false)}
       onKeyDown={onKeyDown}
-      className={getContainerClassNames(isDragging, className)}
+      className={cn("tw-w-full tw-h-full", isDragging && "tw-border tw-border-solid tw-border-blue-500 tw-bg-blue-50 dark:tw-bg-blue-900/20", className)}
     />
   );
 });
