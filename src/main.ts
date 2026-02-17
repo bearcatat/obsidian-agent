@@ -5,7 +5,7 @@ import { SettingsState } from './state/settings-state-impl';
 import { SettingsLogic } from './logic/settings-logic';
 import { AgentViewLogic } from './logic/agent-view-logic';
 import { setGlobalApp, clearGlobalApp } from './utils';
-import { AgentState } from './state/agent-state-impl';
+import { useAgentStore, agentStore } from './state/agent-state-impl';
 import AIToolManager from './tool-ai/ToolManager';
 import AIModelManager from './llm-ai/ModelManager';
 
@@ -37,7 +37,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 		try {
 			// 1. 中断正在进行的请求
-			const agentState = AgentState.getInstance();
+			const agentState = agentStore.getState();
 			if (agentState.abortController) {
 				console.log('Aborting ongoing requests...');
 				agentState.abortController.abort();
@@ -60,14 +60,13 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			console.log('Clearing global references...');
 			clearGlobalApp();
 
-			// 5. 清理状态监听器
+			// 5. 清理状态监听器（Zustand 不需要手动清理监听器）
 			console.log('Clearing state listeners...');
-			agentState.clearListeners();
 			SettingsState.getInstance().clearListeners();
 
-			// 6. 重置状态实例（可选，因为单例会在下次使用时重新创建）
+			// 6. 重置状态实例
 			console.log('Resetting state instances...');
-			AgentState.resetInstance();
+			agentStore.reset();
 			SettingsState.resetInstance();
 
 			console.log('Plugin cleanup completed successfully');

@@ -1,5 +1,5 @@
 import { Context, MessageV2, ModelConfig } from "../types";
-import { AgentState } from "../state/agent-state-impl";
+import { useAgentStore, agentStore } from "../state/agent-state-impl";
 import { App, TFile } from "obsidian";
 import { UserMessage } from "@/messages/user-message";
 import AIAgent from "@/llm-ai/Agent";
@@ -8,16 +8,12 @@ import AIModelManager from "@/llm-ai/ModelManager";
 
 export class AgentViewLogic {
   private static instance: AgentViewLogic;
-  private state: AgentState;
 
-  private constructor(state: AgentState) {
-    this.state = state;
-  }
+  private constructor() {}
 
-  static getInstance(state?: AgentState): AgentViewLogic {
+  static getInstance(): AgentViewLogic {
     if (!AgentViewLogic.instance) {
-      const agentState = state || AgentState.getInstance();
-      AgentViewLogic.instance = new AgentViewLogic(agentState);
+      AgentViewLogic.instance = new AgentViewLogic();
     }
     return AgentViewLogic.instance;
   }
@@ -29,61 +25,66 @@ export class AgentViewLogic {
   // 业务逻辑方法
   async sendMessage(content: string, context: Context): Promise<void> {
     // 设置加载状态
-    this.state.setLoading(true);
+    const store = agentStore.getState();
+    store.setLoading(true);
     const abortController = new AbortController()
-    this.state.setAbortController(abortController);
+    store.setAbortController(abortController);
 
     try {
       this.setTitleIfNewChat(content);
       // 添加用户消息
       const userMessage = new UserMessage(content, context);
-      this.state.addMessage(userMessage);
-      await AIAgent.getInstance().query(userMessage, abortController, (message: MessageV2) => this.state.addMessage(message))
+      store.addMessage(userMessage);
+      await AIAgent.getInstance().query(userMessage, abortController, (message: MessageV2) => {
+        agentStore.getState().addMessage(message);
+      })
     } catch (error) {
       console.error('Failed to send message:', error);
     } finally {
-      this.state.setLoading(false);
+      agentStore.getState().setLoading(false);
     }
   }
 
   addMessage(message: MessageV2) {
-    this.state.addMessage(message)
+    agentStore.getState().addMessage(message)
   }
 
   async setTitleIfNewChat(userMessage: string): Promise<void> {
-    if (this.state.title === "New Chat") {
+    const store = agentStore.getState();
+    if (store.title === "New Chat") {
       // 使用 Agent 的 generateTitle 方法生成标题
       try {
         const title = await AIAgent.getInstance().generateTitle(userMessage);
-        this.state.setTitle(title);
+        store.setTitle(title);
       } catch (error) {
         console.error('Failed to generate title:', error);
         // 如果标题生成失败，使用用户消息的前20个字符作为标题
-        this.state.setTitle(userMessage.substring(0, 20) || "New Chat");
+        store.setTitle(userMessage.substring(0, 20) || "New Chat");
       }
     }
   }
 
   stopLoading(): void {
-    if (this.state.abortController) {
-      this.state.abortController.abort();
+    const store = agentStore.getState();
+    if (store.abortController) {
+      store.abortController.abort();
     }
-    this.state.setLoading(false);
+    store.setLoading(false);
   }
 
   setTitle(title: string): void {
-    this.state.setTitle(title);
+    agentStore.getState().setTitle(title);
   }
 
   resetForNewChat(app: App | undefined): void {
     this.stopLoading();
     const activeNote = app?.workspace.getActiveFile();
-    this.state.resetForNewChat();
+    agentStore.getState().resetForNewChat();
     AIAgent.getInstance().clearMemory();
   }
 
   setModel(model: ModelConfig): void {
-    this.state.setModel(model);
+    agentStore.getState().setModel(model);
     AIModelManager.getInstance().setAgent(model);
   }
 

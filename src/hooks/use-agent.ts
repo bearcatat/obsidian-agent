@@ -1,22 +1,23 @@
-import { useState, useEffect } from 'react';
-import { AgentState } from '../state/agent-state-impl';
+import { useAgentStore } from '../state/agent-state-impl';
 import { AgentViewLogic } from '../logic/agent-view-logic';
-import { clone, IAgentState } from '../state/agent-state';
 import { App } from 'obsidian';
 import { Context, MessageV2, ModelConfig } from '../types';
+import { useShallow } from 'zustand/react/shallow';
 
-export function useAgentState(): IAgentState {
-  const [state, setState] = useState<IAgentState>(() => AgentState.getInstance());
+// 导出 store hook，组件可以直接使用
+export { useAgentStore };
 
-  useEffect(() => {
-    const agentState = AgentState.getInstance();
-    const unsubscribe = agentState.subscribe(() => {
-      setState(clone(agentState));
-    });
-    return unsubscribe;
-  }, []);
-
-  return state;
+// 保留向后兼容的 hook（从 store 中选择状态）
+export function useAgentState() {
+  return useAgentStore(
+    useShallow((state) => ({
+      messages: state.messages,
+      isLoading: state.isLoading,
+      title: state.title,
+      model: state.model,
+      abortController: state.abortController,
+    }))
+  );
 }
 
 export function useAgentLogic() {

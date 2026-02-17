@@ -16,21 +16,26 @@ export default class MCPManager {
     this.configs = configs
     await Promise.all(
       configs.map(async config => {
-        let mcpClient: MCPClient
-        switch (config.transport) {
-          case "stdio":
-            mcpClient = await this.buildStdioClient(config)
-            break
-          case "http":
-            mcpClient = await this.buildHttpClient(config)
-            break
-          case "sse":
-            mcpClient = await this.buildSSEClient(config)
-            break
-          default:
-            throw new Error(`Unknown transport type: ${config.transport}`)
+        try {
+          let mcpClient: MCPClient
+          switch (config.transport) {
+            case "stdio":
+              mcpClient = await this.buildStdioClient(config)
+              break
+            case "http":
+              mcpClient = await this.buildHttpClient(config)
+              break
+            case "sse":
+              mcpClient = await this.buildSSEClient(config)
+              break
+            default:
+              throw new Error(`Unknown transport type: ${config.transport}`)
+          }
+          this.clients[config.name] = mcpClient
+        } catch (error) {
+          console.error(`Failed to initialize MCP server "${config.name}":`, error)
+          // 不中断其他服务器的初始化
         }
-        this.clients[config.name] = mcpClient
       })
     )
     console.log("clients", this.clients)

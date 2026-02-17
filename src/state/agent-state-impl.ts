@@ -1,131 +1,98 @@
-import { IAgentState, AgentStateData } from './agent-state';
+import { create } from 'zustand';
+import { immer } from 'zustand/middleware/immer';
 import { ModelConfig } from '../types';
 import { MessageV2 } from '@/types';
+import { AgentStateData } from './agent-state';
 
-
-export class AgentState implements IAgentState {
-  private static instance: AgentState;
-  private _data: AgentStateData;
-  private listeners: Set<(state: AgentStateData) => void> = new Set();
-
-  private constructor(initialData?: Partial<AgentStateData>) {
-    this._data = {
-      messages: [],
-      isLoading: false,
-      title: 'New Chat',
-      model: null,
-      abortController: null,
-      ...initialData,
-    };
-  }
-
-  static getInstance(initialData?: Partial<AgentStateData>): AgentState {
-    if (!AgentState.instance) {
-      AgentState.instance = new AgentState(initialData);
-    }
-    return AgentState.instance;
-  }
-
-  static resetInstance(): void {
-    AgentState.instance = undefined as any;
-  }
-
-  // 只读属性访问器
-  get messages(): (MessageV2)[] {
-    return this._data.messages ? [...this._data.messages] : [];
-  }
-
-  get isLoading(): boolean {
-    return this._data.isLoading;
-  }
-
-  get title(): string {
-    return this._data.title;
-  }
-
-  get model(): ModelConfig | null {
-    return this._data.model;
-  }
-
-  get abortController(): AbortController | null {
-    return this._data.abortController;
-  }
-
-  // 订阅状态变化
-  subscribe(listener: (state: AgentStateData) => void): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  }
-
-  // 通知所有监听器
-  private notify(): void {
-    this.listeners.forEach(listener => listener({ ...this._data }));
-  }
-
-  // 纯状态操作方法（不包含业务逻辑）
-  setLoading(isLoading: boolean): void {
-    this._data.isLoading = isLoading;
-    this.notify();
-  }
-
-  addMessage(message: MessageV2) {
-    const lastMessage = this._data.messages[this._data.messages.length - 1];
-
-    // 优化流式消息处理：移除之前的流式消息，如果消息id相同
-    if (lastMessage && lastMessage.id === message.id) {
-      this._data.messages.pop();
-    }
-
-    // 限制消息数量，防止内存无限增长
-    const MAX_MESSAGES = 100;
-    if (this._data.messages.length >= MAX_MESSAGES) {
-      // 保留最新的消息，移除最旧的消息
-      this._data.messages = this._data.messages.slice(-MAX_MESSAGES + 1);
-    }
-
-    this._data.messages.push(message);
-    this.notify();
-  }
-
-  setTitle(title: string): void {
-    this._data.title = title;
-    this.notify();
-  }
-
-  setModel(model: ModelConfig): void {
-    this._data.model = model;
-    this.notify();
-  }
-
-  setAbortController(abortController: AbortController): void {
-    this._data.abortController = abortController;
-    this.notify();
-  }
-
-  resetForNewChat(): void {
-    this._data.messages = [];
-    this._data.isLoading = false;
-    this._data.title = 'New Chat';
-    this._data.abortController = null;
-    this.notify();
-  }
-
-  // 清理所有监听器
-  clearListeners(): void {
-    this.listeners.clear();
-  }
-
-  // 清理旧消息，释放内存
-  cleanupOldMessages(keepCount: number = 50): void {
-    if (this._data.messages.length > keepCount) {
-      this._data.messages = this._data.messages.slice(-keepCount);
-      this.notify();
-    }
-  }
-
-  // 清理流式消息
-  cleanupStreamingMessages(): void {
-    this._data.messages = this._data.messages.filter(message => !message.isStreaming);
-    this.notify();
-  }
+interface AgentStore extends AgentStateData {
+  // 状态操作
+  setLoading: (isLoading: boolean) => void;
+  addMessage: (message: MessageV2) => void;
+  setTitle: (title: string) => void;
+  setModel: (model: ModelConfig) => void;
+  setAbortController: (abortController: AbortController) => void;
+  resetForNewChat: () => void;
+  cleanupOldMessages: (keepCount?: number) => void;
+  cleanupStreamingMessages: () => void;
 }
+
+const initialState: AgentStateData = {
+  messages: [],
+  isLoading: false,
+  title: 'New Chat',
+  model: null,
+  abortController: null,
+};
+
+export const useAgentStore = create<AgentStore>()(
+  immer((set) => ({
+    ...initialState,
+
+    setLoading: (isLoading: boolean) =>
+      set((state) => {
+        state.isLoading = isLoading;
+      }),
+
+    addMessage: (message: MessageV2) =>
+      set((state) => {
+        const lastMessage = state.messages[state.messages.length - 1];
+
+        // 优化流式消息处理：移除之前的流式消息，如果消息id相同
+        if (lastMessage && lastMessage.id === message.id) {
+          state.messages.pop();
+        }
+
+        // 限制消息数量，防止内存无限增长
+        const MAX_MESSAGES = 100;
+        if (state.messages.length >= MAX_MESSAGES) {
+          // 保留最新的消息，移除最旧的消息
+          state.messages = state.messages.slice(-MAX_MESSAGES + 1);
+        }
+
+        state.messages.push(message);
+      }),
+
+    setTitle: (title: string) =>
+      set((state) => {
+        state.title = title;
+      }),
+
+    setModel: (model: ModelConfig) =>
+      set((state) => {
+        state.model = model;
+      }),
+
+    setAbortController: (abortController: AbortController) =>
+      set((state) => {
+        state.abortController = abortController;
+      }),
+
+    resetForNewChat: () =>
+      set((state) => {
+        state.messages = [];
+        state.isLoading = false;
+        state.title = 'New Chat';
+        state.abortController = null;
+      }),
+
+    cleanupOldMessages: (keepCount: number = 50) =>
+      set((state) => {
+        if (state.messages.length > keepCount) {
+          state.messages = state.messages.slice(-keepCount);
+        }
+      }),
+
+    cleanupStreamingMessages: () =>
+      set((state) => {
+        state.messages = state.messages.filter((message) => !message.isStreaming);
+      }),
+  }))
+);
+
+// 保留向后兼容的单例 API（可选，用于非 React 代码）
+export const agentStore = {
+  getState: () => useAgentStore.getState(),
+  setState: useAgentStore.setState,
+  subscribe: useAgentStore.subscribe,
+  reset: () => useAgentStore.setState(initialState),
+};
