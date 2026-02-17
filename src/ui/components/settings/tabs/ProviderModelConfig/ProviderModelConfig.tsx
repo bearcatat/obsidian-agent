@@ -5,9 +5,10 @@ import { MoonshotModelConfig } from "./MoonshotModelConfig"
 import { GoogleModelConfig } from "./GoogleModelConfig"
 import { DeepSeekModelConfig } from "./DeepSeekModelConfig"
 
-export const ProviderModelConfig = ({ model, debouncedSetModel }: {
+export const ProviderModelConfig = ({ model, debouncedSetModel, setModel }: {
     model: ModelConfig
     debouncedSetModel: (model: ModelConfig) => void
+    setModel: (model: ModelConfig) => void
 }) => {
     return (
         <div className="tw-space-y-3">
@@ -24,7 +25,7 @@ export const ProviderModelConfig = ({ model, debouncedSetModel }: {
                 <CommonProviderModelConfig model={model} debouncedSetModel={debouncedSetModel} />
             )}
             {model.provider === ModelProviders.MOONSHOT && (
-                <MoonshotModelConfig model={model} debouncedSetModel={debouncedSetModel} />
+                <MoonshotModelConfig model={model} debouncedSetModel={debouncedSetModel} setModel={setModel} />
             )}
             {model.provider === ModelProviders.GOOGLE && (
                 <GoogleModelConfig model={model} debouncedSetModel={debouncedSetModel} />

@@ -1,6 +1,6 @@
 import { AssistantMessage } from "@/messages/assistant-message";
 import { MessageV2 } from "@/types";
-import { ModelMessage, ToolLoopAgent, ToolSet, TextStreamPart, StreamTextResult } from "ai";
+import { ModelMessage, ToolLoopAgent, ToolSet, TextStreamPart, StreamTextResult, GenerateTextResult } from "ai";
 import { v4 as uuidv4 } from 'uuid';
 
 
@@ -47,5 +47,23 @@ export default class Streamer {
                 this.addMessage(this.assistantMessage);
                 break;
         }
+    }
+
+    async generate(
+        messages: Array<ModelMessage>,
+        abortSignal: AbortSignal,
+    ): Promise<GenerateTextResult<{}, never>> {
+        const result = await this.agent.generate({
+            messages: messages,
+            abortSignal: abortSignal,
+            onStepFinish: async ({text}) => {
+                console.log(text)
+                this.assistantMessage=AssistantMessage.createEmpty(uuidv4())
+                this.assistantMessage.appendContent(text)
+                this.assistantMessage.close()
+                this.addMessage(this.assistantMessage)
+            }
+        })
+        return result
     }
 }

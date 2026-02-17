@@ -2,6 +2,7 @@ import { ModelConfig, ModelProviders } from "@/types";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { LanguageModelV3 } from "@ai-sdk/provider";
 import { ToolLoopAgentSettings } from "ai";
+import { createCORSFetchAdapter } from "../utils/cors-fetch";
 
 
 export default class MoonshotGenerator {
@@ -17,13 +18,14 @@ export default class MoonshotGenerator {
     }
 
     createModel(modelConfig: ModelConfig): LanguageModelV3 {
-        if (!modelConfig.baseUrl) {
-            throw ("empty base url")
-        }
+        // 根据配置决定是否使用 CORS 代理
+        const customFetch = modelConfig.useCORS ? createCORSFetchAdapter() : undefined;
+
         const openai = createOpenAICompatible({
-            baseURL: modelConfig.baseUrl,
+            baseURL: modelConfig.baseUrl || "https://api.moonshot.cn/v1",
             apiKey: modelConfig.apiKey,
-            name: "moonshot"
+            name: "moonshot",
+            fetch: customFetch,
         });
 
         return openai.chatModel(modelConfig.name);

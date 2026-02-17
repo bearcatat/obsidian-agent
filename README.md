@@ -82,7 +82,7 @@ Create specialized assistants for specific workflows:
 | DeepSeek | ✅ | Full support |
 | OpenAI | ✅ | Including compatible APIs |
 | Anthropic | ✅ | No thinking mode |
-| Moonshot | ⚠️ | Requires proxy (CORS) |
+| Moonshot | ⚠️ | Enable "Use CORS Proxy" in model settings |
 | Google Gemini | ✅ | Full support |
 
 ### MCP Servers

@@ -3,19 +3,22 @@ import { MaxOutputTokens } from "../ModelConfigField/MaxOutputTokens"
 import { FrequencyPenalty } from "../ModelConfigField/FrequencyPenalty"
 import { Temperature } from "../ModelConfigField/Temperature"
 import { TopP } from "../ModelConfigField/TopP"
+import { UseCORS } from "../ModelConfigField/UseCORS"
 
 const isKimiK25 = (name: string) => {
     return name === 'kimi-k2.5';
 }
 
-export const MoonshotModelConfig = ({ model, debouncedSetModel }: {
+export const MoonshotModelConfig = ({ model, debouncedSetModel, setModel }: {
     model: ModelConfig
     debouncedSetModel: (model: ModelConfig) => void
+    setModel: (model: ModelConfig) => void
 }) => {
     const isModelKimiK25 = isKimiK25(model.name);
 
     return (
         <div className="tw-space-y-3">
+            <UseCORS model={model} setModel={setModel} />
             {!isModelKimiK25 && (
                 <>
                     <Temperature model={model} debouncedSetModel={debouncedSetModel} />

@@ -35,6 +35,7 @@ export interface ModelConfig {
   topP?: number;
   frequencyPenalty?: number;
   presencePenalty?: number;
+  useCORS?: boolean;
 }
 
 // Model Providers

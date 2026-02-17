@@ -83,7 +83,7 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
           <DialogDescription>{isUpdate ? "Update existing model in your collection." : "Add a new model to your collection."}</DialogDescription>
         </DialogHeader>
         <CommonModelConfig model={model} setModel={setModel} dialogElement={dialogElement}></CommonModelConfig>
-        <ProviderModelConfig model={model} debouncedSetModel={debouncedSetModel}></ProviderModelConfig>
+        <ProviderModelConfig model={model} debouncedSetModel={debouncedSetModel} setModel={setModel}></ProviderModelConfig>
 
         <div className="tw-flex tw-items-center tw-justify-end tw-gap-4">
           <div className="tw-flex tw-gap-2">

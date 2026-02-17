@@ -11,6 +11,7 @@ export default class AIModelManager {
     private static instance: AIModelManager;
 
     public agentConfig: ToolLoopAgentSettings;
+    public agentModelConfig: ModelConfig;
     public titleConfig: ToolLoopAgentSettings;
     private modelGenerators: Record<string, AIModelGenerator> = {
         [ModelProviders.DEEPSEEK]: DeepSeekGenerator.getInstance(),
@@ -33,6 +34,7 @@ export default class AIModelManager {
     }
 
     setAgent(modelConfig: ModelConfig) {
+        this.agentModelConfig = modelConfig
         const generator = this.modelGenerators[modelConfig.provider]
         if (generator) {
             this.agentConfig = generator.newAgent(modelConfig)
