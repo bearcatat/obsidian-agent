@@ -1,7 +1,7 @@
 import SubAgent from "@/llm-ai/SubAgent";
 import { ToolMessage } from "@/messages/tool-message";
 import { UserMessage } from "@/messages/user-message";
-import { SettingsState } from "@/state/settings-state-impl";
+import { settingsStore } from "@/state/settings-state-impl";
 import { MessageV2, ModelConfig, SubAgentConfig } from "@/types";
 import { SubAgentMessagesCard } from "@/ui/components/agent-view/messages/messages";
 import { tool, ToolSet } from "ai";
@@ -68,9 +68,9 @@ function render(messages: MessageV2[]): React.ReactNode {
 }
 
 function getModelConfig(modelId: string): ModelConfig | null {
-  const settingsState = SettingsState.getInstance();
-  const models = settingsState.models;
-  return models.find(model => model.id === modelId) || null;
+  const state = settingsStore.getState();
+  const models = state.models;
+  return models.find((model: ModelConfig) => model.id === modelId) || null;
 }
 
 function getToolSetForSubAgent(config: SubAgentConfig, toolSet: ToolSet): ToolSet {

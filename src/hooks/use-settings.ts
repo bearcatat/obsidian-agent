@@ -1,24 +1,23 @@
-import { useState, useEffect } from "react";
-import { SettingsLogic } from "../logic/settings-logic";
-import { SettingsState } from "../state/settings-state-impl";
-import { ISettingsState, clone } from "../state/settings-state";
-import { ModelConfig, MCPServerConfig, SubAgentConfig } from "../types";
+import { useSettingsStore, settingsStore } from '../state/settings-state-impl';
+import { SettingsLogic } from '../logic/settings-logic';
+import { useShallow } from 'zustand/react/shallow';
+import { ModelConfig, MCPServerConfig, SubAgentConfig } from '../types';
 
-export function useSettingsState(): ISettingsState {
-  const [state, setState] = useState<ISettingsState>(() => {
-    const instance = SettingsState.getInstance();
-    return clone(instance);
-  });
+// 导出 store hook，组件可以直接使用
+export { useSettingsStore };
 
-  useEffect(() => {
-    const settingsState = SettingsState.getInstance();
-    const unsubscribe = settingsState.subscribe(() => {
-      setState(clone(settingsState));
-    });
-    return unsubscribe;
-  }, []);
-
-  return state;
+// 保留向后兼容的 hook（从 store 中选择状态）
+export function useSettingsState() {
+  return useSettingsStore(
+    useShallow((state) => ({
+      models: state.models,
+      defaultAgentModel: state.defaultAgentModel,
+      titleModel: state.titleModel,
+      mcpServers: state.mcpServers,
+      builtinTools: state.builtinTools,
+      subAgents: state.subAgents,
+    }))
+  );
 }
 
 export function useSettingsLogic() {
@@ -26,26 +25,33 @@ export function useSettingsLogic() {
 
   return {
     // 模型管理
-    addOrUpdateModel: async (model: ModelConfig, originalId?: string) => await settingsLogic.addOrUpdateModel(model, originalId),
+    addOrUpdateModel: async (model: ModelConfig, originalId?: string) =>
+      await settingsLogic.addOrUpdateModel(model, originalId),
     removeModel: async (modelId: string) => await settingsLogic.removeModel(modelId),
     reorderModels: async (newModels: ModelConfig[]) => await settingsLogic.reorderModels(newModels),
 
     // 模型设置
-    setDefaultAgentModel: async (model: ModelConfig | null) => await settingsLogic.setDefaultAgentModel(model),
+    setDefaultAgentModel: async (model: ModelConfig | null) =>
+      await settingsLogic.setDefaultAgentModel(model),
     setTitleModel: async (model: ModelConfig | null) => await settingsLogic.setTitleModel(model),
 
     // MCP服务器配置管理
-    addOrUpdateMCPServer: async (server: MCPServerConfig, originalName?: string) => await settingsLogic.addOrUpdateMCPServer(server, originalName),
+    addOrUpdateMCPServer: async (server: MCPServerConfig, originalName?: string) =>
+      await settingsLogic.addOrUpdateMCPServer(server, originalName),
     removeMCPServer: async (serverName: string) => await settingsLogic.removeMCPServer(serverName),
-    reorderMCPServers: async (newServers: MCPServerConfig[]) => await settingsLogic.reorderMCPServers(newServers),
+    reorderMCPServers: async (newServers: MCPServerConfig[]) =>
+      await settingsLogic.reorderMCPServers(newServers),
 
     // 内置工具管理
-    updateBuiltinTool: async (toolName: string, enabled: boolean) => await settingsLogic.updateBuiltinTool(toolName, enabled),
+    updateBuiltinTool: async (toolName: string, enabled: boolean) =>
+      await settingsLogic.updateBuiltinTool(toolName, enabled),
 
     // SubAgent配置管理
-    addOrUpdateSubAgent: async (subAgent: SubAgentConfig, originalName?: string) => await settingsLogic.addOrUpdateSubAgent(subAgent, originalName),
+    addOrUpdateSubAgent: async (subAgent: SubAgentConfig, originalName?: string) =>
+      await settingsLogic.addOrUpdateSubAgent(subAgent, originalName),
     removeSubAgent: async (subAgentName: string) => await settingsLogic.removeSubAgent(subAgentName),
-    reorderSubAgents: async (newSubAgents: SubAgentConfig[]) => await settingsLogic.reorderSubAgents(newSubAgents),
+    reorderSubAgents: async (newSubAgents: SubAgentConfig[]) =>
+      await settingsLogic.reorderSubAgents(newSubAgents),
 
     // 获取MCP工具
     getMCPTools: async (server: MCPServerConfig) => await settingsLogic.getMCPTools(server),

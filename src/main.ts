@@ -1,7 +1,7 @@
 import { Plugin } from 'obsidian';
 import { IObsidianAgentPlugin } from './types';
 import { UIManager } from './ui/ui-manager';
-import { SettingsState } from './state/settings-state-impl';
+import { settingsStore } from './state/settings-state-impl';
 import { SettingsLogic } from './logic/settings-logic';
 import { AgentViewLogic } from './logic/agent-view-logic';
 import { setGlobalApp, clearGlobalApp } from './utils';
@@ -60,14 +60,10 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			console.log('Clearing global references...');
 			clearGlobalApp();
 
-			// 5. 清理状态监听器（Zustand 不需要手动清理监听器）
-			console.log('Clearing state listeners...');
-			SettingsState.getInstance().clearListeners();
-
-			// 6. 重置状态实例
+			// 5. 重置状态实例
 			console.log('Resetting state instances...');
 			agentStore.reset();
-			SettingsState.resetInstance();
+			settingsStore.reset();
 
 			console.log('Plugin cleanup completed successfully');
 		} catch (error) {
@@ -85,9 +81,8 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 	private async initializeSettings(): Promise<void> {
 		try {
-			// 1. 初始化State和Logic
-			const settingsState = SettingsState.getInstance();
-			const settingsLogic = SettingsLogic.getInstance(settingsState, this);
+			// 1. 初始化Logic
+			const settingsLogic = SettingsLogic.getInstance(this);
 
 			// 2. 加载持久化数据
 			await settingsLogic.loadSettings();
@@ -103,7 +98,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 	}
 
 	private async initializeAgent(): Promise<void> {
-		const settingsState = SettingsState.getInstance();
+		const settingsState = settingsStore.getState();
 		const modelConfigs = settingsState.models;
 
 		if (modelConfigs.length > 0) {
