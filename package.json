@@ -46,8 +46,8 @@
 		"@ai-sdk/mcp": "^1.0.18",
 		"@ai-sdk/openai": "^3.0.25",
 		"@ai-sdk/openai-compatible": "^2.0.26",
-		"@codemirror/state": "^6.5.4",
-		"@codemirror/view": "^6.39.14",
+		"@codemirror/state": "6.5.0",
+		"@codemirror/view": "6.35.0",
 		"@dnd-kit/core": "^6.3.1",
 		"@dnd-kit/sortable": "^10.0.0",
 		"@dnd-kit/utilities": "^3.2.2",
@@ -81,6 +81,17 @@
 		"zustand": "^5.0.11"
 	},
 	"overrides": {
-		"zod": "3.25.67"
+		"zod": "3.25.67",
+		"@codemirror/view": "6.35.0",
+		"@codemirror/commands": "6.7.1",
+		"@codemirror/language": "6.10.6",
+		"@codemirror/autocomplete": "6.20.0",
+		"@codemirror/lang-javascript": "6.2.2",
+		"@codemirror/lang-json": "6.0.1",
+		"@codemirror/lang-markdown": "6.3.1",
+		"@codemirror/lang-python": "6.1.6",
+		"@lezer/common": "1.2.2",
+		"@lezer/highlight": "1.2.1",
+		"@lezer/lr": "1.4.2"
 	}
 }
