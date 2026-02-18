@@ -6,6 +6,7 @@ import { SettingsLogic } from './logic/settings-logic';
 import { AgentViewLogic } from './logic/agent-view-logic';
 import { setGlobalApp, clearGlobalApp } from './utils';
 import { agentStore } from './state/agent-state-impl';
+import { EditHistoryManager } from './state/edit-history-state';
 import AIToolManager from './tool-ai/ToolManager';
 import AIModelManager from './llm-ai/ModelManager';
 
@@ -27,6 +28,9 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			this.initializeAgent().catch(error => {
 				console.error('Agent initialization failed:', error);
 			});
+
+			// 注册编辑历史事件监听
+			EditHistoryManager.getInstance().registerEvents(this);
 		} catch (error) {
 			console.error('Failed to initialize plugin:', error);
 		}
@@ -55,6 +59,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			SettingsLogic.resetInstance();
 			AIModelManager.resetInstance();
 			await AIToolManager.resetInstance();
+			EditHistoryManager.resetInstance();
 
 			// 4. 清理全局引用
 			console.log('Clearing global references...');

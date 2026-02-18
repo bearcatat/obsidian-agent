@@ -43,17 +43,22 @@ export class UserMessage implements MessageV2 {
         const info: string[] = [];
 
         if (this.context?.activeNote) {
-            info.push(`📄 Active Note: ${this.context.activeNote.path}`);
+            info.push(`Active Note: ${this.context.activeNote.path}`);
         }
 
         if (this.context?.cursorPosition) {
             const { line, column } = this.context.cursorPosition;
-            info.push(`📍 Cursor Position: line ${line}, column ${column}`);
+            info.push(`Cursor Position: line ${line}, column ${column}`);
         }
 
         if (this.context?.recentFiles?.length) {
             const recentPaths = this.context.recentFiles.map(f => f.path).join('\n  - ');
-            info.push(`📚 Recent Files:\n  - ${recentPaths}`);
+            info.push(`Recent Files:\n  - ${recentPaths}`);
+        }
+
+        if (this.context?.recentEdits?.length) {
+            const editPaths = this.context.recentEdits.map(f => f.path).join('\n  - ');
+            info.push(`Recent Edits:\n  - ${editPaths}`);
         }
 
         const textContent = info.length > 0

@@ -129,9 +129,15 @@ export interface CursorPosition {
   column: number;
 }
 
+export interface EditRecord {
+  filePath: string;
+  timestamp: number;
+}
+
 export interface Context {
   activeNote?: TFile;
   images?: string[];
   cursorPosition?: CursorPosition;
   recentFiles?: TFile[];
+  recentEdits?: TFile[];
 }

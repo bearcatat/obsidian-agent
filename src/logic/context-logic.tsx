@@ -1,5 +1,6 @@
 import { Context, CursorPosition } from "@/types";
 import { getGlobalApp } from "@/utils";
+import { EditHistoryManager } from "@/state/edit-history-state";
 import { Editor, TFile } from "obsidian";
 
 export class ContextLogic {
@@ -51,6 +52,10 @@ export class ContextLogic {
       .filter((file: TFile | null): file is TFile => file instanceof TFile);
   }
 
+  private getRecentEditFiles(): TFile[] {
+    return EditHistoryManager.getInstance().getRecentEditFiles(10);
+  }
+
   private getBackgroundContext(): Context {
     const app = getGlobalApp();
     const activeFile = app.workspace.getActiveFile();
@@ -59,11 +64,13 @@ export class ContextLogic {
     const cursorPosition = this.getCursorPosition(editor);
 
     const recentFiles = this.getRecentFiles();
+    const recentEdits = this.getRecentEditFiles();
 
     return {
       activeNote: activeFile ?? undefined,
       cursorPosition,
       recentFiles,
+      recentEdits,
     };
   }
 
