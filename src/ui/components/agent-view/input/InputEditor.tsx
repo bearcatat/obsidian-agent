@@ -1,8 +1,8 @@
-import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
 import { minimalSetup } from 'codemirror';
-import { TFile } from 'obsidian';
+import { TFile, App } from 'obsidian';
 import { useApp } from '../../../../hooks/app-context';
 import { cn } from '../../../elements/utils';
 import { editorTheme } from './cm-config/theme';
@@ -27,6 +27,77 @@ export interface InputEditorRef {
   getEditorView: () => EditorView | null;
 }
 
+// ==================== Constants ====================
+
+const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico'];
+
+// ==================== File Utilities ====================
+
+/**
+ * Check if a file path has an extension
+ */
+const hasExtension = (filePath: string): boolean => {
+  const lastDotIndex = filePath.lastIndexOf('.');
+  const lastSlashIndex = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
+  return lastDotIndex > lastSlashIndex;
+};
+
+/**
+ * Parse an obsidian:// URL and return the file path
+ * Returns null if the URL is not a valid obsidian URL
+ */
+const parseObsidianUrl = (url: string): string | null => {
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.protocol !== 'obsidian:') return null;
+    const fileParam = urlObj.searchParams.get('file');
+    if (!fileParam) return null;
+    let filePath = decodeURIComponent(fileParam);
+    if (!hasExtension(filePath)) filePath += '.md';
+    return filePath;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Check if a file path is an image based on its extension
+ */
+const isImageFile = (filePath: string): boolean => {
+  const ext = filePath.toLowerCase().slice(filePath.lastIndexOf('.'));
+  return IMAGE_EXTENSIONS.includes(ext);
+};
+
+/**
+ * Convert a File or Blob to base64 data URL
+ */
+const fileToBase64 = (file: File | Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
+/**
+ * Convert a TFile to base64 data URL using Obsidian's vault API
+ */
+const tFileToBase64 = async (file: TFile, app: App): Promise<string | null> => {
+  try {
+    const binary = await app.vault.readBinary(file);
+    const blob = new Blob([binary]);
+    if (blob.size > MAX_IMAGE_SIZE) {
+      console.warn(`Image ${file.name} exceeds 5MB limit`);
+      return null;
+    }
+    return await fileToBase64(blob);
+  } catch (error) {
+    console.error('Failed to read image file:', error);
+    return null;
+  }
+};
+
 // ==================== Component ====================
 
 export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
@@ -47,46 +118,36 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
     getEditorView: () => viewRef.current
   }));
 
-  // Process obsidian drop
-  const processDrop = (dataTransfer: DataTransfer | null): boolean => {
+  /**
+   * Process obsidian drop events
+   * Handles both image files (via onPasteImages callback) and regular files (as wiki links)
+   */
+  const processDrop = useCallback(async (dataTransfer: DataTransfer | null): Promise<boolean> => {
     if (!app || !dataTransfer) return false;
 
     const view = viewRef.current;
     if (!view) return false;
 
     const files: TFile[] = [];
+    const imageFiles: TFile[] = [];
     const processedPaths = new Set<string>();
-
-    const hasExtension = (filePath: string) => {
-      const lastDotIndex = filePath.lastIndexOf('.');
-      const lastSlashIndex = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
-      return lastDotIndex > lastSlashIndex;
-    };
-
-    const parseObsidianUrl = (url: string): string | null => {
-      try {
-        const urlObj = new URL(url);
-        if (urlObj.protocol !== 'obsidian:') return null;
-        const fileParam = urlObj.searchParams.get('file');
-        if (!fileParam) return null;
-        let filePath = decodeURIComponent(fileParam);
-        if (!hasExtension(filePath)) filePath += '.md';
-        return filePath;
-      } catch {
-        return null;
-      }
-    };
 
     const tryAddFile = (input: string) => {
       if (!input || processedPaths.has(input)) return;
+      
       const filePath = parseObsidianUrl(input);
       if (!filePath || processedPaths.has(filePath)) return;
+      
       const abstractFile = app.vault.getAbstractFileByPath(filePath);
-      if (abstractFile instanceof TFile) {
+      if (!(abstractFile instanceof TFile)) return;
+
+      if (isImageFile(filePath)) {
+        imageFiles.push(abstractFile);
+      } else {
         files.push(abstractFile);
-        processedPaths.add(filePath);
-        processedPaths.add(input);
       }
+      processedPaths.add(filePath);
+      processedPaths.add(input);
     };
 
     dataTransfer.getData('text/plain')
@@ -95,19 +156,31 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
       .filter(line => line.length > 0)
       .forEach(tryAddFile);
 
-    if (files.length === 0) return false;
+    // Handle image files - convert to base64 and call onPasteImages
+    if (imageFiles.length > 0 && onPasteImages) {
+      const base64Results = await Promise.all(
+        imageFiles.map(file => tFileToBase64(file, app))
+      );
+      const images = base64Results.filter((base64): base64 is string => base64 !== null);
+      if (images.length > 0) {
+        onPasteImages(images);
+      }
+    }
 
-    const cursorPos = view.state.selection.main.head;
-    const wikiLinks = files.map(file => `[[${file.path}|${file.basename}]]`).join(' ');
+    // Handle non-image files - insert wiki links
+    if (files.length > 0) {
+      const cursorPos = view.state.selection.main.head;
+      const wikiLinks = files.map(file => `[[${file.path}|${file.basename}]]`).join(' ');
 
-    view.dispatch({
-      changes: { from: cursorPos, to: cursorPos, insert: wikiLinks },
-      selection: { anchor: cursorPos + wikiLinks.length, head: cursorPos + wikiLinks.length }
-    });
+      view.dispatch({
+        changes: { from: cursorPos, to: cursorPos, insert: wikiLinks },
+        selection: { anchor: cursorPos + wikiLinks.length, head: cursorPos + wikiLinks.length }
+      });
+      view.focus();
+    }
 
-    view.focus();
-    return true;
-  };
+    return files.length > 0 || imageFiles.length > 0;
+  }, [app, onPasteImages]);
 
   // Initialize editor
   useEffect(() => {
@@ -199,11 +272,7 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
         }
 
         try {
-          const base64 = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(file);
-          });
+          const base64 = await fileToBase64(file);
           images.push(base64);
         } catch (error) {
           console.error('Failed to read pasted image:', error);
@@ -225,14 +294,15 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
     const container = containerRef.current;
     if (!container) return;
 
-    const handleDropCapture = (e: DragEvent) => {
+    const handleDropCapture = async (e: DragEvent) => {
       const plainData = e.dataTransfer?.getData('text/plain');
       if (!plainData?.startsWith('obsidian://')) return;
 
       e.preventDefault();
       e.stopPropagation();
 
-      if (processDrop(e.dataTransfer)) {
+      const success = await processDrop(e.dataTransfer);
+      if (success) {
         setIsDragging(false);
       }
     };
@@ -241,22 +311,26 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
     return () => container.removeEventListener('drop', handleDropCapture, true);
   }, [processDrop]);
 
-  const setDragState = (e: React.DragEvent<HTMLDivElement>, dragging: boolean) => {
+  const handleDragState = useCallback((e: React.DragEvent<HTMLDivElement>, dragging: boolean) => {
     e.preventDefault();
     e.stopPropagation();
     if (!dragging && e.currentTarget !== e.target) return;
     setIsDragging(dragging);
-  };
+  }, []);
 
   return (
     <div
       ref={containerRef}
-      onDragOver={(e) => setDragState(e, true)}
-      onDragEnter={(e) => setDragState(e, true)}
-      onDragLeave={(e) => setDragState(e, false)}
-      onDrop={(e) => setDragState(e, false)}
+      onDragOver={(e) => handleDragState(e, true)}
+      onDragEnter={(e) => handleDragState(e, true)}
+      onDragLeave={(e) => handleDragState(e, false)}
+      onDrop={(e) => handleDragState(e, false)}
       onKeyDown={onKeyDown}
-      className={cn("tw-w-full tw-h-full", isDragging && "tw-border tw-border-solid tw-border-blue-500 tw-bg-blue-50 dark:tw-bg-blue-900/20", className)}
+      className={cn(
+        "tw-w-full tw-h-full",
+        isDragging && "tw-border tw-border-solid tw-border-blue-500 tw-bg-blue-50 dark:tw-bg-blue-900/20",
+        className
+      )}
     />
   );
 });
