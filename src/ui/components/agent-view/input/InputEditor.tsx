@@ -9,6 +9,8 @@ import { cn } from '../../../elements/utils';
 import { editorTheme } from './cm-config/theme';
 import { createWikiLinkPlugin } from './cm-config/wiki-link-plugin';
 import { createWikiLinkCompletionSource } from './cm-config/wiki-link-autocomplete';
+import { createMarkdownLinkPlugin } from './cm-config/markdown-link-plugin';
+import { pasteHandlerPlugin } from './cm-config/paste-handler-plugin';
 import { MAX_IMAGE_SIZE, adjustHeight } from './cm-config/utils';
 
 // ==================== Types ====================
@@ -199,6 +201,8 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
           minimalSetup,
           editorTheme,
           createWikiLinkPlugin(app),
+          createMarkdownLinkPlugin(),
+          pasteHandlerPlugin(onPasteImages),
           ...(app ? [autocompletion({
             override: [createWikiLinkCompletionSource(app)],
             defaultKeymap: true,
@@ -258,44 +262,6 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
     if (!view || !compartment) return;
     view.dispatch({ effects: compartment.reconfigure(placeholder ? cmPlaceholder(placeholder) : []) });
   }, [placeholder]);
-
-  // Handle paste images
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !onPasteImages) return;
-
-    const handlePaste = async (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-
-      const images: string[] = [];
-
-      for (const item of Array.from(items)) {
-        if (!item.type.startsWith('image/')) continue;
-        const file = item.getAsFile();
-        if (!file) continue;
-        if (file.size > MAX_IMAGE_SIZE) {
-          console.warn(`Image ${file.name || 'pasted image'} exceeds 5MB limit`);
-          continue;
-        }
-
-        try {
-          const base64 = await fileToBase64(file);
-          images.push(base64);
-        } catch (error) {
-          console.error('Failed to read pasted image:', error);
-        }
-      }
-
-      if (images.length > 0) {
-        e.preventDefault();
-        onPasteImages(images);
-      }
-    };
-
-    container.addEventListener('paste', handlePaste);
-    return () => container.removeEventListener('paste', handlePaste);
-  }, [onPasteImages]);
 
   // Handle obsidian drop
   useEffect(() => {

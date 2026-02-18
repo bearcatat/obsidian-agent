@@ -6,6 +6,7 @@ import { useApp } from '../../../../hooks/app-context';
 import { cn } from '../../../elements/utils';
 import { viewerTheme } from './cm-config/theme';
 import { createWikiLinkPlugin } from './cm-config/wiki-link-plugin';
+import { createMarkdownLinkPlugin } from './cm-config/markdown-link-plugin';
 import { adjustHeight } from './cm-config/utils';
 
 // ==================== Types ====================
@@ -43,6 +44,7 @@ export const RichTextViewer = forwardRef<RichTextViewerRef, RichTextViewerProps>
           minimalSetup,
           viewerTheme,
           createWikiLinkPlugin(app),
+          createMarkdownLinkPlugin(),
           EditorView.editable.of(false)
         ]
       }),
