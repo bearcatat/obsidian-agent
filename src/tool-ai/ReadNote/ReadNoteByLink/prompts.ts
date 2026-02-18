@@ -17,5 +17,7 @@ Key requirements:
 - Deduplication: Call this tool only once for the same note link
 - Priority: Use this tool when encountering [[note name]] links
 - Warning: Do not use if you already know the note content
+
+File type: Only supports .md files
 `;
 

@@ -45,6 +45,11 @@ async function readNoteByPath(filePath: string): Promise<string> {
 		throw new Error(`File does not exist or is not a note: The file at path "${filePath}" does not exist or is not a Markdown file`)
 	}
 
+	const filePathStr = file.path as string
+	if (!filePathStr.toLowerCase().endsWith('.md')) {
+		throw new Error(`File type not supported: Only .md files can be read, got "${filePathStr}"`)
+	}
+
 	try {
 		const text = await vault.read(file as any)
 		return genResult(file.basename as string, file.path as string, text)

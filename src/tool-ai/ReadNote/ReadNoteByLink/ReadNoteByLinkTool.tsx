@@ -49,6 +49,10 @@ async function readNoteByLink(linkPath: string, filePath: string): Promise<strin
 		throw new Error(`Linked note does not exist: The note for link "${linkPath}" does not exist`)
 	}
 
+	if (!linkedNote.path.toLowerCase().endsWith('.md')) {
+		throw new Error(`File type not supported: Only .md files can be read, linked note "${linkPath}" points to "${linkedNote.path}"`)
+	}
+
 	try {
 		const fileName = linkedNote.basename
 		const path = linkedNote.path
