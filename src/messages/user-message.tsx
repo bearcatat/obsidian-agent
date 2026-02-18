@@ -39,6 +39,7 @@ export class UserMessage implements MessageV2 {
     }
 
     private getEnhancedContext(): string {
+        console.log(this.context)
         const info: string[] = [];
 
         if (this.context?.activeNote) {
@@ -48,6 +49,11 @@ export class UserMessage implements MessageV2 {
         if (this.context?.cursorPosition) {
             const { line, column } = this.context.cursorPosition;
             info.push(`📍 Cursor Position: line ${line}, column ${column}`);
+        }
+
+        if (this.context?.recentFiles?.length) {
+            const recentPaths = this.context.recentFiles.map(f => f.path).join('\n  - ');
+            info.push(`📚 Recent Files:\n  - ${recentPaths}`);
         }
 
         const textContent = info.length > 0

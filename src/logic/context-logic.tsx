@@ -43,16 +43,27 @@ export class ContextLogic {
     return { line: cursor.line + 1, column: cursor.ch + 1 };
   }
 
+  private getRecentFiles(): TFile[] {
+    const app = getGlobalApp();
+    const lastOpenFiles = app.workspace.getLastOpenFiles();
+    return lastOpenFiles
+      .map((path: string) => app.vault.getAbstractFileByPath(path))
+      .filter((file: TFile | null): file is TFile => file instanceof TFile);
+  }
+
   private getBackgroundContext(): Context {
     const app = getGlobalApp();
-    const activeNote = app.workspace.getActiveFile();
+    const activeFile = app.workspace.getActiveFile();
 
-    const editor = this.getEditor(app, activeNote);
+    const editor = this.getEditor(app, activeFile);
     const cursorPosition = this.getCursorPosition(editor);
 
+    const recentFiles = this.getRecentFiles();
+
     return {
-      activeNote,
+      activeNote: activeFile ?? undefined,
       cursorPosition,
+      recentFiles,
     };
   }
 

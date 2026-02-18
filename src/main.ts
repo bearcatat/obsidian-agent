@@ -5,7 +5,7 @@ import { settingsStore } from './state/settings-state-impl';
 import { SettingsLogic } from './logic/settings-logic';
 import { AgentViewLogic } from './logic/agent-view-logic';
 import { setGlobalApp, clearGlobalApp } from './utils';
-import { useAgentStore, agentStore } from './state/agent-state-impl';
+import { agentStore } from './state/agent-state-impl';
 import AIToolManager from './tool-ai/ToolManager';
 import AIModelManager from './llm-ai/ModelManager';
 

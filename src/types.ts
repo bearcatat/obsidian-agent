@@ -133,4 +133,5 @@ export interface Context {
   activeNote?: TFile;
   images?: string[];
   cursorPosition?: CursorPosition;
+  recentFiles?: TFile[];
 }
