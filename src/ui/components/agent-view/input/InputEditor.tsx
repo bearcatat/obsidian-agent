@@ -2,11 +2,13 @@ import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle, us
 import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
 import { minimalSetup } from 'codemirror';
+import { autocompletion, acceptCompletion } from '@codemirror/autocomplete';
 import { TFile, App } from 'obsidian';
 import { useApp } from '../../../../hooks/app-context';
 import { cn } from '../../../elements/utils';
 import { editorTheme } from './cm-config/theme';
 import { createWikiLinkPlugin } from './cm-config/wiki-link-plugin';
+import { createWikiLinkCompletionSource } from './cm-config/wiki-link-autocomplete';
 import { MAX_IMAGE_SIZE, adjustHeight } from './cm-config/utils';
 
 // ==================== Types ====================
@@ -197,6 +199,11 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
           minimalSetup,
           editorTheme,
           createWikiLinkPlugin(app),
+          ...(app ? [autocompletion({
+            override: [createWikiLinkCompletionSource(app)],
+            defaultKeymap: true,
+            closeOnBlur: false
+          })] : []),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onChange(update.state.doc.toString());
@@ -205,7 +212,8 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
           }),
           keymap.of([
             { key: 'Enter', run: () => false },
-            { key: 'Shift-Enter', run: () => false }
+            { key: 'Shift-Enter', run: () => false },
+            { key: 'Tab', run: acceptCompletion }
           ]),
           editableCompartment.of(EditorView.editable.of(!disabled)),
           placeholderCompartment.of(placeholder ? cmPlaceholder(placeholder) : [])
