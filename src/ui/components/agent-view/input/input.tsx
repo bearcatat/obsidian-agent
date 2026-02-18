@@ -2,15 +2,13 @@ import React, { useState } from 'react';
 import { InputContext } from './context';
 import { InputButtom } from './buttom';
 import { useAgentLogic, useAgentState } from '../../../../hooks/use-agent';
-import { useApp } from '../../../../hooks/app-context';
 
 import { Context } from '@/types';
 import { InputEditor } from './InputEditor';
+import { ContextLogic } from '@/logic/context-logic';
 
 export const Input = () => {
-  const app = useApp();
   const emptyContext: Context = {
-    activeNote: null,
     images: [],
   }
 
@@ -28,9 +26,9 @@ export const Input = () => {
 
   const onSend = () => {
     if (!message.trim() || isLoading) return;
-    const activeNote = app?.workspace.getActiveFile() ?? null;
-    const newContext = { ...context, activeNote };
-    sendMessage(message.trim(), newContext);
+    const contextLogic = ContextLogic.getInstance();
+    const finalContext = contextLogic.getContext(context);
+    sendMessage(message.trim(), finalContext);
     clear();
   };
 
@@ -42,14 +40,14 @@ export const Input = () => {
   const handlePasteImages = (images: string[]) => {
     setContext(prev => ({
       ...prev,
-      images: [...prev.images, ...images]
+      images: [...(prev.images ?? []), ...images]
     }));
   };
 
   const removeImageFromContext = (index: number) => {
     setContext(prev => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      images: (prev.images ?? []).filter((_, i) => i !== index)
     }));
   };
 

@@ -40,7 +40,7 @@ export const InputContext = ({
   removeImage?: (index: number) => void;
 }) => {
   const images = React.useMemo(() => {
-    return context.images;
+    return context.images ?? [];
   }, [context]);
 
   if (images.length === 0) {

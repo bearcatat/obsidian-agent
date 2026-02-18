@@ -45,6 +45,11 @@ export class UserMessage implements MessageV2 {
             info.push(`📄 Active Note: ${this.context.activeNote.path}`);
         }
 
+        if (this.context?.cursorPosition) {
+            const { line, column } = this.context.cursorPosition;
+            info.push(`📍 Cursor Position: line ${line}, column ${column}`);
+        }
+
         const textContent = info.length > 0
             ? `## Context\n${info.join('\n')}\n\n## User Message\n${this.content}`
             : this.content;

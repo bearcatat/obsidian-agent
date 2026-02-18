@@ -124,7 +124,13 @@ export interface FileEdit {
   new_content?: string;  // 完整新文件内容（用于 diff 显示）
 }
 
+export interface CursorPosition {
+  line: number;
+  column: number;
+}
+
 export interface Context {
-  activeNote: TFile | null;
-  images: string[];
+  activeNote?: TFile;
+  images?: string[];
+  cursorPosition?: CursorPosition;
 }
