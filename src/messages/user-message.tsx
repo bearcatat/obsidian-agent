@@ -45,10 +45,6 @@ export class UserMessage implements MessageV2 {
             info.push(`📄 Active Note: ${this.context.activeNote.path}`);
         }
 
-        if (this.context?.notes && this.context.notes.length > 0) {
-            info.push(`📚 Context Notes: ${this.context.notes.map(n => n.path).join(' | ')}`);
-        }
-
         const textContent = info.length > 0
             ? `## Context\n${info.join('\n')}\n\n## User Message\n${this.content}`
             : this.content;

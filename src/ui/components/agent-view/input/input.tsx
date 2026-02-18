@@ -11,7 +11,6 @@ export const Input = () => {
   const app = useApp();
   const emptyContext: Context = {
     activeNote: null,
-    notes: [],
     images: [],
   }
 

@@ -126,6 +126,5 @@ export interface FileEdit {
 
 export interface Context {
   activeNote: TFile | null;
-  notes: TFile[];
   images: string[];
 }
