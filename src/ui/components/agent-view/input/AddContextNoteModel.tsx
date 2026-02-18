@@ -32,9 +32,6 @@ export class AddContextNoteModel extends FuzzySuggestModal<TFile> {
     }
 
     onChooseItem(item: TFile, evt: MouseEvent | KeyboardEvent): void {
-        // const { addContextNote } = useAgentLogic();
-        // const isActive = this.app.workspace.getActiveFile()?.path === item.path;
-        // addContextNote(item, isActive);
         this.addNoteToContext(item)
     }
 }

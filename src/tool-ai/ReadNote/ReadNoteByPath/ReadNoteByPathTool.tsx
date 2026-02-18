@@ -53,13 +53,19 @@ async function readNoteByPath(filePath: string): Promise<string> {
 	}
 }
 
+function addLineNumbers(content: string): string {
+	const lines = content.split('\n')
+	return lines.map((line, index) => `${index + 1}: ${line}`).join('\n')
+}
+
 function genResult(fileName: string, path: string, content: string): string {
+	const numberedContent = addLineNumbers(content)
 	return `<metadata>
 title: ${fileName}
 note path: ${path}
 </metadata>
 <content>
-${content}
+${numberedContent}
 </content>`
 }
 

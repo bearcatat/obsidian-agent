@@ -59,14 +59,20 @@ async function readNoteByLink(linkPath: string, filePath: string): Promise<strin
 	}
 }
 
+function addLineNumbers(content: string): string {
+	const lines = content.split('\n')
+	return lines.map((line, index) => `${index + 1}: ${line}`).join('\n')
+}
+
 function genResult(fileName: string, path: string, linkPath: string, content: string): string {
+	const numberedContent = addLineNumbers(content)
 	return `<metadata>
 title: ${fileName}
 note path: ${path}
 link path: ${linkPath}
 </metadata>
 <content>
-${content}
+${numberedContent}
 </content>`
 }
 
