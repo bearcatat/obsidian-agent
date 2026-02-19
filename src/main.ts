@@ -7,6 +7,7 @@ import { AgentViewLogic } from './logic/agent-view-logic';
 import { setGlobalApp, clearGlobalApp } from './utils';
 import { agentStore } from './state/agent-state-impl';
 import { EditHistoryManager } from './state/edit-history-state';
+import { CopyContextManager } from './state/copy-context-state';
 import AIToolManager from './tool-ai/ToolManager';
 import AIModelManager from './llm-ai/ModelManager';
 
@@ -31,6 +32,9 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 			// 注册编辑历史事件监听
 			EditHistoryManager.getInstance().registerEvents(this);
+
+			// 注册复制上下文监听
+			CopyContextManager.getInstance().registerEvents(this);
 		} catch (error) {
 			console.error('Failed to initialize plugin:', error);
 		}
@@ -60,6 +64,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			AIModelManager.resetInstance();
 			await AIToolManager.resetInstance();
 			EditHistoryManager.resetInstance();
+			CopyContextManager.resetInstance();
 
 			// 4. 清理全局引用
 			console.log('Clearing global references...');

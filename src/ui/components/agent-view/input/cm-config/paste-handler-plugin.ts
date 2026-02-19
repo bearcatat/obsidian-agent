@@ -1,5 +1,6 @@
 import { EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { MAX_IMAGE_SIZE } from './utils';
+import { CopyContextManager } from '@/state/copy-context-state';
 
 const URL_REGEX = /^(https?:\/\/[^\s]+)$/i;
 
@@ -40,6 +41,26 @@ export const pasteHandlerPlugin = (onPasteImages?: (images: string[]) => void) =
     }
 
     private handlePaste = async (e: ClipboardEvent) => {
+      // 优先处理复制上下文
+      const context = CopyContextManager.parseContextFromDataTransfer(e.clipboardData);
+      if (context) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        const formattedText = CopyContextManager.formatContext(context);
+        const cursorPos = this.view.state.selection.main.head;
+
+        this.view.dispatch({
+          changes: { from: cursorPos, to: cursorPos, insert: formattedText },
+          selection: { anchor: cursorPos + formattedText.length, head: cursorPos + formattedText.length }
+        });
+        this.view.focus();
+
+        // 清除上下文数据（可选，根据需求可以在粘贴后清除）
+        e.clipboardData?.clearData();
+        return;
+      }
+
       const items = e.clipboardData?.items;
       const plainText = e.clipboardData?.getData('text/plain');
 

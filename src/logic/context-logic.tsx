@@ -44,6 +44,19 @@ export class ContextLogic {
     return { line: cursor.line + 1, column: cursor.ch + 1 };
   }
 
+  public getSelectionRange(editor: Editor | undefined): { from: CursorPosition, to: CursorPosition } | undefined {
+    if (!editor) return undefined;
+    if (!editor.somethingSelected()) return undefined;
+
+    const from = editor.getCursor("from");
+    const to = editor.getCursor("to");
+
+    return {
+      from: { line: from.line + 1, column: from.ch + 1 },
+      to: { line: to.line + 1, column: to.ch + 1 }
+    };
+  }
+
   private getRecentFiles(): TFile[] {
     const app = getGlobalApp();
     const lastOpenFiles = app.workspace.getLastOpenFiles();
