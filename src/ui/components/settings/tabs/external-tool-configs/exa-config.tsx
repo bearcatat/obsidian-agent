@@ -3,6 +3,7 @@ import { Button } from "@/ui/elements/button";
 import { Input } from "@/ui/elements/input";
 import { Label } from "@/ui/elements/label";
 import { SettingSwitch } from "@/ui/elements/setting-switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/elements/select";
 import { useSettingsStore } from "@/hooks/use-settings";
 import { useShallow } from "zustand/react/shallow";
 import { ExaSearchConfig } from "@/types";
@@ -11,9 +12,10 @@ import { ExternalLink, Key, Settings2 } from "lucide-react";
 
 interface ExaConfigProps {
   onSave?: () => void;
+  dialogElement?: HTMLDivElement | null;
 }
 
-export const ExaConfig: React.FC<ExaConfigProps> = ({ onSave }) => {
+export const ExaConfig: React.FC<ExaConfigProps> = ({ onSave, dialogElement }) => {
   const { exaSearchConfig } = useSettingsStore(
     useShallow((state) => ({
       exaSearchConfig: state.exaSearchConfig,
@@ -149,22 +151,25 @@ export const ExaConfig: React.FC<ExaConfigProps> = ({ onSave }) => {
           <Label htmlFor="exa-livecrawl" className="tw-text-sm">
             Livecrawl Mode
           </Label>
-          <select
-            id="exa-livecrawl"
+          <Select
             value={localConfig.livecrawl || "fallback"}
-            onChange={(e) =>
+            onValueChange={(value) =>
               setLocalConfig((prev) => ({
                 ...prev,
-                livecrawl: e.target.value as ExaSearchConfig["livecrawl"],
+                livecrawl: value as ExaSearchConfig["livecrawl"],
               }))
             }
-            className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-bg-white tw-text-sm focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-accent"
           >
-            <option value="never">Never - Use cached content only</option>
-            <option value="fallback">Fallback - Use live crawl when cached is stale</option>
-            <option value="always">Always - Always fetch fresh content</option>
-            <option value="preferred">Preferred - Prefer live crawl when available</option>
-          </select>
+            <SelectTrigger>
+              <SelectValue placeholder="Select livecrawl mode" />
+            </SelectTrigger>
+            <SelectContent container={dialogElement}>
+              <SelectItem value="never">Never - Use cached content only</SelectItem>
+              <SelectItem value="fallback">Fallback - Use live crawl when cached is stale</SelectItem>
+              <SelectItem value="always">Always - Always fetch fresh content</SelectItem>
+              <SelectItem value="preferred">Preferred - Prefer live crawl when available</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

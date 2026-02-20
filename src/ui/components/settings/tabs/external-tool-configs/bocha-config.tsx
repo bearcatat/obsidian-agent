@@ -3,6 +3,7 @@ import { Button } from "@/ui/elements/button";
 import { Input } from "@/ui/elements/input";
 import { Label } from "@/ui/elements/label";
 import { SettingSwitch } from "@/ui/elements/setting-switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/elements/select";
 import { useSettingsStore } from "@/hooks/use-settings";
 import { useShallow } from "zustand/react/shallow";
 import { BochaSearchConfig } from "@/types";
@@ -11,9 +12,10 @@ import { ExternalLink, Key, Settings2 } from "lucide-react";
 
 interface BochaConfigProps {
   onSave?: () => void;
+  dialogElement?: HTMLDivElement | null;
 }
 
-export const BochaConfig: React.FC<BochaConfigProps> = ({ onSave }) => {
+export const BochaConfig: React.FC<BochaConfigProps> = ({ onSave, dialogElement }) => {
   const { bochaSearchConfig } = useSettingsStore(
     useShallow((state) => ({
       bochaSearchConfig: state.bochaSearchConfig,
@@ -127,23 +129,26 @@ export const BochaConfig: React.FC<BochaConfigProps> = ({ onSave }) => {
             <Label htmlFor="bocha-freshness" className="tw-text-sm">
               Time Range
             </Label>
-            <select
-              id="bocha-freshness"
+            <Select
               value={localConfig.freshness || "noLimit"}
-              onChange={(e) =>
+              onValueChange={(value) =>
                 setLocalConfig((prev) => ({
                   ...prev,
-                  freshness: e.target.value as BochaSearchConfig["freshness"],
+                  freshness: value as BochaSearchConfig["freshness"],
                 }))
               }
-              className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-bg-white tw-text-sm focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-accent"
             >
-              <option value="noLimit">No limit</option>
-              <option value="oneYear">Past year</option>
-              <option value="oneMonth">Past month</option>
-              <option value="oneWeek">Past week</option>
-              <option value="oneDay">Past day</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="Select time range" />
+              </SelectTrigger>
+              <SelectContent container={dialogElement}>
+                <SelectItem value="noLimit">No limit</SelectItem>
+                <SelectItem value="oneYear">Past year</SelectItem>
+                <SelectItem value="oneMonth">Past month</SelectItem>
+                <SelectItem value="oneWeek">Past week</SelectItem>
+                <SelectItem value="oneDay">Past day</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/ui/elements/dialog";
 import { ExternalToolId } from "./external-tools-table";
 import { ExaConfig } from "./external-tool-configs/exa-config";
@@ -26,20 +26,22 @@ export const ExternalToolDialog: React.FC<ExternalToolDialogProps> = ({
   open,
   close,
 }) => {
+  const dialogContentRef = useRef<HTMLDivElement>(null);
+
   if (!toolId) return null;
 
   const info = toolInfo[toolId];
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && close()}>
-      <DialogContent className="sm:tw-max-w-[500px]">
+      <DialogContent ref={dialogContentRef} className="sm:tw-max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{info.name}</DialogTitle>
           <DialogDescription>{info.description}</DialogDescription>
         </DialogHeader>
         
-        {toolId === "exa" && <ExaConfig onSave={close} />}
-        {toolId === "bocha" && <BochaConfig onSave={close} />}
+        {toolId === "exa" && <ExaConfig onSave={close} dialogElement={dialogContentRef.current} />}
+        {toolId === "bocha" && <BochaConfig onSave={close} dialogElement={dialogContentRef.current} />}
       </DialogContent>
     </Dialog>
   );
