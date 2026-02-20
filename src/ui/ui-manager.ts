@@ -68,6 +68,5 @@ export class UIManager {
 		// 清理UI资源
 		// 注意：Obsidian会自动清理注册的视图和设置标签页
 		// 这里主要清理自定义的资源
-		console.log('UIManager cleanup completed');
 	}
 }

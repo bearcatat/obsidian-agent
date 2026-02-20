@@ -41,24 +41,19 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 	}
 
 	async onunload() {
-		console.log('Starting plugin cleanup...');
-
 		try {
 			// 1. 中断正在进行的请求
 			const agentState = agentStore.getState();
 			if (agentState.abortController) {
-				console.log('Aborting ongoing requests...');
 				agentState.abortController.abort();
 			}
 
 			// 2. 清理 UI 管理器
 			if (this.uiManager) {
-				console.log('Cleaning up UI manager...');
 				this.uiManager.cleanup();
 			}
 
 			// 3. 重置单例实例
-			console.log('Resetting singleton instances...');
 			AgentViewLogic.resetInstance();
 			SettingsLogic.resetInstance();
 			AIModelManager.resetInstance();
@@ -67,15 +62,11 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			CopyContextManager.resetInstance();
 
 			// 4. 清理全局引用
-			console.log('Clearing global references...');
 			clearGlobalApp();
 
 			// 5. 重置状态实例
-			console.log('Resetting state instances...');
 			agentStore.reset();
 			settingsStore.reset();
-
-			console.log('Plugin cleanup completed successfully');
 		} catch (error) {
 			console.error('Error during plugin cleanup:', error);
 		}
@@ -96,7 +87,6 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 			// 2. 加载持久化数据
 			await settingsLogic.loadSettings();
-			console.log('Settings initialized successfully');
 		} catch (error) {
 			console.error('Failed to initialize settings:', error);
 		}
@@ -151,14 +141,12 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			const exaSearchConfig = settingsState.exaSearchConfig;
 			if (exaSearchConfig) {
 				await aiToolManager.updateExaSearchConfig(exaSearchConfig);
-				console.log('Exa search config initialized:', { enabled: exaSearchConfig.enabled, hasApiKey: !!exaSearchConfig.apiKey });
 			}
 
 			// 初始化Bocha搜索配置
 			const bochaSearchConfig = settingsState.bochaSearchConfig;
 			if (bochaSearchConfig) {
 				await aiToolManager.updateBochaSearchConfig(bochaSearchConfig);
-				console.log('Bocha search config initialized:', { enabled: bochaSearchConfig.enabled, hasApiKey: !!bochaSearchConfig.apiKey });
 			}
 		} catch (error) {
 			console.error('Failed to initialize tools:', error);

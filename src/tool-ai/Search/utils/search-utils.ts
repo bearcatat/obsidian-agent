@@ -93,9 +93,6 @@ export async function searchVault(
     // Apply limit
     const limitedResults = validResults.slice(0, params.limit);
     
-    const searchTime = Date.now() - startTime;
-    console.log(`Search completed: Searched ${filteredFiles.length} files, found ${limitedResults.length} matching files, took ${searchTime}ms`);
-    
     return limitedResults;
     
   } catch (error) {

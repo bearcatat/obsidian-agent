@@ -57,7 +57,6 @@ export default class Streamer {
             messages: messages,
             abortSignal: abortSignal,
             onStepFinish: async ({text}) => {
-                console.log(text)
                 this.assistantMessage=AssistantMessage.createEmpty(uuidv4())
                 this.assistantMessage.appendContent(text)
                 this.assistantMessage.close()
