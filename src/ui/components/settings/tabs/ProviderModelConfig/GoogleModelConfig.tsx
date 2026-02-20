@@ -4,6 +4,7 @@ import { FrequencyPenalty } from "../ModelConfigField/FrequencyPenalty"
 import { PresencePenalty } from "../ModelConfigField/PresencePenalty"
 import { Temperature } from "../ModelConfigField/Temperature"
 import { TopP } from "../ModelConfigField/TopP"
+import { WebSearch } from "../ModelConfigField/WebSearch"
 
 const isGemini3Series = (name: string) => {
     return name.startsWith("gemini-3");
@@ -26,6 +27,7 @@ export const GoogleModelConfig = ({ model, debouncedSetModel }: {
                     <PresencePenalty model={model} debouncedSetModel={debouncedSetModel} />
                 </>
             )}
+            <WebSearch model={model} setModel={debouncedSetModel} />
         </div>
     )
 }

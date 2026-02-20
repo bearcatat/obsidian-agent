@@ -76,14 +76,12 @@ export default class AIToolManager {
   async updateMCPServers(servers: MCPServerConfig[]): Promise<void> {
     await this.mcpManager.updateMCPServers(servers)
     await this.initializeTools();
-    console.log("ai mcp updated")
   }
 
   // 更新SubAgent配置
   async updateSubAgents(subAgents: SubAgentConfig[]): Promise<void> {
     this.subAgentManager.updateSubAgents(subAgents)
     await this.initializeTools();
-    console.log("ai subagent updated")
   }
 
   // 更新Exa搜索配置
@@ -91,7 +89,6 @@ export default class AIToolManager {
     this.exaSearchConfig = config;
     updateExaConfig(config);
     await this.initializeTools();
-    console.log("exa search config updated")
   }
 
   // 更新Bocha搜索配置
@@ -99,11 +96,9 @@ export default class AIToolManager {
     this.bochaSearchConfig = config;
     updateBochaConfig(config);
     await this.initializeTools();
-    console.log("bocha search config updated")
   }
 
   getMainAgentEnabledTools(): ToolSet {
-    console.log("tools: ", this.mainAgentEnableTools)
     return this.mainAgentEnableTools;
   }
 
@@ -126,9 +121,8 @@ export default class AIToolManager {
 
   // 获取Exa搜索工具（条件性）
   private getExaSearchTool(isEnabled: boolean): ToolSet {
-    console.log("exa config", this.exaSearchConfig)
     const hasConfig = this.exaSearchConfig.apiKey && this.exaSearchConfig.enabled;
-    
+
     if (!isEnabled) {
       // 返回工具定义（用于 allTools）
       return { [ExaWebSearchToolName]: ExaWebSearchTool };
@@ -144,9 +138,8 @@ export default class AIToolManager {
 
   // 获取Bocha搜索工具（条件性）
   private getBochaSearchTool(isEnabled: boolean): ToolSet {
-    console.log("bocha config", this.bochaSearchConfig)
     const hasConfig = this.bochaSearchConfig.apiKey && this.bochaSearchConfig.enabled;
-    
+
     if (!isEnabled) {
       // 返回工具定义（用于 allTools）
       return { [BochaWebSearchToolName]: BochaWebSearchTool };

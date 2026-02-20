@@ -20,15 +20,34 @@ export default class SubAgent {
         this.agentConfig = AIModelManager.getInstance().getAgent(modelConfig)
     }
 
+    private mergeTools(userTools: ToolSet, builtinTools: ToolSet | undefined): ToolSet {
+        if (!builtinTools) {
+            return userTools;
+        }
+
+        const mergedTools = { ...userTools };
+
+        for (const [toolName, tool] of Object.entries(builtinTools)) {
+            if (mergedTools[toolName]) {
+                console.warn(`[SubAgent: ${this.name}] 内置工具 "${toolName}" 已覆盖用户自定义工具`);
+            }
+            mergedTools[toolName] = tool;
+        }
+
+        return mergedTools;
+    }
+
     async query(message: UserMessage,
         abortSignal: AbortSignal,
         addMessage: (message: MessageV2) => void
     ) {
+        const builtinTools = this.agentConfig.tools;
+        const mergedTools = this.mergeTools(this.toolset, builtinTools);
 
         const agent = new ToolLoopAgent({
             ...this.agentConfig,
             instructions: this.systemPrompt,
-            tools: this.toolset,
+            tools: mergedTools,
             toolChoice: 'auto',
             experimental_context: {
                 addMessage: addMessage
@@ -40,7 +59,6 @@ export default class SubAgent {
         const result = await streamer.generate(this.messages, abortSignal)
         const messages = (await result.response).messages
         this.messages.push(...messages)
-        console.log("sub agent", this.messages)
         return result.text
     }
 

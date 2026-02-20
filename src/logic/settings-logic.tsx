@@ -44,7 +44,7 @@ export class SettingsLogic {
                 throw new Error(`Model with ID "${model.id}" already exists`);
             }
         }
-        
+
         state.addOrUpdateModel(model, originalId);
         await this.saveSettings();
     }
@@ -66,11 +66,11 @@ export class SettingsLogic {
         // 验证新模型列表的完整性
         const currentModelIds = new Set(state.models.map((m: ModelConfig) => m.id));
         const newModelIds = new Set(newModels.map((m: ModelConfig) => m.id));
-        
+
         if (currentModelIds.size !== newModelIds.size) {
             throw new Error("Model count mismatch during reordering");
         }
-        
+
         for (const id of currentModelIds) {
             if (!newModelIds.has(id)) {
                 throw new Error(`Model "${id}" missing during reordering`);
@@ -90,7 +90,7 @@ export class SettingsLogic {
                 throw new Error(`Model with ID "${model.id}" not found`);
             }
         }
-        
+
         state.setDefaultAgentModel(model);
         await this.saveSettings();
     }
@@ -104,7 +104,7 @@ export class SettingsLogic {
                 throw new Error(`Model with ID "${model.id}" not found`);
             }
         }
-        
+
         state.setTitleModel(model);
         await this.saveSettings();
     }
@@ -125,11 +125,11 @@ export class SettingsLogic {
                 throw new Error(`MCP Server with name "${server.name}" already exists`);
             }
         }
-        
+
         state.addOrUpdateMCPServer(server, originalName);
 
         // 同步更新ToolManager
-        await AIToolManager.getInstance().updateMCPServers(state.mcpServers);
+        await AIToolManager.getInstance().updateMCPServers(settingsStore.getState().mcpServers);
 
         await this.saveSettings();
     }
@@ -145,7 +145,7 @@ export class SettingsLogic {
         state.removeMCPServer(serverName);
 
         // 同步更新ToolManager
-        await AIToolManager.getInstance().updateMCPServers(state.mcpServers);
+        await AIToolManager.getInstance().updateMCPServers(settingsStore.getState().mcpServers);
 
         await this.saveSettings();
     }
@@ -169,24 +169,25 @@ export class SettingsLogic {
         state.reorderMCPServers(newServers);
 
         // 同步更新ToolManager
-        await AIToolManager.getInstance().updateMCPServers(state.mcpServers);
+        await AIToolManager.getInstance().updateMCPServers(settingsStore.getState().mcpServers);
 
         await this.saveSettings();
     }
 
     // 内置工具管理业务逻辑
     async updateBuiltinTool(toolName: string, enabled: boolean): Promise<void> {
+        console.log(toolName, enabled)
         const state = settingsStore.getState();
         // 验证工具是否存在
         const existingTool = state.builtinTools.find((t: { name: string }) => t.name === toolName);
         if (!existingTool) {
             throw new Error(`Builtin tool "${toolName}" not found`);
         }
-        
+
         state.updateBuiltinTool(toolName, enabled);
 
         // 同步更新ToolManager
-        await AIToolManager.getInstance().updateBuiltinTools(state.builtinTools);
+        await AIToolManager.getInstance().updateBuiltinTools(settingsStore.getState().builtinTools);
 
         await this.saveSettings();
     }
@@ -211,7 +212,7 @@ export class SettingsLogic {
         state.addOrUpdateSubAgent(subAgent, originalName);
 
         // 同步更新ToolManager
-        await AIToolManager.getInstance().updateSubAgents(state.subAgents);
+        await AIToolManager.getInstance().updateSubAgents(settingsStore.getState().subAgents);
 
         await this.saveSettings();
     }
@@ -227,7 +228,7 @@ export class SettingsLogic {
         state.removeSubAgent(subAgentName);
 
         // 同步更新ToolManager
-        await AIToolManager.getInstance().updateSubAgents(state.subAgents);
+        await AIToolManager.getInstance().updateSubAgents(settingsStore.getState().subAgents);
 
         await this.saveSettings();
     }
@@ -237,7 +238,7 @@ export class SettingsLogic {
         state.reorderSubAgents(newSubAgents);
 
         // 同步更新ToolManager
-        await AIToolManager.getInstance().updateSubAgents(state.subAgents);
+        await AIToolManager.getInstance().updateSubAgents(settingsStore.getState().subAgents);
 
         await this.saveSettings();
     }
@@ -277,7 +278,7 @@ export class SettingsLogic {
         return AIToolManager.getInstance().getMCPTools(server);
     }
 
-    async getAIMCPTools(config: MCPServerConfig): Promise<ToolSet>{
+    async getAIMCPTools(config: MCPServerConfig): Promise<ToolSet> {
         return AIToolManager.getInstance().getMCPTools(config);
     }
 
@@ -297,7 +298,7 @@ export class SettingsLogic {
         state.updateExaSearchEnabled(enabled);
 
         // 同步更新ToolManager
-        await AIToolManager.getInstance().updateExaSearchConfig(state.exaSearchConfig);
+        await AIToolManager.getInstance().updateExaSearchConfig(settingsStore.getState().exaSearchConfig);
 
         await this.saveSettings();
     }
@@ -318,7 +319,7 @@ export class SettingsLogic {
         state.updateBochaSearchEnabled(enabled);
 
         // 同步更新ToolManager
-        await AIToolManager.getInstance().updateBochaSearchConfig(state.bochaSearchConfig);
+        await AIToolManager.getInstance().updateBochaSearchConfig(settingsStore.getState().bochaSearchConfig);
 
         await this.saveSettings();
     }

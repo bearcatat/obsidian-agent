@@ -15,10 +15,16 @@ export const MoonshotModelConfig = ({ model, debouncedSetModel, setModel }: {
     setModel: (model: ModelConfig) => void
 }) => {
     const isModelKimiK25 = isKimiK25(model.name);
+    const maxTokens = 32768
 
     return (
         <div className="tw-space-y-3">
             <UseCORS model={model} setModel={setModel} />
+            <MaxOutputTokens
+                model={model}
+                debouncedSetModel={debouncedSetModel}
+                max={maxTokens}
+            />
             {!isModelKimiK25 && (
                 <>
                     <Temperature model={model} debouncedSetModel={debouncedSetModel} />
