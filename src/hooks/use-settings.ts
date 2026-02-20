@@ -1,7 +1,7 @@
 import { useSettingsStore, settingsStore } from '../state/settings-state-impl';
 import { SettingsLogic } from '../logic/settings-logic';
 import { useShallow } from 'zustand/react/shallow';
-import { ModelConfig, MCPServerConfig, SubAgentConfig } from '../types';
+import { ModelConfig, MCPServerConfig, SubAgentConfig, ExaSearchConfig, BochaSearchConfig } from '../types';
 
 // 导出 store hook，组件可以直接使用
 export { useSettingsStore };
@@ -16,6 +16,8 @@ export function useSettingsState() {
       mcpServers: state.mcpServers,
       builtinTools: state.builtinTools,
       subAgents: state.subAgents,
+      exaSearchConfig: state.exaSearchConfig,
+      bochaSearchConfig: state.bochaSearchConfig,
     }))
   );
 }
@@ -56,6 +58,18 @@ export function useSettingsLogic() {
     // 获取MCP工具
     getMCPTools: async (server: MCPServerConfig) => await settingsLogic.getMCPTools(server),
     getAIMCPTools: async (server: MCPServerConfig) => await settingsLogic.getAIMCPTools(server),
+
+    // Exa搜索配置管理
+    updateExaSearchConfig: async (config: ExaSearchConfig) =>
+      await settingsLogic.updateExaSearchConfig(config),
+    setExaSearchEnabled: async (enabled: boolean) =>
+      await settingsLogic.setExaSearchEnabled(enabled),
+
+    // Bocha搜索配置管理
+    updateBochaSearchConfig: async (config: BochaSearchConfig) =>
+      await settingsLogic.updateBochaSearchConfig(config),
+    setBochaSearchEnabled: async (enabled: boolean) =>
+      await settingsLogic.setBochaSearchEnabled(enabled),
   };
 }
 

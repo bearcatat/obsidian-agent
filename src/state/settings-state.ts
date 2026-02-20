@@ -1,4 +1,4 @@
-import { ModelConfig, MCPServerConfig, BuiltinToolConfig, SubAgentConfig } from '../types';
+import { ModelConfig, MCPServerConfig, BuiltinToolConfig, SubAgentConfig, ExaSearchConfig, BochaSearchConfig } from '../types';
 import { getDefaultBuiltinTools } from '../tool-ai/BuiltinTools';
 
 export interface ISettingsState {
@@ -9,6 +9,8 @@ export interface ISettingsState {
   readonly mcpServers: MCPServerConfig[];
   readonly builtinTools: BuiltinToolConfig[];
   readonly subAgents: SubAgentConfig[];
+  readonly exaSearchConfig: ExaSearchConfig;
+  readonly bochaSearchConfig: BochaSearchConfig;
 }
 
 export function clone(settingsState: ISettingsState): ISettingsState {
@@ -19,6 +21,8 @@ export function clone(settingsState: ISettingsState): ISettingsState {
     mcpServers: settingsState.mcpServers || [],
     builtinTools: settingsState.builtinTools,
     subAgents: settingsState.subAgents || [],
+    exaSearchConfig: settingsState.exaSearchConfig || { apiKey: "", enabled: false },
+    bochaSearchConfig: settingsState.bochaSearchConfig || { apiKey: "", enabled: false },
   };
 }
 
@@ -30,4 +34,6 @@ export interface SettingsStateData {
   mcpServers: MCPServerConfig[];
   builtinTools: BuiltinToolConfig[];
   subAgents: SubAgentConfig[];
+  exaSearchConfig: ExaSearchConfig;
+  bochaSearchConfig: BochaSearchConfig;
 }

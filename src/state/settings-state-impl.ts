@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { ModelConfig, MCPServerConfig, BuiltinToolConfig, SubAgentConfig } from '../types';
+import { ModelConfig, MCPServerConfig, BuiltinToolConfig, SubAgentConfig, ExaSearchConfig, BochaSearchConfig } from '../types';
 import { getDefaultBuiltinTools } from '../tool-ai/BuiltinTools';
 import AIModelManager from '../llm-ai/ModelManager';
 import { SettingsStateData } from './settings-state';
@@ -26,6 +26,14 @@ interface SettingsStore extends SettingsStateData {
   removeSubAgent: (subAgentName: string) => void;
   reorderSubAgents: (newSubAgents: SubAgentConfig[]) => void;
 
+  // Exa搜索配置管理
+  setExaSearchConfig: (config: ExaSearchConfig) => void;
+  updateExaSearchEnabled: (enabled: boolean) => void;
+
+  // Bocha搜索配置管理
+  setBochaSearchConfig: (config: BochaSearchConfig) => void;
+  updateBochaSearchEnabled: (enabled: boolean) => void;
+
   // 批量设置数据（用于加载）
   setAllData: (data: SettingsStateData) => void;
 }
@@ -37,6 +45,19 @@ const initialState: SettingsStateData = {
   mcpServers: [],
   builtinTools: getDefaultBuiltinTools(),
   subAgents: [],
+  exaSearchConfig: {
+    apiKey: "",
+    enabled: false,
+    numResults: 10,
+    maxCharacters: 3000,
+    livecrawl: "fallback",
+  },
+  bochaSearchConfig: {
+    apiKey: "",
+    enabled: false,
+    count: 10,
+    freshness: "noLimit",
+  },
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -158,6 +179,26 @@ export const useSettingsStore = create<SettingsStore>()(
         state.subAgents = newSubAgents;
       }),
 
+    setExaSearchConfig: (config: ExaSearchConfig) =>
+      set((state) => {
+        state.exaSearchConfig = config;
+      }),
+
+    updateExaSearchEnabled: (enabled: boolean) =>
+      set((state) => {
+        state.exaSearchConfig.enabled = enabled;
+      }),
+
+    setBochaSearchConfig: (config: BochaSearchConfig) =>
+      set((state) => {
+        state.bochaSearchConfig = config;
+      }),
+
+    updateBochaSearchEnabled: (enabled: boolean) =>
+      set((state) => {
+        state.bochaSearchConfig.enabled = enabled;
+      }),
+
     setAllData: (data: SettingsStateData) =>
       set((state) => {
         const builtinTools = data.builtinTools || [...getDefaultBuiltinTools()];
@@ -174,6 +215,19 @@ export const useSettingsStore = create<SettingsStore>()(
         state.mcpServers = data.mcpServers || [];
         state.builtinTools = builtinTools;
         state.subAgents = data.subAgents || [];
+        state.exaSearchConfig = data.exaSearchConfig || {
+          apiKey: "",
+          enabled: false,
+          numResults: 10,
+          maxCharacters: 3000,
+          livecrawl: "fallback",
+        };
+        state.bochaSearchConfig = data.bochaSearchConfig || {
+          apiKey: "",
+          enabled: false,
+          count: 10,
+          freshness: "noLimit",
+        };
       }),
   }))
 );

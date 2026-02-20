@@ -146,6 +146,20 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			if (subAgents && subAgents.length > 0) {
 				await aiToolManager.updateSubAgents(subAgents);
 			}
+
+			// 初始化Exa搜索配置
+			const exaSearchConfig = settingsState.exaSearchConfig;
+			if (exaSearchConfig) {
+				await aiToolManager.updateExaSearchConfig(exaSearchConfig);
+				console.log('Exa search config initialized:', { enabled: exaSearchConfig.enabled, hasApiKey: !!exaSearchConfig.apiKey });
+			}
+
+			// 初始化Bocha搜索配置
+			const bochaSearchConfig = settingsState.bochaSearchConfig;
+			if (bochaSearchConfig) {
+				await aiToolManager.updateBochaSearchConfig(bochaSearchConfig);
+				console.log('Bocha search config initialized:', { enabled: bochaSearchConfig.enabled, hasApiKey: !!bochaSearchConfig.apiKey });
+			}
 		} catch (error) {
 			console.error('Failed to initialize tools:', error);
 		}

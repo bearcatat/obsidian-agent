@@ -1,5 +1,5 @@
 import { ToolSet } from "ai";
-import { BuiltinToolConfig, MCPServerConfig, SubAgentConfig } from "../types";
+import { BuiltinToolConfig, MCPServerConfig, SubAgentConfig, ExaSearchConfig, BochaSearchConfig } from "../types";
 import { GetCurrentTimeTool, toolName as GetCurrentTimeToolName } from "./Time/GetCurrentTime/GetCurrentTimeTool";
 import { ReadNoteByPathTool, toolName as ReadNoteByPathToolName } from "./ReadNote/ReadNoteByPath/ReadNoteByPathTool";
 import { ReadNoteByLinkTool, toolName as ReadNoteByLinkToolName } from "./ReadNote/ReadNoteByLink/ReadNoteByLinkTool";
@@ -8,6 +8,8 @@ import { FileEditTool, toolName as FileEditToolName } from "./FileEdit/FileEditT
 import { WriteTool, toolName as WriteToolName } from "./FileEdit/WriteTool";
 import { WebFetchTool, toolName as WebFetchToolName } from "./WebFetch/WebFetchTool";
 import { SearchTool, toolName as SearchToolName } from "./Search/SearchTool";
+import { ExaWebSearchTool, toolName as ExaWebSearchToolName, updateExaConfig } from "./ExaSearch/ExaSearchTool";
+import { BochaWebSearchTool, toolName as BochaWebSearchToolName, updateBochaConfig } from "./BochaSearch/BochaSearchTool";
 import MCPManager from "./MCP/MCPManager";
 import SubAgentManager from "./SubAgent/SubAgentManager";
 
@@ -29,6 +31,19 @@ export default class AIToolManager {
   private mainAgentEnableTools: ToolSet = {};
   private mcpManager: MCPManager;
   private subAgentManager: SubAgentManager;
+  private exaSearchConfig: ExaSearchConfig = {
+    apiKey: "",
+    enabled: false,
+    numResults: 10,
+    maxCharacters: 3000,
+    livecrawl: "fallback",
+  };
+  private bochaSearchConfig: BochaSearchConfig = {
+    apiKey: "",
+    enabled: false,
+    count: 10,
+    freshness: "noLimit",
+  };
 
 
   static getInstance(): AIToolManager {
@@ -71,7 +86,24 @@ export default class AIToolManager {
     console.log("ai subagent updated")
   }
 
+  // 更新Exa搜索配置
+  async updateExaSearchConfig(config: ExaSearchConfig): Promise<void> {
+    this.exaSearchConfig = config;
+    updateExaConfig(config);
+    await this.initializeTools();
+    console.log("exa search config updated")
+  }
+
+  // 更新Bocha搜索配置
+  async updateBochaSearchConfig(config: BochaSearchConfig): Promise<void> {
+    this.bochaSearchConfig = config;
+    updateBochaConfig(config);
+    await this.initializeTools();
+    console.log("bocha search config updated")
+  }
+
   getMainAgentEnabledTools(): ToolSet {
+    console.log("tools: ", this.mainAgentEnableTools)
     return this.mainAgentEnableTools;
   }
 
@@ -79,13 +111,53 @@ export default class AIToolManager {
   private async initializeTools() {
     const allTools = {
       ...this.getBuiltinTools(false),
-      ...await this.mcpManager.getTools(false)
+      ...await this.mcpManager.getTools(false),
+      ...this.getExaSearchTool(false),
+      ...this.getBochaSearchTool(false),
     }
     this.mainAgentEnableTools = {
       ...this.getBuiltinTools(true),
       ...await this.mcpManager.getTools(true),
-      ...this.subAgentManager.getEnabledTools(allTools)
+      ...this.subAgentManager.getEnabledTools(allTools),
+      ...this.getExaSearchTool(true),
+      ...this.getBochaSearchTool(true),
     }
+  }
+
+  // 获取Exa搜索工具（条件性）
+  private getExaSearchTool(isEnabled: boolean): ToolSet {
+    console.log("exa config", this.exaSearchConfig)
+    const hasConfig = this.exaSearchConfig.apiKey && this.exaSearchConfig.enabled;
+    
+    if (!isEnabled) {
+      // 返回工具定义（用于 allTools）
+      return { [ExaWebSearchToolName]: ExaWebSearchTool };
+    }
+
+    // 仅在启用且有API key时返回工具
+    if (hasConfig) {
+      return { [ExaWebSearchToolName]: ExaWebSearchTool };
+    }
+
+    return {};
+  }
+
+  // 获取Bocha搜索工具（条件性）
+  private getBochaSearchTool(isEnabled: boolean): ToolSet {
+    console.log("bocha config", this.bochaSearchConfig)
+    const hasConfig = this.bochaSearchConfig.apiKey && this.bochaSearchConfig.enabled;
+    
+    if (!isEnabled) {
+      // 返回工具定义（用于 allTools）
+      return { [BochaWebSearchToolName]: BochaWebSearchTool };
+    }
+
+    // 仅在启用且有API key时返回工具
+    if (hasConfig) {
+      return { [BochaWebSearchToolName]: BochaWebSearchTool };
+    }
+
+    return {};
   }
 
   private getBuiltinTools(isEnabled: boolean): ToolSet {

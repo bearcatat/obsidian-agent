@@ -1,4 +1,4 @@
-import { ModelConfig, MCPServerConfig, SubAgentConfig } from "../types";
+import { ModelConfig, MCPServerConfig, SubAgentConfig, ExaSearchConfig, BochaSearchConfig } from "../types";
 import { settingsStore } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
 import AIToolManager from "@/tool-ai/ToolManager";
@@ -264,6 +264,8 @@ export class SettingsLogic {
                 mcpServers: state.mcpServers,
                 builtinTools: state.builtinTools,
                 subAgents: state.subAgents,
+                exaSearchConfig: state.exaSearchConfig,
+                bochaSearchConfig: state.bochaSearchConfig,
             };
             await this.plugin?.saveData(stateData);
         } catch (error) {
@@ -277,6 +279,48 @@ export class SettingsLogic {
 
     async getAIMCPTools(config: MCPServerConfig): Promise<ToolSet>{
         return AIToolManager.getInstance().getMCPTools(config);
+    }
+
+    // Exa搜索配置管理业务逻辑
+    async updateExaSearchConfig(config: ExaSearchConfig): Promise<void> {
+        const state = settingsStore.getState();
+        state.setExaSearchConfig(config);
+
+        // 同步更新ToolManager
+        await AIToolManager.getInstance().updateExaSearchConfig(config);
+
+        await this.saveSettings();
+    }
+
+    async setExaSearchEnabled(enabled: boolean): Promise<void> {
+        const state = settingsStore.getState();
+        state.updateExaSearchEnabled(enabled);
+
+        // 同步更新ToolManager
+        await AIToolManager.getInstance().updateExaSearchConfig(state.exaSearchConfig);
+
+        await this.saveSettings();
+    }
+
+    // Bocha搜索配置管理业务逻辑
+    async updateBochaSearchConfig(config: BochaSearchConfig): Promise<void> {
+        const state = settingsStore.getState();
+        state.setBochaSearchConfig(config);
+
+        // 同步更新ToolManager
+        await AIToolManager.getInstance().updateBochaSearchConfig(config);
+
+        await this.saveSettings();
+    }
+
+    async setBochaSearchEnabled(enabled: boolean): Promise<void> {
+        const state = settingsStore.getState();
+        state.updateBochaSearchEnabled(enabled);
+
+        // 同步更新ToolManager
+        await AIToolManager.getInstance().updateBochaSearchConfig(state.bochaSearchConfig);
+
+        await this.saveSettings();
     }
 }
 

@@ -141,3 +141,20 @@ export interface Context {
   recentFiles?: TFile[];
   recentEdits?: TFile[];
 }
+
+// Exa Web Search Configuration
+export interface ExaSearchConfig {
+  apiKey: string;
+  enabled: boolean;
+  numResults?: number;      // default: 10
+  maxCharacters?: number;   // default: 3000
+  livecrawl?: "never" | "fallback" | "always" | "preferred"; // default: "fallback"
+}
+
+// Bocha Web Search Configuration
+export interface BochaSearchConfig {
+  apiKey: string;
+  enabled: boolean;
+  count?: number;        // 1-50, default: 10
+  freshness?: "noLimit" | "oneYear" | "oneMonth" | "oneWeek" | "oneDay"; // default: "noLimit"
+}

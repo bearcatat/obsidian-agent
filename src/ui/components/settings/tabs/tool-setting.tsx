@@ -4,6 +4,8 @@ import { BuiltinToolTable } from "./builtin-tool-table";
 import { SubAgentTable } from "./sub-agent-table";
 import { SubAgentAddOrUpdateDialog } from "./SubAgentAddOrUpdateDialog";
 import { SubAgentToolManagerDialog } from "./SubAgentToolManagerDialog";
+import { ExternalToolsTable, ExternalToolId } from "./external-tools-table";
+import { ExternalToolDialog } from "./external-tool-dialog";
 import { useState } from "react";
 import { MCPServerTable } from "./mcp-server-table";
 import { MCPServerConfig, SubAgentConfig } from "@/types";
@@ -38,11 +40,33 @@ export const ToolSetting: React.FC = () => {
   const [isUpdate, setIsUpdate] = useState(false);
   const [isSubAgentUpdate, setIsSubAgentUpdate] = useState(false);
 
+  // External Tools Dialog state
+  const [showExternalToolDialog, setShowExternalToolDialog] = useState(false);
+  const [selectedExternalTool, setSelectedExternalTool] = useState<ExternalToolId | null>(null);
+
+  const handleEditExternalTool = (toolId: ExternalToolId) => {
+    setSelectedExternalTool(toolId);
+    setShowExternalToolDialog(true);
+  };
+
   return (
-    <div className="tw-space-y-6">
+    <div className="tw-space-y-8">
       <section>
         <div className="tw-mb-3 tw-text-xl tw-font-bold">Builtin Tools</div>
         <BuiltinToolTable />
+      </section>
+
+      <section>
+        <div className="tw-mb-3 tw-text-xl tw-font-bold">External Tools</div>
+        <ExternalToolsTable onEdit={handleEditExternalTool} />
+        <ExternalToolDialog
+          toolId={selectedExternalTool}
+          open={showExternalToolDialog}
+          close={() => {
+            setShowExternalToolDialog(false);
+            setSelectedExternalTool(null);
+          }}
+        />
       </section>
 
       <section>
