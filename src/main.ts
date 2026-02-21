@@ -8,6 +8,8 @@ import { setGlobalApp, clearGlobalApp } from './utils';
 import { agentStore } from './state/agent-state-impl';
 import { EditHistoryManager } from './state/edit-history-state';
 import { CopyContextManager } from './state/copy-context-state';
+import { ChatMenuManager } from './state/chat-menu-state';
+import { InputEditorState } from './state/input-editor-state';
 import AIToolManager from './tool-ai/ToolManager';
 import AIModelManager from './llm-ai/ModelManager';
 
@@ -35,6 +37,9 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 			// 注册复制上下文监听
 			CopyContextManager.getInstance().registerEvents(this);
+
+			// 注册右键菜单（文件/文件夹/编辑器选中文本）
+			ChatMenuManager.getInstance().registerEvents(this);
 		} catch (error) {
 			console.error('Failed to initialize plugin:', error);
 		}
@@ -60,6 +65,8 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			await AIToolManager.resetInstance();
 			EditHistoryManager.resetInstance();
 			CopyContextManager.resetInstance();
+			ChatMenuManager.resetInstance();
+			InputEditorState.resetInstance();
 
 			// 4. 清理全局引用
 			clearGlobalApp();

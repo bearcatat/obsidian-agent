@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { InputContext } from './context';
 import { InputButtom } from './buttom';
 import { useAgentLogic, useAgentState } from '../../../../hooks/use-agent';
 
 import { Context } from '@/types';
-import { InputEditor } from './InputEditor';
+import { InputEditor, InputEditorRef } from './InputEditor';
 import { ContextLogic } from '@/logic/context-logic';
+import { InputEditorState } from '@/state/input-editor-state';
 
 export const Input = () => {
   const emptyContext: Context = {
@@ -16,6 +17,22 @@ export const Input = () => {
   const [context, setContext] = useState<Context>(emptyContext)
   const { isLoading } = useAgentState();
   const { sendMessage } = useAgentLogic();
+  const inputEditorRef = useRef<InputEditorRef>(null);
+
+  useEffect(() => {
+    const editorState = InputEditorState.getInstance();
+    return () => {
+      editorState.setEditorView(null);
+    };
+  }, []);
+
+  useEffect(() => {
+    const editorState = InputEditorState.getInstance();
+    const view = inputEditorRef.current?.getEditorView();
+    if (view) {
+      editorState.setEditorView(view);
+    }
+  }, [message]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -57,6 +74,7 @@ export const Input = () => {
         context={context}
         removeImage={removeImageFromContext} />
       <InputEditor
+        ref={inputEditorRef}
         value={message}
         onChange={setMessage}
         onKeyDown={onKeyDown}

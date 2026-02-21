@@ -60,26 +60,35 @@ export class CopyContextManager {
   private handleCopy(e: ClipboardEvent): void {
     const app = getGlobalApp();
     const activeFile = app.workspace.getActiveFile();
-    
+
     if (!activeFile) return;
-    
+
     const editor = this.getActiveEditor();
     if (!editor) return;
-    
+
     // 检查是否有选中的文本
     if (!editor.somethingSelected()) return;
-    
+
+    // 获取选区文本和剪贴板文本
+    const selectedText = editor.getSelection();
+    const clipboardText = e.clipboardData?.getData('text/plain');
+
+    // 验证：选区内容是否与复制的文本一致
+    if (!clipboardText || !selectedText.includes(clipboardText)) {
+      return;
+    }
+
     const selectionRange = ContextLogic.getInstance().getSelectionRange(editor);
     if (!selectionRange) return;
-    
+
     const context: CopyContext = {
       notePath: activeFile.path,
       noteName: activeFile.basename,
       startLine: selectionRange.from.line,
       endLine: selectionRange.to.line,
-      selectedText: editor.getSelection()
+      selectedText: selectedText
     };
-    
+
     // 存储到 DataTransfer
     try {
       e.clipboardData?.setData(

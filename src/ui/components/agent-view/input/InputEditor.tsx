@@ -11,6 +11,7 @@ import { createWikiLinkPlugin } from './cm-config/wiki-link-plugin';
 import { createWikiLinkCompletionSource } from './cm-config/wiki-link-autocomplete';
 import { createMarkdownLinkPlugin } from './cm-config/markdown-link-plugin';
 import { pasteHandlerPlugin } from './cm-config/paste-handler-plugin';
+import { createFolderRefPlugin } from './cm-config/folder-ref-plugin';
 import { MAX_IMAGE_SIZE, adjustHeight } from './cm-config/utils';
 
 // ==================== Types ====================
@@ -202,6 +203,7 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
           editorTheme,
           createWikiLinkPlugin(app),
           createMarkdownLinkPlugin(),
+          createFolderRefPlugin(),
           pasteHandlerPlugin(onPasteImages),
           ...(app ? [autocompletion({
             override: [createWikiLinkCompletionSource(app)],
