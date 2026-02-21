@@ -15,12 +15,6 @@ let bochaConfig: BochaSearchConfig = {
 };
 
 export function updateBochaConfig(config: BochaSearchConfig) {
-	console.log("[BochaWebSearch] Config updated:", { 
-		enabled: config.enabled, 
-		hasApiKey: !!config.apiKey,
-		count: config.count,
-		freshness: config.freshness
-	});
 	bochaConfig = config;
 }
 

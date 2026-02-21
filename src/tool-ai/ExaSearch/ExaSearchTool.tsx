@@ -16,13 +16,6 @@ let exaConfig: ExaSearchConfig = {
 };
 
 export function updateExaConfig(config: ExaSearchConfig) {
-	console.log("[ExaWebSearch] Config updated:", { 
-		enabled: config.enabled, 
-		hasApiKey: !!config.apiKey,
-		numResults: config.numResults,
-		maxCharacters: config.maxCharacters,
-		livecrawl: config.livecrawl
-	});
 	exaConfig = config;
 }
 

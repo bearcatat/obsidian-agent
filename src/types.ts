@@ -159,3 +159,11 @@ export interface BochaSearchConfig {
   count?: number;        // 1-50, default: 10
   freshness?: "noLimit" | "oneYear" | "oneMonth" | "oneWeek" | "oneDay"; // default: "noLimit"
 }
+
+// Command Configuration
+export interface CommandConfig {
+  name: string;           // Command name (e.g., "test")
+  template: string;       // Prompt template (markdown body)
+  description?: string;   // Description shown in autocomplete
+  filePath?: string;      // Source file path
+}

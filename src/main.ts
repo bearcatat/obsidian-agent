@@ -12,6 +12,7 @@ import { ChatMenuManager } from './state/chat-menu-state';
 import { InputEditorState } from './state/input-editor-state';
 import AIToolManager from './tool-ai/ToolManager';
 import AIModelManager from './llm-ai/ModelManager';
+import CommandLogic from './logic/command-logic';
 
 export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgentPlugin {
 	private uiManager: UIManager;
@@ -20,12 +21,18 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 		// 设置全局App访问器
 		setGlobalApp(this.app);
 
+		// 初始化CommandLogic
+		CommandLogic.getInstance().setApp(this.app);
+
 		try {
 			// 优先初始化设置，确保模型配置可用
 			await this.initializeSettings();
 
 			// 初始化UI，让用户看到界面
 			this.initializeUI();
+
+			// 加载命令
+			await CommandLogic.getInstance().loadCommands();
 
 			// 异步初始化Agent工具（非阻塞）
 			this.initializeAgent().catch(error => {
@@ -67,6 +74,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			CopyContextManager.resetInstance();
 			ChatMenuManager.resetInstance();
 			InputEditorState.resetInstance();
+			CommandLogic.resetInstance();
 
 			// 4. 清理全局引用
 			clearGlobalApp();

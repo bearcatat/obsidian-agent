@@ -7,6 +7,7 @@ import { Context } from '@/types';
 import { InputEditor, InputEditorRef } from './InputEditor';
 import { ContextLogic } from '@/logic/context-logic';
 import { InputEditorState } from '@/state/input-editor-state';
+import CommandLogic from '@/logic/command-logic';
 
 export const Input = () => {
   const emptyContext: Context = {
@@ -34,18 +35,19 @@ export const Input = () => {
     }
   }, [message]);
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      onSend();
-    }
-  };
-
-  const onSend = () => {
+  const onSend = async () => {
     if (!message.trim() || isLoading) return;
     const contextLogic = ContextLogic.getInstance();
     const finalContext = contextLogic.getContext(context);
-    sendMessage(message.trim(), finalContext);
+
+    const commandLogic = CommandLogic.getInstance();
+    const processed = await commandLogic.processCommand(message.trim());
+
+    if (processed) {
+      sendMessage(processed, finalContext);
+    } else {
+      sendMessage(message.trim(), finalContext);
+    }
     clear();
   };
 
@@ -77,7 +79,7 @@ export const Input = () => {
         ref={inputEditorRef}
         value={message}
         onChange={setMessage}
-        onKeyDown={onKeyDown}
+        onSend={onSend}
         disabled={isLoading}
         onPasteImages={handlePasteImages}
       />

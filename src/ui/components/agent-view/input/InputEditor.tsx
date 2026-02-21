@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view';
-import { EditorState, Compartment } from '@codemirror/state';
+import { EditorState, Compartment, Prec } from '@codemirror/state';
 import { minimalSetup } from 'codemirror';
-import { autocompletion, acceptCompletion } from '@codemirror/autocomplete';
+import { autocompletion, acceptCompletion, completionStatus, moveCompletionSelection, closeCompletion } from '@codemirror/autocomplete';
 import { TFile, App } from 'obsidian';
 import { useApp } from '../../../../hooks/app-context';
 import { cn } from '../../../elements/utils';
@@ -12,6 +12,7 @@ import { createWikiLinkCompletionSource } from './cm-config/wiki-link-autocomple
 import { createMarkdownLinkPlugin } from './cm-config/markdown-link-plugin';
 import { pasteHandlerPlugin } from './cm-config/paste-handler-plugin';
 import { createFolderRefPlugin } from './cm-config/folder-ref-plugin';
+import { createCommandCompletionSource } from './cm-config/command-autocomplete';
 import { MAX_IMAGE_SIZE, adjustHeight } from './cm-config/utils';
 
 // ==================== Types ====================
@@ -19,7 +20,7 @@ import { MAX_IMAGE_SIZE, adjustHeight } from './cm-config/utils';
 interface InputEditorProps {
   value: string;
   onChange: (value: string) => void;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
+  onSend?: () => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -103,17 +104,67 @@ const tFileToBase64 = async (file: TFile, app: App): Promise<string | null> => {
   }
 };
 
+// ==================== Keymap Factory ====================
+
+/**
+ * Create keymap configuration for chat input
+ * This function is called on every onSend/disabled change to avoid closure issues
+ */
+function createKeymap(onSend?: () => void, disabled?: boolean) {
+  return keymap.of([
+    {
+      key: "Enter",
+      run: (view) => {
+        if (view.composing) return false;
+        if (completionStatus(view.state) === "active") {
+          return acceptCompletion(view);
+        }
+        if (disabled) return true;
+        if (view.state.doc.toString().trim() === "") return true;
+        onSend?.();
+        return true;
+      }
+    },
+    {
+      key: "Shift-Enter",
+      run: () => false
+    },
+    {
+      key: "Tab",
+      run: (view) => {
+        if (completionStatus(view.state) === "active") {
+          return acceptCompletion(view);
+        }
+        return false;
+      }
+    },
+    {
+      key: "ArrowDown",
+      run: moveCompletionSelection(true)
+    },
+    {
+      key: "ArrowUp",
+      run: moveCompletionSelection(false)
+    },
+    {
+      key: "Escape",
+      run: closeCompletion
+    }
+  ]);
+}
+
 // ==================== Component ====================
 
 export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
-  value, onChange, onKeyDown, placeholder, disabled = false, className, onPasteImages
+  value, onChange, onSend, placeholder, disabled = false, className, onPasteImages
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const compartmentsRef = useRef<{
     editable: Compartment | null;
     placeholder: Compartment | null;
-  }>({ editable: null, placeholder: null });
+    keymap: Compartment | null;
+  }>({ editable: null, placeholder: null, keymap: null });
   const [isDragging, setIsDragging] = useState(false);
   const app = useApp();
 
@@ -139,10 +190,10 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
 
     const tryAddFile = (input: string) => {
       if (!input || processedPaths.has(input)) return;
-      
+
       const filePath = parseObsidianUrl(input);
       if (!filePath || processedPaths.has(filePath)) return;
-      
+
       const abstractFile = app.vault.getAbstractFileByPath(filePath);
       if (!(abstractFile instanceof TFile)) return;
 
@@ -193,7 +244,8 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
 
     const editableCompartment = new Compartment();
     const placeholderCompartment = new Compartment();
-    compartmentsRef.current = { editable: editableCompartment, placeholder: placeholderCompartment };
+    const keymapCompartment = new Compartment();
+    compartmentsRef.current = { editable: editableCompartment, placeholder: placeholderCompartment, keymap: keymapCompartment };
 
     const view = new EditorView({
       state: EditorState.create({
@@ -206,9 +258,9 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
           createFolderRefPlugin(),
           pasteHandlerPlugin(onPasteImages),
           ...(app ? [autocompletion({
-            override: [createWikiLinkCompletionSource(app)],
-            defaultKeymap: true,
-            closeOnBlur: false
+            override: [createCommandCompletionSource(), createWikiLinkCompletionSource(app)],
+            defaultKeymap: false,
+            closeOnBlur: false,
           })] : []),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
@@ -216,11 +268,7 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
               setTimeout(() => adjustHeight(update.view.scrollDOM, 80), 0);
             }
           }),
-          keymap.of([
-            { key: 'Enter', run: () => false },
-            { key: 'Shift-Enter', run: () => false },
-            { key: 'Tab', run: acceptCompletion }
-          ]),
+          Prec.high(keymapCompartment.of(createKeymap(onSend, disabled))),
           editableCompartment.of(EditorView.editable.of(!disabled)),
           placeholderCompartment.of(placeholder ? cmPlaceholder(placeholder) : [])
         ]
@@ -233,7 +281,7 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
     return () => {
       view.destroy();
       viewRef.current = null;
-      compartmentsRef.current = { editable: null, placeholder: null };
+      compartmentsRef.current = { editable: null, placeholder: null, keymap: null };
     };
   }, []);
 
@@ -264,6 +312,14 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
     if (!view || !compartment) return;
     view.dispatch({ effects: compartment.reconfigure(placeholder ? cmPlaceholder(placeholder) : []) });
   }, [placeholder]);
+
+  // Dynamic reconfigure: keymap (fixes closure issues with onSend and disabled)
+  useEffect(() => {
+    const view = viewRef.current;
+    const compartment = compartmentsRef.current.keymap;
+    if (!view || !compartment) return;
+    view.dispatch({ effects: compartment.reconfigure(createKeymap(onSend, disabled)) });
+  }, [onSend, disabled]);
 
   // Handle obsidian drop
   useEffect(() => {
@@ -301,7 +357,6 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
       onDragEnter={(e) => handleDragState(e, true)}
       onDragLeave={(e) => handleDragState(e, false)}
       onDrop={(e) => handleDragState(e, false)}
-      onKeyDown={onKeyDown}
       className={cn(
         "tw-w-full tw-h-full",
         isDragging && "tw-border tw-border-solid tw-border-blue-500 tw-bg-blue-50 dark:tw-bg-blue-900/20",

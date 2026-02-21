@@ -84,7 +84,7 @@ export default class AIAgent {
                 ],
                 maxRetries: 3,
             })
-            return text
+            return text.substring(0, 20)
         } catch (error) {
             return ""
         }

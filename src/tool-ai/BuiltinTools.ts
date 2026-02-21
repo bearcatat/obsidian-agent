@@ -46,6 +46,11 @@ export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
     name: "list",
     description: "List files and directories in a folder",
     enabled: true,
+  },
+  {
+    name: "createCommand",
+    description: "Create a new custom command",
+    enabled: true,
   }
 ];
 

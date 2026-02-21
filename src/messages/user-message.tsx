@@ -39,7 +39,6 @@ export class UserMessage implements MessageV2 {
     }
 
     private getEnhancedContext(): string {
-        console.log(this.context)
         const info: string[] = [];
 
         if (this.context?.activeNote) {

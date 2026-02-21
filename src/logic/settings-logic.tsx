@@ -176,7 +176,6 @@ export class SettingsLogic {
 
     // 内置工具管理业务逻辑
     async updateBuiltinTool(toolName: string, enabled: boolean): Promise<void> {
-        console.log(toolName, enabled)
         const state = settingsStore.getState();
         // 验证工具是否存在
         const existingTool = state.builtinTools.find((t: { name: string }) => t.name === toolName);
