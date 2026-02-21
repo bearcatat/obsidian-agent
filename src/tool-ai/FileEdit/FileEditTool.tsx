@@ -12,28 +12,6 @@ export const toolName = "editFile"
 
 const dmp = new diff_match_patch()
 
-interface FrontmatterResult {
-  hasFrontmatter: boolean;
-  frontmatter: string;
-  body: string;
-}
-
-function extractFrontmatter(content: string): FrontmatterResult {
-  const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
-  if (match) {
-    return {
-      hasFrontmatter: true,
-      frontmatter: match[1],
-      body: match[2]
-    }
-  }
-  return {
-    hasFrontmatter: false,
-    frontmatter: '',
-    body: content
-  }
-}
-
 function normalizeWhitespace(text: string): string {
   return text.replace(/\s+/g, ' ').trim()
 }
@@ -67,43 +45,28 @@ function findBestMatch(
   replaceStr: string,
   replaceAll: boolean
 ): { matched: boolean; content: string; protected: boolean; message?: string } {
-  const extracted = extractFrontmatter(oldContent)
-
-  if (extracted.hasFrontmatter && extracted.frontmatter.includes(old_string)) {
-    return {
-      matched: false,
-      content: oldContent,
-      protected: true,
-      message: 'old_string is located in frontmatter metadata and is protected from direct modification. Please explicitly specify the frontmatter region to modify metadata.'
-    }
-  }
-
-  const exactMatch = extracted.body.includes(old_string)
+  const exactMatch = oldContent.includes(old_string)
   if (exactMatch) {
-    const newBody = replaceAll
-      ? extracted.body.split(old_string).join(replaceStr)
-      : extracted.body.replace(old_string, replaceStr)
+    const newContent = replaceAll
+      ? oldContent.split(old_string).join(replaceStr)
+      : oldContent.replace(old_string, replaceStr)
     return {
       matched: true,
-      content: extracted.hasFrontmatter
-        ? `---\n${extracted.frontmatter}\n---\n${newBody}`
-        : newBody,
+      content: newContent,
       protected: false
     }
   }
 
   const trimmedOld = normalizeWhitespace(old_string)
   if (trimmedOld) {
-    const lines = extracted.body.split('\n')
+    const lines = oldContent.split('\n')
     for (let i = 0; i < lines.length; i++) {
       if (normalizeWhitespace(lines[i]) === trimmedOld) {
         const newLines = [...lines]
         newLines[i] = replaceStr
         return {
           matched: true,
-          content: extracted.hasFrontmatter
-            ? `---\n${extracted.frontmatter}\n---\n${newLines.join('\n')}`
-            : newLines.join('\n'),
+          content: newLines.join('\n'),
           protected: false
         }
       }

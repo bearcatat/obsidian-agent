@@ -9,6 +9,5 @@ Important:
 - The edit will FAIL if old_string is not found in the note
 - The edit will FAIL if old_string is found multiple times (use replaceAll to replace all)
 - old_string must uniquely identify the instance - include sufficient surrounding context
-- YAML frontmatter (---) is protected and cannot be modified
 - Split large modifications into smaller edit operations
 `;

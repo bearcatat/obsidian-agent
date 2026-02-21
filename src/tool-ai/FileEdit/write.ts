@@ -11,8 +11,4 @@ Usage requirements:
 Important notes:
 - If the note already exists, it will completely overwrite the original content
 - Use the editFile tool for partial modifications
-
-Metadata protection:
-- YAML frontmatter will not be automatically added or modified
-- If frontmatter is needed, include it in the content yourself
 `;
