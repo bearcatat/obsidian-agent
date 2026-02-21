@@ -18,7 +18,7 @@ export class UserMessage implements MessageV2 {
         this.context = context
     }
     render(): React.ReactElement {
-        return <UserMessageCard content={this.content} />;
+        return <UserMessageCard content={this.content} images={this.context?.images} />;
     }
     toModelMessage(): ModelMessage {
         const content: UserContent = [

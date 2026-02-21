@@ -32,6 +32,43 @@ function ContextImageBadge({
   );
 }
 
+function UserContextImageBadge({ image, index }: { image: string; index: number }) {
+  return (
+    <Badge className="tw-items-center tw-py-0 tw-pl-0.5 tw-pr-0.5 tw-text-xs tw-gap-1">
+      <img
+        src={image}
+        alt={`Image ${index + 1}`}
+        className="tw-w-6 tw-h-6 tw-object-cover tw-rounded"
+      />
+      <span className="tw-text-[--text-muted]">{index + 1}</span>
+    </Badge>
+  );
+}
+
+export const UserContext = ({ context }: { context: Context }) => {
+  const images = React.useMemo(() => {
+    return context.images ?? [];
+  }, [context]);
+
+  if (images.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="tw-flex tw-w-full tw-items-center tw-gap-1 tw-px-1">
+      <div className="tw-flex tw-flex-1 tw-flex-wrap tw-gap-1">
+        {images.map((image, index) => (
+          <UserContextImageBadge
+            key={`${index}-${image.slice(0, 20)}`}
+            image={image}
+            index={index}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export const InputContext = ({
   context,
   removeImage
