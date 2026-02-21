@@ -56,9 +56,10 @@ export default class Streamer {
         const result = await this.agent.generate({
             messages: messages,
             abortSignal: abortSignal,
-            onStepFinish: async ({text}) => {
-                this.assistantMessage=AssistantMessage.createEmpty(uuidv4())
+            onStepFinish: async ({ text, reasoningText }) => {
+                this.assistantMessage = AssistantMessage.createEmpty(uuidv4())
                 this.assistantMessage.appendContent(text)
+                this.assistantMessage.appendReasoningContent(reasoningText ?? "")
                 this.assistantMessage.close()
                 this.addMessage(this.assistantMessage)
             }

@@ -36,7 +36,6 @@ export interface ModelConfig {
   frequencyPenalty?: number;
   presencePenalty?: number;
   useCORS?: boolean;
-  webSearchEnabled?: boolean;
 }
 
 // Model Providers
