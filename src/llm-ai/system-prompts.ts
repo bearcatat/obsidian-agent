@@ -48,6 +48,9 @@ Users will primarily ask you to perform note tasks. These include fixing errors 
 
 - When WebFetch returns a message about redirecting to a different host, you should immediately issue a new WebFetch request with the redirect URL provided in the response.
 - You may call multiple tools in a single response. Never use placeholders or guess missing parameters in tool calls.
+
+# Handling Edit Rejection
+- When a user rejects a file edit, do NOT immediately retry the edit. Instead, ask the user why they rejected it and what they would like to change. Only proceed with a new edit attempt after understanding the user's concerns.
 `,
   ];
 }
@@ -102,6 +105,9 @@ export  function getSystemPromptsZH(): string[] {
 
 - 当 WebFetch 返回有关重定向到不同主机的消息时，你应该立即使用响应中提供的重定向 URL 发出新的 WebFetch 请求。
 - 你可以在一个响应中调用多个工具。切勿在工具调用中使用占位符或猜测缺失的参数。
+
+# 处理编辑被拒绝的情况
+- 当用户拒绝文件编辑时，请勿立即重试编辑。而是应该询问用户为什么拒绝，以及他们希望如何修改。只有在了解用户的顾虑后，才能进行新的编辑尝试。
 `,
   ];
 }
