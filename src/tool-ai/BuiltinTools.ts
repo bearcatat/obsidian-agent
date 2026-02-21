@@ -41,6 +41,11 @@ export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
     name: "search",
     description: "Search for content in local Markdown files",
     enabled: true,
+  },
+  {
+    name: "list",
+    description: "List files and directories in a folder",
+    enabled: true,
   }
 ];
 

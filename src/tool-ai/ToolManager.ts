@@ -10,6 +10,7 @@ import { WebFetchTool, toolName as WebFetchToolName } from "./WebFetch/WebFetchT
 import { SearchTool, toolName as SearchToolName } from "./Search/SearchTool";
 import { ExaWebSearchTool, toolName as ExaWebSearchToolName, updateExaConfig } from "./ExaSearch/ExaSearchTool";
 import { BochaWebSearchTool, toolName as BochaWebSearchToolName, updateBochaConfig } from "./BochaSearch/BochaSearchTool";
+import { ListTool, toolName as ListToolName } from "./List/ListTool";
 import MCPManager from "./MCP/MCPManager";
 import SubAgentManager from "./SubAgent/SubAgentManager";
 
@@ -25,6 +26,7 @@ export default class AIToolManager {
     [WriteToolName]: WriteTool,
     [WebFetchToolName]: WebFetchTool,
     [SearchToolName]: SearchTool,
+    [ListToolName]: ListTool,
   }
 
   private builtinToolConfigs: BuiltinToolConfig[] = [];
