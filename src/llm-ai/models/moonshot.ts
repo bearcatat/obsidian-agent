@@ -2,7 +2,7 @@ import { ModelConfig, ModelProviders } from "@/types";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { LanguageModelV3 } from "@ai-sdk/provider";
 import { ToolLoopAgentSettings } from "ai";
-import { createCORSFetchAdapter } from "../utils/cors-fetch";
+import { createOpenAICORSPseudoStreamFetchAdapter } from "../utils/cors-fetch";
 
 
 export default class MoonshotGenerator {
@@ -18,8 +18,8 @@ export default class MoonshotGenerator {
     }
 
     createModel(modelConfig: ModelConfig): LanguageModelV3 {
-        // 根据配置决定是否使用 CORS 代理
-        const customFetch = modelConfig.useCORS ? createCORSFetchAdapter() : undefined;
+        // 根据配置决定是否使用 CORS 代理，使用伪流式适配器
+        const customFetch = modelConfig.useCORS ? createOpenAICORSPseudoStreamFetchAdapter() : undefined;
 
         const openai = createOpenAICompatible({
             baseURL: modelConfig.baseUrl || "https://api.moonshot.cn/v1",

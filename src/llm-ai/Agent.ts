@@ -59,15 +59,9 @@ export default class AIAgent {
         })
         this.messages.push(message.toModelMessage())
         const streamer = new Streamer(agent, addMessage)
-        if (!modelManager.agentModelConfig.useCORS) {
-            const result = await streamer.stream(this.messages, abortController.signal)
-            const messages = (await result.response).messages
-            this.messages.push(...messages)
-        } else {
-            const result = await streamer.generate(this.messages, abortController.signal)
-            const messages = (await result.response).messages
-            this.messages.push(...messages)
-        }
+        const result = await streamer.stream(this.messages, abortController.signal)
+        const messages = (await result.response).messages
+        this.messages.push(...messages)
     }
 
 

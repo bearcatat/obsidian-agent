@@ -56,7 +56,7 @@ export default class SubAgent {
 
         this.messages.push(message.toModelMessage())
         const streamer = new Streamer(agent, addMessage)
-        const result = await streamer.generate(this.messages, abortSignal)
+        const result = await streamer.stream(this.messages, abortSignal)
         const messages = (await result.response).messages
         this.messages.push(...messages)
         return result.text
