@@ -1,5 +1,5 @@
 import { ToolSet } from "ai";
-import { BuiltinToolConfig, MCPServerConfig, SubAgentConfig, ExaSearchConfig, BochaSearchConfig } from "../types";
+import { BuiltinToolConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig } from "../types";
 import { GetCurrentTimeTool, toolName as GetCurrentTimeToolName } from "./Time/GetCurrentTime/GetCurrentTimeTool";
 import { ReadNoteByPathTool, toolName as ReadNoteByPathToolName } from "./ReadNote/ReadNoteByPath/ReadNoteByPathTool";
 import { ReadNoteByLinkTool, toolName as ReadNoteByLinkToolName } from "./ReadNote/ReadNoteByLink/ReadNoteByLinkTool";
@@ -15,7 +15,7 @@ import { CreateArtifactTool, toolName as CreateArtifactToolName } from "./Create
 import { SkillTool, toolName as SkillToolName } from "./Skill/SkillTool";
 import MCPManager from "./MCP/MCPManager";
 import SubAgentManager from "./SubAgent/SubAgentManager";
-import SkillLogic from "../logic/skill-logic";
+import SubAgentLogic from "../logic/subagent-logic";
 
 
 export default class AIToolManager {
@@ -85,9 +85,8 @@ export default class AIToolManager {
     await this.initializeTools();
   }
 
-  // 更新SubAgent配置
-  async updateSubAgents(subAgents: SubAgentConfig[]): Promise<void> {
-    this.subAgentManager.updateSubAgents(subAgents)
+  // 更新SubAgent配置（现在由 SubAgentLogic 管理，这里只重新初始化工具）
+  async updateSubAgents(): Promise<void> {
     await this.initializeTools();
   }
 

@@ -84,21 +84,15 @@ export interface BuiltinToolConfig {
   enabled: boolean;
 }
 
-// SubAgent Tool Configuration
-export interface SubAgentToolConfig {
-  type: "builtin" | "mcp" | "subAgent";
-  name: string;
-  enabled: boolean;
-}
-
-// SubAgent Configuration
+// SubAgent Configuration (file-based)
 export interface SubAgentConfig {
-  name: string;
-  systemPrompt: string;
-  description: string;
-  enabled: boolean;
-  modelId: string;
-  tools: SubAgentToolConfig[];
+  name: string;              // kebab-case, e.g., "code-reviewer"
+  description: string;       // Description for tool and UI
+  systemPrompt: string;      // Agent system prompt (AGENT.md body)
+  enabled: boolean;          // Whether agent is enabled
+  tools?: string[];          // Optional tool whitelist
+  filePath: string;          // Source file path
+  builtin?: boolean;         // Whether it's a builtin agent
 }
 
 export interface QuestionOption {

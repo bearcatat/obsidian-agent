@@ -7,10 +7,12 @@ import { isBuiltinCommand } from "@/logic/builtin-commands";
 import { isBuiltinSkill } from "@/logic/builtin-skills";
 import CommandLogic from "@/logic/command-logic";
 import SkillLogic from "@/logic/skill-logic";
+import SubAgentLogic from "@/logic/subagent-logic";
+import AIToolManager from "@/tool-ai/ToolManager";
 
 export const toolName = "createArtifact";
 
-type ArtifactType = "command" | "skill";
+type ArtifactType = "command" | "skill" | "subagent";
 
 interface CreateArtifactResult {
   type: ArtifactType;
@@ -59,13 +61,34 @@ function formatSkillFile(
   return frontmatter + body;
 }
 
+function formatSubAgentFile(
+  name: string,
+  description: string,
+  systemPrompt: string,
+  tools?: string[]
+): string {
+  let frontmatter = `---\nname: ${name}\ndescription: ${description}`;
+  
+  if (tools && tools.length > 0) {
+    frontmatter += '\ntools:';
+    for (const tool of tools) {
+      frontmatter += `\n  - ${tool}`;
+    }
+  }
+  
+  frontmatter += '\n---\n\n';
+  
+  return frontmatter + systemPrompt;
+}
+
 export const CreateArtifactTool = tool({
   title: toolName,
-  description: `Create a new artifact (command or skill file).
+  description: `Create a new artifact (command, skill, or subagent file).
 
-This tool creates either:
+This tool creates:
 1. A command file in obsidian-agent/commands/{name}.md
 2. A skill file in obsidian-agent/skills/{name}/SKILL.md
+3. A subagent file in obsidian-agent/subagents/{name}/AGENT.md
 
 Commands:
 - Can be triggered with /{name}
@@ -78,21 +101,28 @@ Skills:
 - Follow OpenCode SKILL.md format with frontmatter
 - Support license, compatibility, and metadata fields
 
+SubAgents:
+- Specialized AI agents with custom system prompts
+- Use lowercase with hyphens (e.g., "code-reviewer")
+- SubAgents use the same model as the main agent
+- Optionally specify allowed tools
+
 The tool will:
 1. Validate the artifact name according to type-specific rules
 2. Check for existing artifacts with the same name
 3. Create the file with proper format
 4. Reload the appropriate logic to make it available immediately`,
   inputSchema: z.object({
-    type: z.enum(["command", "skill"]).describe("Type of artifact to create: 'command' or 'skill'"),
-    name: z.string().describe("Artifact name (commands: lowercase with underscores; skills: lowercase with hyphens)"),
+    type: z.enum(["command", "skill", "subagent"]).describe("Type of artifact to create"),
+    name: z.string().describe("Artifact name (commands: lowercase with underscores; skills/subagents: lowercase with hyphens)"),
     description: z.string().describe("Brief description of what the artifact does"),
-    content: z.string().describe("The content body (command template or skill instructions)"),
+    content: z.string().describe("The content body (command template, skill instructions, or subagent system prompt)"),
     license: z.string().optional().describe("Optional license (for skills only)"),
     compatibility: z.string().optional().describe("Optional compatibility info (for skills only)"),
     metadata: z.record(z.string()).optional().describe("Optional metadata as key-value pairs (for skills only)"),
+    tools: z.array(z.string()).optional().describe("Optional list of allowed tool names (for subagents)"),
   }),
-  execute: async ({ type, name, description, content, license, compatibility, metadata }, { toolCallId, experimental_context }) => {
+  execute: async ({ type, name, description, content, license, compatibility, metadata, tools }, { toolCallId, experimental_context }) => {
     const context = experimental_context as { addMessage: (message: MessageV2) => void };
     
     try {
@@ -106,7 +136,6 @@ The tool will:
       let isNewFile: boolean;
 
       if (type === "command") {
-        // 验证 command 名称（小写下划线）
         artifactName = name.toLowerCase().trim().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
         
         if (!artifactName) {
@@ -133,8 +162,7 @@ The tool will:
 
         filePath = `obsidian-agent/commands/${artifactName}.md`;
         fileContent = formatCommandFile(artifactName, description, content);
-      } else {
-        // 验证 skill 名称（小写连字符）
+      } else if (type === "skill") {
         const validation = SkillLogic.validateSkillName(name.trim());
         if (!validation.valid) {
           toolMessage.setContent(JSON.stringify({
@@ -147,7 +175,6 @@ The tool will:
         
         artifactName = name.trim();
         
-        // 检查是否是内置技能名称
         if (isBuiltinSkill(artifactName)) {
           toolMessage.setContent(JSON.stringify({
             error: "Reserved name",
@@ -162,6 +189,24 @@ The tool will:
 
         filePath = `obsidian-agent/skills/${artifactName}/SKILL.md`;
         fileContent = formatSkillFile(artifactName, description, content, license, compatibility, metadata);
+      } else {
+        const validation = SubAgentLogic.validateSubAgentName(name.trim());
+        if (!validation.valid) {
+          toolMessage.setContent(JSON.stringify({
+            error: "Invalid subagent name",
+            message: validation.error,
+          }));
+          context.addMessage(toolMessage);
+          return JSON.stringify({ error: "Invalid subagent name" });
+        }
+        
+        artifactName = name.trim();
+        
+        const existingSubAgent = SubAgentLogic.getInstance().getSubAgentByName(artifactName);
+        isNewFile = !existingSubAgent;
+
+        filePath = `obsidian-agent/subagents/${artifactName}/AGENT.md`;
+        fileContent = formatSubAgentFile(artifactName, description, content, tools);
       }
 
       const result: CreateArtifactResult = {
@@ -200,7 +245,7 @@ The tool will:
             }
 
             await CommandLogic.getInstance().loadCommands();
-          } else {
+          } else if (type === "skill") {
             const dirPath = `obsidian-agent/skills/${artifactName}`;
             const dirExists = await vault.adapter.exists(dirPath);
             if (!dirExists) {
@@ -215,6 +260,22 @@ The tool will:
             }
 
             await SkillLogic.getInstance().loadSkills();
+          } else {
+            const dirPath = `obsidian-agent/subagents/${artifactName}`;
+            const dirExists = await vault.adapter.exists(dirPath);
+            if (!dirExists) {
+              await vault.adapter.mkdir(dirPath);
+            }
+
+            const file = vault.getAbstractFileByPath(filePath);
+            if (file) {
+              await vault.modify(file as any, fileContent);
+            } else {
+              await vault.create(filePath, fileContent);
+            }
+
+            await SubAgentLogic.getInstance().loadSubAgents();
+            await AIToolManager.getInstance().updateSubAgents();
           }
         } catch (error) {
           toolMessage.setContent(JSON.stringify({
@@ -235,13 +296,14 @@ The tool will:
       toolMessage.close();
       context.addMessage(toolMessage);
 
+      const typeLabel = type === "command" ? "Command" : type === "skill" ? "Skill" : "SubAgent";
       return JSON.stringify({
         success: decision === "apply",
         type,
         name: artifactName,
         file_path: filePath,
         message: decision === "apply" 
-          ? `${type === "command" ? "Command" : "Skill"} "${artifactName}" ${isNewFile ? "created" : "updated"} successfully`
+          ? `${typeLabel} "${artifactName}" ${isNewFile ? "created" : "updated"} successfully`
           : "User rejected",
       });
     } catch (error) {
@@ -259,13 +321,18 @@ function render(
   onApply: () => void,
   onReject: () => void
 ): React.ReactNode {
-  const typeLabel = result.type === "command" ? "Command" : "Skill";
-  const triggerLabel = result.type === "command" ? `/${result.name}` : `skill({ name: "${result.name}" })`;
+  const typeLabel = result.type === "command" ? "Command" : result.type === "skill" ? "Skill" : "SubAgent";
+  const icon = result.type === "command" ? "📝" : result.type === "skill" ? "🎯" : "🤖";
+  const triggerLabel = result.type === "command" 
+    ? `/${result.name}` 
+    : result.type === "skill" 
+      ? `skill({ name: "${result.name}" })`
+      : `${result.name}()`;
   
   return (
     <div className="tw-p-3 tw-border tw-rounded-lg tw-bg-muted/30">
       <div className="tw-flex tw-items-center tw-gap-2 tw-mb-2">
-        <span className="tw-text-lg">{result.type === "command" ? "📝" : "🎯"}</span>
+        <span className="tw-text-lg">{icon}</span>
         <span className="tw-font-medium">
           {result.is_new_file ? `Create ${typeLabel}` : `Update ${typeLabel}`}
         </span>

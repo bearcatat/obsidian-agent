@@ -14,7 +14,9 @@ import AIToolManager from './tool-ai/ToolManager';
 import AIModelManager from './llm-ai/ModelManager';
 import CommandLogic from './logic/command-logic';
 import SkillLogic from './logic/skill-logic';
+import SubAgentLogic from './logic/subagent-logic';
 import { skillStore } from './state/skill-state';
+import { subAgentStore } from './state/subagent-state';
 
 export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgentPlugin {
 	private uiManager: UIManager;
@@ -29,6 +31,9 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 		// 初始化SkillLogic
 		SkillLogic.getInstance().setApp(this.app);
 
+		// 初始化SubAgentLogic
+		SubAgentLogic.getInstance().setApp(this.app);
+
 		try {
 			// 优先初始化设置，确保模型配置可用
 			await this.initializeSettings();
@@ -42,11 +47,17 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			// 加载skills
 			await SkillLogic.getInstance().loadSkills();
 
+			// 加载subagents
+			await SubAgentLogic.getInstance().loadSubAgents();
+
 			// 注册skill文件自动刷新监听
 			this.registerSkillFileWatcher();
 
 			// 注册command文件自动刷新监听
 			this.registerCommandFileWatcher();
+
+			// 注册subagent文件自动刷新监听
+			this.registerSubAgentFileWatcher();
 
 			// 异步初始化Agent工具（非阻塞）
 			this.initializeAgent().catch(error => {
@@ -90,6 +101,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			InputEditorState.resetInstance();
 			CommandLogic.resetInstance();
 			SkillLogic.resetInstance();
+			SubAgentLogic.resetInstance();
 
 			// 4. 清理全局引用
 			clearGlobalApp();
@@ -98,6 +110,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			agentStore.reset();
 			settingsStore.reset();
 			skillStore.reset();
+			subAgentStore.reset();
 		} catch (error) {
 			console.error('Error during plugin cleanup:', error);
 		}
@@ -214,6 +227,52 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 		);
 	}
 
+	private registerSubAgentFileWatcher(): void {
+		const SUBAGENT_FOLDER = 'obsidian-agent/subagents';
+
+		this.registerEvent(
+			this.app.vault.on('modify', (file: TAbstractFile) => {
+				if (file instanceof TFile &&
+				    file.path.startsWith(SUBAGENT_FOLDER) &&
+				    file.name === 'AGENT.md') {
+					SubAgentLogic.getInstance().loadSubAgents().then(() => {
+						return AIToolManager.getInstance().updateSubAgents();
+					}).catch(error => {
+						console.error('Failed to reload subagents:', error);
+					});
+				}
+			})
+		);
+
+		this.registerEvent(
+			this.app.vault.on('create', (file: TAbstractFile) => {
+				if (file instanceof TFile &&
+				    file.path.startsWith(SUBAGENT_FOLDER) &&
+				    file.name === 'AGENT.md') {
+					SubAgentLogic.getInstance().loadSubAgents().then(() => {
+						return AIToolManager.getInstance().updateSubAgents();
+					}).catch(error => {
+						console.error('Failed to reload subagents:', error);
+					});
+				}
+			})
+		);
+
+		this.registerEvent(
+			this.app.vault.on('delete', (file: TAbstractFile) => {
+				if (file instanceof TFile &&
+				    file.path.startsWith(SUBAGENT_FOLDER) &&
+				    file.name === 'AGENT.md') {
+					SubAgentLogic.getInstance().loadSubAgents().then(() => {
+						return AIToolManager.getInstance().updateSubAgents();
+					}).catch(error => {
+						console.error('Failed to reload subagents:', error);
+					});
+				}
+			})
+		);
+	}
+
 	private async initializeAgent(): Promise<void> {
 		const settingsState = settingsStore.getState();
 		const modelConfigs = settingsState.models;
@@ -248,10 +307,10 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 				await aiToolManager.updateMCPServers(mcpServers);
 			}
 
-			// 初始化SubAgent配置（只有在有配置时才初始化）
-			const subAgents = settingsState.subAgents;
+			// 初始化SubAgent配置（从文件系统加载）
+			const subAgents = SubAgentLogic.getInstance().getEnabledSubAgents();
 			if (subAgents && subAgents.length > 0) {
-				await aiToolManager.updateSubAgents(subAgents);
+				await aiToolManager.updateSubAgents();
 			}
 
 			// 初始化Exa搜索配置

@@ -44,11 +44,6 @@ Treat the skill as an "execution contract" and lock the spec before writing:
 Write it like an operator playbook, not an essay:
 
 \`\`\`markdown
----
-name: <skill-name>
-description: <Third-person description; include triggers and scenarios>
----
-
 You are <role>.
 
 # OBJECTIVE
@@ -266,9 +261,119 @@ Cannot use these names (reserved by system):
   builtin: true,
 };
 
+// 内置技能：create-agent（指导用户创建子代理）
+const CREATE_AGENT_SKILL: BuiltinSkillConfig = {
+  name: 'create-agent',
+  description: 'Guides users through creating specialized SubAgents with custom system prompts and tool configurations. Use when you want to create task-specific AI agents.',
+  body: `You are the "SubAgent Authoring Coach" for obsidian-agent.
+
+# OBJECTIVE
+Help the user create a specialized SubAgent: define its role, system prompt, and tool permissions.
+
+# WORKFLOW
+
+## Step 1: Clarify Requirements
+Use \`askQuestion\` to collect:
+1. **What specific task should this agent handle?**
+   - What problem does it solve?
+   - What expertise/personality should it have?
+2. **Which tools should it have access to?**
+   - List available tools and ask which ones to enable
+   - Common tools: \`readNoteByPath\`, \`editFile\`, \`search\`, \`webFetch\`
+   - Can leave empty for full access or specify a subset
+
+## Step 2: Define the Agent
+- **Name**: kebab-case (e.g., "code-reviewer", "translator", "research-assistant")
+- **Description**: Clear, specific, includes trigger scenarios
+- **Model**: SubAgents use the same model as the main agent (no need to specify)
+- **Tools**: List of permitted tool names (optional)
+
+## Step 3: Generate AGENT.md
+Structure:
+\`\`\`markdown
+---
+name: <agent-name>
+description: <description>
+tools:
+  - <tool1>
+  - <tool2>
+---
+
+<system prompt content>
+\`\`\`
+
+### System Prompt Guidelines
+Write the system prompt as a comprehensive guide:
+- Define the agent's role and expertise
+- Specify the workflow or steps it should follow
+- Include important rules and constraints
+- Handle edge cases
+
+Example system prompt structure:
+\`\`\`
+You are a specialized <role>.
+
+# OBJECTIVE
+<Clear goal description>
+
+# WORKFLOW
+## Step 1: <action>
+<detailed instructions>
+
+## Step 2: <action>
+<detailed instructions>
+
+# IMPORTANT RULES
+- <rule 1>
+- <rule 2>
+
+# EDGE CASES
+- <case 1>: <handling>
+\`\`\`
+
+## Step 4: Create File
+Use \`createArtifact\` with type="subagent":
+\`\`\`
+createArtifact({
+  type: "subagent",
+  name: "<agent-name>",
+  description: "<description including when to use>",
+  content: "<full system prompt>",
+  tools: ["tool1", "tool2"]
+})
+\`\`\`
+
+## Step 5: Deliver and Verify
+Tell the user:
+1. The SubAgent name and file path
+2. How it can be used (it becomes available as a tool)
+3. One example of how to test it
+
+# IMPORTANT RULES
+- Description must include "when to use" scenarios
+- System prompt should define clear role and responsibilities
+- Only include tools the agent actually needs
+- Model is automatically inherited from the main agent
+- Name must be unique and use kebab-case
+
+# EDGE CASES
+- If unclear about tools: suggest based on task description
+- Name conflict: suggest alternatives or clarify difference
+- User wants simple prompt template: suggest creating a command instead
+
+# TEMPLATE
+File path: \`obsidian-agent/subagents/<agent-name>/AGENT.md\``,
+  license: 'MIT',
+  compatibility: 'obsidian-agent',
+  filePath: 'builtin://create-agent',
+  enabled: false,
+  builtin: true,
+};
+
 export const BUILTIN_SKILLS: BuiltinSkillConfig[] = [
   CREATE_SKILL_SKILL,
   CREATE_COMMAND_SKILL,
+  CREATE_AGENT_SKILL,
 ];
 
 export function getBuiltinSkill(name: string): BuiltinSkillConfig | undefined {

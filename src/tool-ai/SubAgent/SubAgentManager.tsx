@@ -1,27 +1,34 @@
 import SubAgent from "@/llm-ai/SubAgent";
 import { ToolMessage } from "@/messages/tool-message";
 import { UserMessage } from "@/messages/user-message";
-import { settingsStore } from "@/state/settings-state-impl";
-import { MessageV2, ModelConfig, SubAgentConfig } from "@/types";
+import { MessageV2, SubAgentConfig } from "@/types";
 import { SubAgentMessagesCard } from "@/ui/components/agent-view/messages/messages";
 import { tool, ToolSet } from "ai";
 import { z } from 'zod';
+import SubAgentLogic from "@/logic/subagent-logic";
+import AIModelManager from "@/llm-ai/ModelManager";
 
 
 export default class SubAgentManager {
-  private subAgentConfigs: SubAgentConfig[] = [];
-
-  updateSubAgents(subAgents: SubAgentConfig[]) {
-    this.subAgentConfigs = subAgents;
+  updateSubAgents() {
   }
 
   getEnabledTools(allToolSet: ToolSet): ToolSet {
-    const enableSubAgents = this.subAgentConfigs.filter(subAgent => subAgent.enabled)
-    if (enableSubAgents.length === 0) {
+    const enabledSubAgents = SubAgentLogic.getInstance().getEnabledSubAgents();
+    if (enabledSubAgents.length === 0) {
       return {};
     }
+
+    const modelManager = AIModelManager.getInstance();
+    const agentModelConfig = modelManager.agentModelConfig;
+    
+    if (!agentModelConfig) {
+      console.warn('SubAgentManager: No agent model configured');
+      return {};
+    }
+
     const toolSet: ToolSet = {}
-    enableSubAgents.forEach(config => {
+    enabledSubAgents.forEach(config => {
       const agentTool = tool({
         title: config.name,
         description: config.description,
@@ -37,15 +44,9 @@ export default class SubAgentManager {
           toolMessage.setChildren(render(messages));
           context.addMessage(toolMessage)
 
-          const modelConfig = getModelConfig(config.modelId);
-          if (!modelConfig) {
-            throw new Error(`Model with ID "${config.modelId}" not found`);
-          }
-
-          const agent = new SubAgent(config.name, config.systemPrompt, config.description, modelConfig)
+          const agent = new SubAgent(config.name, config.systemPrompt, config.description, agentModelConfig)
           agent.setTools(getToolSetForSubAgent(config, allToolSet))
 
-          // Todo Tools
           const text = await agent.query(userMessage, abortSignal ?? new AbortController().signal, (message: MessageV2) => {
             messages = [...messages, message];
             toolMessage.setChildren(render(messages));
@@ -67,13 +68,9 @@ function render(messages: MessageV2[]): React.ReactNode {
   )
 }
 
-function getModelConfig(modelId: string): ModelConfig | null {
-  const state = settingsStore.getState();
-  const models = state.models;
-  return models.find((model: ModelConfig) => model.id === modelId) || null;
-}
-
 function getToolSetForSubAgent(config: SubAgentConfig, toolSet: ToolSet): ToolSet {
-  const enabledToolNames = config.tools.filter(tool => tool.enabled).map(tool => tool.name);
-  return Object.fromEntries(Object.entries(toolSet).filter(([k, v]) => enabledToolNames.includes(k)))
+  if (!config.tools || config.tools.length === 0) {
+    return {};
+  }
+  return Object.fromEntries(Object.entries(toolSet).filter(([k, v]) => config.tools!.includes(k)))
 }

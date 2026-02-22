@@ -10,11 +10,11 @@ import { SettingSwitch } from "@/ui/elements/setting-switch";
 export const SkillSetting: React.FC = () => {
   const skills = useSkillStore((state) => state.skills);
 
-  const handleToggleSkill = (skill: SkillConfig, enabled: boolean) => {
+  const handleToggleSkill = async (skill: SkillConfig, enabled: boolean) => {
     if (enabled) {
-      SkillLogic.getInstance().enableSkill(skill.name);
+      await SkillLogic.getInstance().enableSkill(skill.name);
     } else {
-      SkillLogic.getInstance().disableSkill(skill.name);
+      await SkillLogic.getInstance().disableSkill(skill.name);
     }
   };
 
@@ -46,7 +46,6 @@ export const SkillSetting: React.FC = () => {
                   <TableHead className="tw-w-20">Status</TableHead>
                   <TableHead>Skill</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead>Usage</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -77,23 +76,6 @@ export const SkillSetting: React.FC = () => {
                       <TableCell className="tw-text-muted-foreground">
                         {skill.description}
                       </TableCell>
-                      <TableCell className="tw-text-muted-foreground tw-text-xs">
-                        {isBuiltin ? (
-                          <code className="tw-px-1 tw-bg-muted tw-rounded">
-                            skill({`"${skill.name}"`})
-                          </code>
-                        ) : (
-                          <>
-                            <code className="tw-px-1 tw-bg-muted tw-rounded">
-                              /{skill.name}
-                            </code>
-                            {' '}or{' '}
-                            <code className="tw-px-1 tw-bg-muted tw-rounded">
-                              skill({`"${skill.name}"`})
-                            </code>
-                          </>
-                        )}
-                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -117,6 +99,7 @@ export const SkillSetting: React.FC = () => {
 {`---
 name: translate-text
 description: Guidelines for translating text to English
+enabled: true
 license: MIT
 compatibility: opencode
 metadata:

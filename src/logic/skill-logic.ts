@@ -94,7 +94,7 @@ export class SkillLogic {
         compatibility: frontmatter.compatibility,
         metadata: frontmatter.metadata,
         filePath,
-        enabled: existingSkill?.enabled ?? false,
+        enabled: frontmatter.enabled ?? existingSkill?.enabled ?? false,
       };
     } catch (error) {
       console.error(`Failed to load skill file ${filePath}:`, error);
@@ -174,13 +174,46 @@ export class SkillLogic {
   }
 
   // 启用 skill（全局）
-  enableSkill(name: string): void {
+  async enableSkill(name: string): Promise<void> {
     skillStore.getState().setSkillEnabled(name, true);
+    await this.updateSkillEnabledInFile(name, true);
   }
 
   // 禁用 skill（全局）
-  disableSkill(name: string): void {
+  async disableSkill(name: string): Promise<void> {
     skillStore.getState().setSkillEnabled(name, false);
+    await this.updateSkillEnabledInFile(name, false);
+  }
+
+  private async updateSkillEnabledInFile(name: string, enabled: boolean): Promise<void> {
+    const skill = this.getSkillByName(name);
+    if (!skill || !skill.filePath || skill.filePath.startsWith('builtin://')) {
+      return;
+    }
+
+    try {
+      const content = await this.app!.vault.adapter.read(skill.filePath);
+      const { frontmatter, body } = this.parseFrontmatter(content);
+      
+      if (!frontmatter) {
+        return;
+      }
+      
+      const updatedSkill: Omit<SkillConfig, 'filePath'> = {
+        name: frontmatter.name,
+        description: frontmatter.description,
+        body: body.trim(),
+        enabled,
+        license: frontmatter.license,
+        compatibility: frontmatter.compatibility,
+        metadata: frontmatter.metadata,
+      };
+      
+      const newContent = SkillLogic.formatSkillFile(updatedSkill);
+      await this.app!.vault.adapter.write(skill.filePath, newContent);
+    } catch (error) {
+      console.error(`Failed to update skill enabled status in file:`, error);
+    }
   }
 
   // 会话级：激活 skill
@@ -277,8 +310,8 @@ export class SkillLogic {
   }
 
   // 格式化 skill 文件内容
-  static formatSkillFile(config: Omit<SkillConfig, 'filePath' | 'enabled'>): string {
-    let frontmatter = `---\nname: ${config.name}\ndescription: ${config.description}`;
+  static formatSkillFile(config: Omit<SkillConfig, 'filePath'>): string {
+    let frontmatter = `---\nname: ${config.name}\ndescription: ${config.description}\nenabled: ${config.enabled}`;
     
     if (config.license) {
       frontmatter += `\nlicense: ${config.license}`;

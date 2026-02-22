@@ -1,40 +1,29 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { ModelConfig, MCPServerConfig, BuiltinToolConfig, SubAgentConfig, ExaSearchConfig, BochaSearchConfig } from '../types';
+import { ModelConfig, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig } from '../types';
 import { getDefaultBuiltinTools } from '../tool-ai/BuiltinTools';
 import AIModelManager from '../llm-ai/ModelManager';
 import { SettingsStateData } from './settings-state';
 
 interface SettingsStore extends SettingsStateData {
-  // 模型管理
   addOrUpdateModel: (model: ModelConfig, originalId?: string) => void;
   removeModel: (modelId: string) => void;
   reorderModels: (newModels: ModelConfig[]) => void;
   setDefaultAgentModel: (model: ModelConfig | null) => void;
   setTitleModel: (model: ModelConfig | null) => void;
 
-  // MCP服务器配置管理
   addOrUpdateMCPServer: (server: MCPServerConfig, originalName?: string) => void;
   removeMCPServer: (serverName: string) => void;
   reorderMCPServers: (newServers: MCPServerConfig[]) => void;
 
-  // 内置工具管理
   updateBuiltinTool: (toolName: string, enabled: boolean) => void;
 
-  // SubAgent配置管理
-  addOrUpdateSubAgent: (subAgent: SubAgentConfig, originalName?: string) => void;
-  removeSubAgent: (subAgentName: string) => void;
-  reorderSubAgents: (newSubAgents: SubAgentConfig[]) => void;
-
-  // Exa搜索配置管理
   setExaSearchConfig: (config: ExaSearchConfig) => void;
   updateExaSearchEnabled: (enabled: boolean) => void;
 
-  // Bocha搜索配置管理
   setBochaSearchConfig: (config: BochaSearchConfig) => void;
   updateBochaSearchEnabled: (enabled: boolean) => void;
 
-  // 批量设置数据（用于加载）
   setAllData: (data: SettingsStateData) => void;
 }
 
@@ -44,7 +33,6 @@ const initialState: SettingsStateData = {
   titleModel: null,
   mcpServers: [],
   builtinTools: getDefaultBuiltinTools(),
-  subAgents: [],
   exaSearchConfig: {
     apiKey: "",
     enabled: false,
@@ -154,31 +142,6 @@ export const useSettingsStore = create<SettingsStore>()(
         }
       }),
 
-    addOrUpdateSubAgent: (subAgent: SubAgentConfig, originalName?: string) =>
-      set((state) => {
-        const existingIndex = state.subAgents.findIndex(
-          (s) => s.name === (originalName || subAgent.name)
-        );
-
-        if (existingIndex >= 0) {
-          // 更新现有SubAgent
-          state.subAgents[existingIndex] = subAgent;
-        } else {
-          // 添加新SubAgent
-          state.subAgents.push(subAgent);
-        }
-      }),
-
-    removeSubAgent: (subAgentName: string) =>
-      set((state) => {
-        state.subAgents = state.subAgents.filter((s) => s.name !== subAgentName);
-      }),
-
-    reorderSubAgents: (newSubAgents: SubAgentConfig[]) =>
-      set((state) => {
-        state.subAgents = newSubAgents;
-      }),
-
     setExaSearchConfig: (config: ExaSearchConfig) =>
       set((state) => {
         state.exaSearchConfig = config;
@@ -214,7 +177,6 @@ export const useSettingsStore = create<SettingsStore>()(
         state.titleModel = data.titleModel || null;
         state.mcpServers = data.mcpServers || [];
         state.builtinTools = builtinTools;
-        state.subAgents = data.subAgents || [];
         state.exaSearchConfig = data.exaSearchConfig || {
           apiKey: "",
           enabled: false,
