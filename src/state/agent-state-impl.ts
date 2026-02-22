@@ -42,13 +42,6 @@ export const useAgentStore = create<AgentStore>()(
           state.messages.pop();
         }
 
-        // 限制消息数量，防止内存无限增长
-        const MAX_MESSAGES = 100;
-        if (state.messages.length >= MAX_MESSAGES) {
-          // 保留最新的消息，移除最旧的消息
-          state.messages = state.messages.slice(-MAX_MESSAGES + 1);
-        }
-
         state.messages.push(message);
       }),
 

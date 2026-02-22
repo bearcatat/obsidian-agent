@@ -55,21 +55,28 @@ export const Messages = memo(
 
 
 type Props = {
+  name: string;
   messages: MessageV2[];
 }
-export const SubAgentMessagesCard = memo(({ messages }: Props) => {
+
+export const SubAgentMessagesCard = memo(({ name, messages }: Props) => {
   const messageElements = useMemo(() => {
     return messages.map((message: MessageV2) => {
       return cloneElement(message.render(), { key: message.id });
     });
   }, [messages]);
+
+  // 检测是否有流式消息正在生成
+  const isStreaming = useMemo(() => {
+    return messages.some(message => message.isStreaming);
+  }, [messages]);
+
   return (
-    <div className="tw-flex tw-h-full tw-flex-1 tw-flex-col tw-overflow-hidden">
-      <div
-        className="tw-mt-auto tw-box-border tw-flex tw-w-full tw-flex-1 tw-select-text tw-flex-col tw-items-start tw-justify-start tw-overflow-y-auto tw-scroll-smooth tw-break-words tw-text-[calc(var(--font-text-size)_-_2px)] tw-space-y-1"
-      >
+    <details className="tw-flex-col tw-group tw-flex tw-rounded-md tw-p-1 tw-border tw-border-solid tw-border-border" open={isStreaming}>
+      <summary className="tw-cursor-pointer tw-text-muted tw-text-xs tw-select-none">🤖 {name}</summary>
+      <div className="tw-text-muted tw-p-1 tw-rounded-sm tw-bg-primary tw-max-h-64 tw-overflow-y-auto">
         {messageElements}
       </div>
-    </div>
+    </details>
   )
 })

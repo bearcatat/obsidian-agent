@@ -21,7 +21,7 @@ export default class SubAgentManager {
 
     const modelManager = AIModelManager.getInstance();
     const agentModelConfig = modelManager.agentModelConfig;
-    
+
     if (!agentModelConfig) {
       console.warn('SubAgentManager: No agent model configured');
       return {};
@@ -41,15 +41,21 @@ export default class SubAgentManager {
 
           let messages: MessageV2[] = [userMessage];
           const toolMessage = ToolMessage.from(config.name, toolCallId)
-          toolMessage.setChildren(render(messages));
-          context.addMessage(toolMessage)
+            toolMessage.setChildren(render(config.name, messages));
+            context.addMessage(toolMessage)
 
           const agent = new SubAgent(config.name, config.systemPrompt, config.description, agentModelConfig)
           agent.setTools(getToolSetForSubAgent(config, allToolSet))
 
           const text = await agent.query(userMessage, abortSignal ?? new AbortController().signal, (message: MessageV2) => {
+            const lastMessage = messages[messages.length - 1];
+            // 优化流式消息处理：移除之前的流式消息，如果消息id相同
+            if (lastMessage && lastMessage.id === message.id) {
+              messages.pop();
+            }
             messages = [...messages, message];
-            toolMessage.setChildren(render(messages));
+            
+          toolMessage.setChildren(render(config.name, messages));
             context.addMessage(toolMessage)
           })
           return text
@@ -61,10 +67,10 @@ export default class SubAgentManager {
   }
 }
 
-function render(messages: MessageV2[]): React.ReactNode {
-  const messagesOnlyWithTools = messages.filter((message: MessageV2) => message.role === "tool");
+function render(name: string, messages: MessageV2[]): React.ReactNode {
+  // const messagesOnlyWithTools = messages.filter((message: MessageV2) => message.role === "tool");
   return (
-    <SubAgentMessagesCard messages={messagesOnlyWithTools} />
+    <SubAgentMessagesCard name={name} messages={messages} />
   )
 }
 
