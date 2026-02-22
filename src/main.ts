@@ -1,4 +1,4 @@
-import { Plugin } from 'obsidian';
+import { Plugin, TFile, TAbstractFile } from 'obsidian';
 import { IObsidianAgentPlugin } from './types';
 import { UIManager } from './ui/ui-manager';
 import { settingsStore } from './state/settings-state-impl';
@@ -13,6 +13,8 @@ import { InputEditorState } from './state/input-editor-state';
 import AIToolManager from './tool-ai/ToolManager';
 import AIModelManager from './llm-ai/ModelManager';
 import CommandLogic from './logic/command-logic';
+import SkillLogic from './logic/skill-logic';
+import { skillStore } from './state/skill-state';
 
 export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgentPlugin {
 	private uiManager: UIManager;
@@ -24,6 +26,9 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 		// 初始化CommandLogic
 		CommandLogic.getInstance().setApp(this.app);
 
+		// 初始化SkillLogic
+		SkillLogic.getInstance().setApp(this.app);
+
 		try {
 			// 优先初始化设置，确保模型配置可用
 			await this.initializeSettings();
@@ -33,6 +38,15 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 			// 加载命令
 			await CommandLogic.getInstance().loadCommands();
+
+			// 加载skills
+			await SkillLogic.getInstance().loadSkills();
+
+			// 注册skill文件自动刷新监听
+			this.registerSkillFileWatcher();
+
+			// 注册command文件自动刷新监听
+			this.registerCommandFileWatcher();
 
 			// 异步初始化Agent工具（非阻塞）
 			this.initializeAgent().catch(error => {
@@ -75,6 +89,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			ChatMenuManager.resetInstance();
 			InputEditorState.resetInstance();
 			CommandLogic.resetInstance();
+			SkillLogic.resetInstance();
 
 			// 4. 清理全局引用
 			clearGlobalApp();
@@ -82,6 +97,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			// 5. 重置状态实例
 			agentStore.reset();
 			settingsStore.reset();
+			skillStore.reset();
 		} catch (error) {
 			console.error('Error during plugin cleanup:', error);
 		}
@@ -110,6 +126,98 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 	private initializeUI(): void {
 		this.uiManager = new UIManager(this);
 		this.uiManager.setupUI();
+	}
+
+	private registerSkillFileWatcher(): void {
+		const SKILL_FOLDER = 'obsidian-agent/skills';
+		
+		// 监听文件修改
+		this.registerEvent(
+			this.app.vault.on('modify', (file: TAbstractFile) => {
+				if (file instanceof TFile && 
+				    file.path.startsWith(SKILL_FOLDER) && 
+				    file.name === 'SKILL.md') {
+					console.log(`Skill file modified: ${file.path}, reloading skills...`);
+					SkillLogic.getInstance().loadSkills().catch(error => {
+						console.error('Failed to reload skills:', error);
+					});
+				}
+			})
+		);
+
+		// 监听文件创建（新增skill文件夹）
+		this.registerEvent(
+			this.app.vault.on('create', (file: TAbstractFile) => {
+				if (file instanceof TFile && 
+				    file.path.startsWith(SKILL_FOLDER) && 
+				    file.name === 'SKILL.md') {
+					console.log(`Skill file created: ${file.path}, reloading skills...`);
+					SkillLogic.getInstance().loadSkills().catch(error => {
+						console.error('Failed to reload skills:', error);
+					});
+				}
+			})
+		);
+
+		// 监听文件删除
+		this.registerEvent(
+			this.app.vault.on('delete', (file: TAbstractFile) => {
+				if (file instanceof TFile && 
+				    file.path.startsWith(SKILL_FOLDER) && 
+				    file.name === 'SKILL.md') {
+					console.log(`Skill file deleted: ${file.path}, reloading skills...`);
+					SkillLogic.getInstance().loadSkills().catch(error => {
+						console.error('Failed to reload skills:', error);
+					});
+				}
+			})
+		);
+	}
+
+	private registerCommandFileWatcher(): void {
+		const COMMAND_FOLDER = 'obsidian-agent/commands';
+
+		// 监听文件修改
+		this.registerEvent(
+			this.app.vault.on('modify', (file: TAbstractFile) => {
+				if (file instanceof TFile &&
+				    file.path.startsWith(COMMAND_FOLDER) &&
+				    file.extension === 'md') {
+					console.log(`Command file modified: ${file.path}, reloading commands...`);
+					CommandLogic.getInstance().loadCommands().catch(error => {
+						console.error('Failed to reload commands:', error);
+					});
+				}
+			})
+		);
+
+		// 监听文件创建
+		this.registerEvent(
+			this.app.vault.on('create', (file: TAbstractFile) => {
+				if (file instanceof TFile &&
+				    file.path.startsWith(COMMAND_FOLDER) &&
+				    file.extension === 'md') {
+					console.log(`Command file created: ${file.path}, reloading commands...`);
+					CommandLogic.getInstance().loadCommands().catch(error => {
+						console.error('Failed to reload commands:', error);
+					});
+				}
+			})
+		);
+
+		// 监听文件删除
+		this.registerEvent(
+			this.app.vault.on('delete', (file: TAbstractFile) => {
+				if (file instanceof TFile &&
+				    file.path.startsWith(COMMAND_FOLDER) &&
+				    file.extension === 'md') {
+					console.log(`Command file deleted: ${file.path}, reloading commands...`);
+					CommandLogic.getInstance().loadCommands().catch(error => {
+						console.error('Failed to reload commands:', error);
+					});
+				}
+			})
+		);
 	}
 
 	private async initializeAgent(): Promise<void> {

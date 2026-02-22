@@ -1,70 +1,23 @@
-import { Button } from "@/ui/elements/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/ui/elements/tables";
-import { RefreshCw, FileCode, FolderOpen, Terminal } from "lucide-react";
+import { FileCode, Terminal } from "lucide-react";
 import React from "react";
 import { CommandConfig } from "@/types";
 import CommandLogic from "@/logic/command-logic";
-import { useApp } from "@/hooks/app-context";
 
 export const CommandSetting: React.FC = () => {
   const [allCommands, setAllCommands] = React.useState<(CommandConfig & { builtin?: boolean })[]>([]);
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const app = useApp();
 
   React.useEffect(() => {
     setAllCommands(CommandLogic.getInstance().getAllCommands());
   }, []);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await CommandLogic.getInstance().loadCommands();
-      setAllCommands(CommandLogic.getInstance().getAllCommands());
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  const handleOpenFolder = async () => {
-    if (!app) return;
-    const adapter = app.vault.adapter;
-    const folderPath = 'obsidian-agent/commands';
-    
-    if (!await adapter.exists(folderPath)) {
-      await adapter.mkdir(folderPath);
-    }
-  };
 
   const builtinCommands = allCommands.filter(cmd => cmd.builtin);
   const userCommands = allCommands.filter(cmd => !cmd.builtin);
 
   return (
     <div className="tw-space-y-6">
-      <div className="tw-flex tw-justify-between tw-items-center">
-        <div className="tw-text-sm tw-text-muted-foreground">
-          Custom commands are stored as Markdown files in <code className="tw-px-1 tw-py-0.5 tw-bg-muted tw-rounded">obsidian-agent/commands/</code>
-        </div>
-        <div className="tw-flex tw-gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleOpenFolder}
-            className="tw-flex tw-items-center tw-gap-2"
-          >
-            <FolderOpen className="tw-size-4" />
-            Open Folder
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="tw-flex tw-items-center tw-gap-2"
-          >
-            <RefreshCw className={`tw-size-4 ${isRefreshing ? 'tw-animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
+      <div className="tw-text-sm tw-text-muted-foreground">
+        Custom commands are stored as Markdown files in <code className="tw-px-1 tw-py-0.5 tw-bg-muted tw-rounded">obsidian-agent/commands/</code>
       </div>
 
       {builtinCommands.length > 0 && (

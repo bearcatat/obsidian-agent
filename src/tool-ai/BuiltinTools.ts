@@ -48,8 +48,13 @@ export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
     enabled: true,
   },
   {
-    name: "createCommand",
-    description: "Create a new custom command",
+    name: "createArtifact",
+    description: "Create a new command or skill file",
+    enabled: true,
+  },
+  {
+    name: "skill",
+    description: "Load a skill (SKILL.md file) on-demand",
     enabled: true,
   }
 ];

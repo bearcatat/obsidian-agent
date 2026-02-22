@@ -1,23 +1,26 @@
 import { TabContent, TabItem, type TabItem as TabItemType } from "../../elements/tab";
-import { Bot, Wrench, Terminal } from "lucide-react";
+import { Bot, Wrench, Terminal, Target } from "lucide-react";
 import { ModelSetting } from "./tabs/model-setting";
 import { useTab } from "../../../hooks/TabContext";
 import { ToolSetting } from "./tabs/tool-setting";
 import { CommandSetting } from "./tabs/command-setting";
+import { SkillSetting } from "./tabs/skill-setting";
 
-const TAB_IDS = ["model","tool","command"] as const;
+const TAB_IDS = ["model","tool","command","skill"] as const;
 type TabId = (typeof TAB_IDS)[number];
 
 const icons: Record<TabId, React.ReactNode> = {
   model: <Bot className="tw-size-5" />,
   tool: <Wrench className="tw-size-5" />,
   command: <Terminal className="tw-size-5" />,
+  skill: <Target className="tw-size-5" />,
 };
 
 const components: Record<TabId, React.FC> = {
   model: () => <ModelSetting />,
   tool: () => <ToolSetting />,
   command: () => <CommandSetting />,
+  skill: () => <SkillSetting />,
 };
 
 // tabs

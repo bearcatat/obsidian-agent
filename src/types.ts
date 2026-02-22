@@ -166,3 +166,15 @@ export interface CommandConfig {
   description?: string;   // Description shown in autocomplete
   filePath?: string;      // Source file path
 }
+
+// Skill Configuration
+export interface SkillConfig {
+  name: string;           // Skill name (lowercase with hyphens, e.g., "translate-text")
+  description: string;    // Description for tool and UI
+  body: string;           // Skill content (markdown body)
+  license?: string;       // Optional license
+  compatibility?: string; // Optional compatibility info
+  metadata?: Record<string, string>; // Optional metadata
+  filePath: string;       // Source file path
+  enabled: boolean;       // Whether skill is globally enabled
+}

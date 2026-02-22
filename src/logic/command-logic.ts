@@ -2,6 +2,8 @@ import { App, TFile, TFolder } from 'obsidian';
 import { CommandConfig } from '../types';
 import { commandStore } from '../state/command-state';
 import { BUILTIN_COMMANDS, getBuiltinCommand, isBuiltinCommand, BuiltinCommandConfig } from './builtin-commands';
+import { isBuiltinSkill } from './builtin-skills';
+import SkillLogic from './skill-logic';
 
 const COMMANDS_FOLDER = 'obsidian-agent/commands';
 
@@ -9,7 +11,7 @@ export class CommandLogic {
   private static instance: CommandLogic;
   private app: App | null = null;
 
-  private constructor() {}
+  private constructor() { }
 
   static getInstance(): CommandLogic {
     if (!CommandLogic.instance) {
@@ -42,7 +44,7 @@ export class CommandLogic {
       }
 
       const files = await adapter.list(COMMANDS_FOLDER);
-      
+
       for (const filePath of files.files) {
         if (filePath.endsWith('.md')) {
           const command = await this.loadCommandFile(filePath);
@@ -66,15 +68,15 @@ export class CommandLogic {
     try {
       const content = await this.app.vault.adapter.read(filePath);
       const { frontmatter, body } = this.parseFrontmatter(content);
-      
+
       const name = frontmatter?.name || this.getFileNameWithoutExtension(filePath);
-      
-    return {
-      name,
-      template: body.trim(),
-      description: frontmatter?.description,
-      filePath,
-    };
+
+      return {
+        name,
+        template: body.trim(),
+        description: frontmatter?.description,
+        filePath,
+      };
     } catch (error) {
       console.error(`Failed to load command file ${filePath}:`, error);
       return null;
@@ -99,11 +101,11 @@ export class CommandLogic {
       if (colonIndex > 0) {
         const key = line.slice(0, colonIndex).trim();
         let value: any = line.slice(colonIndex + 1).trim();
-        
+
         if (value === 'true') value = true;
         else if (value === 'false') value = false;
         else if (!isNaN(Number(value)) && value !== '') value = Number(value);
-        
+
         if (key) {
           frontmatter[key] = value;
         }
@@ -120,8 +122,9 @@ export class CommandLogic {
 
   parseInput(input: string): { commandName: string; args: string } | null {
     const trimmed = input.trim();
-    const commandRegex = /^\/(\S+)\s*(.*)$/;
+    const commandRegex = /^\/(\S+)\s*(.*)$/s;
     const match = trimmed.match(commandRegex);
+    console.log(match)
 
     if (!match) return null;
 
@@ -173,7 +176,7 @@ export class CommandLogic {
     if (!this.app) return null;
 
     let filePath = refPath;
-    
+
     if (!filePath.endsWith('.md') && !filePath.includes('.')) {
       filePath += '.md';
     }
@@ -194,12 +197,23 @@ export class CommandLogic {
   async processCommand(input: string): Promise<string | null> {
     const parsed = this.parseInput(input);
     if (!parsed) return null;
+    console.log(parsed)
 
     const builtinCommand = getBuiltinCommand(parsed.commandName);
     if (builtinCommand) {
       let content = this.expandTemplate(builtinCommand.template, parsed.args);
       content = await this.resolveFileReferences(content);
       return content;
+    }
+
+    // 检查是否是 skill 触发命令
+    const skill = SkillLogic.getInstance().getSkillByName(parsed.commandName);
+    if (skill) {
+      console.log(parsed.commandName)
+      // 激活该 skill 用于当前会话
+      SkillLogic.getInstance().activateSessionSkill(parsed.commandName);
+      // 返回 skill 的 body 内容
+      return input;
     }
 
     const commands = commandStore.getState().commands;
@@ -217,15 +231,26 @@ export class CommandLogic {
     return BUILTIN_COMMANDS;
   }
 
-  getAllCommands(): (CommandConfig & { builtin?: boolean })[] {
+  getAllCommands(): (CommandConfig & { builtin?: boolean; isSkill?: boolean; builtinSkill?: boolean })[] {
     const userCommands = commandStore.getState().commands;
     const builtinCommands = BUILTIN_COMMANDS.map(cmd => ({ ...cmd, builtin: true }));
-    
+
     const filteredUserCommands = userCommands.filter(
       (cmd: CommandConfig) => !isBuiltinCommand(cmd.name)
     );
-    
-    return [...builtinCommands, ...filteredUserCommands];
+
+    // 添加 skills 作为命令（用于自动补全和展示）
+    const skills = SkillLogic.getInstance().getSkills();
+    const skillCommands = skills.map(skill => ({
+      name: skill.name,
+      template: skill.body,
+      description: `${skill.description} (${isBuiltinSkill(skill.name) ? 'builtin skill' : 'skill'})`,
+      filePath: skill.filePath,
+      isSkill: true,
+      builtinSkill: isBuiltinSkill(skill.name),
+    }));
+
+    return [...builtinCommands, ...filteredUserCommands, ...skillCommands];
   }
 
   getCommands(): CommandConfig[] {

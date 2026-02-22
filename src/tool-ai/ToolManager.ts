@@ -11,9 +11,11 @@ import { SearchTool, toolName as SearchToolName } from "./Search/SearchTool";
 import { ExaWebSearchTool, toolName as ExaWebSearchToolName, updateExaConfig } from "./ExaSearch/ExaSearchTool";
 import { BochaWebSearchTool, toolName as BochaWebSearchToolName, updateBochaConfig } from "./BochaSearch/BochaSearchTool";
 import { ListTool, toolName as ListToolName } from "./List/ListTool";
-import { CreateCommandTool, toolName as CreateCommandToolName } from "./CreateCommand/CreateCommandTool";
+import { CreateArtifactTool, toolName as CreateArtifactToolName } from "./CreateArtifact/CreateArtifactTool";
+import { SkillTool, toolName as SkillToolName } from "./Skill/SkillTool";
 import MCPManager from "./MCP/MCPManager";
 import SubAgentManager from "./SubAgent/SubAgentManager";
+import SkillLogic from "../logic/skill-logic";
 
 
 export default class AIToolManager {
@@ -28,7 +30,8 @@ export default class AIToolManager {
     [WebFetchToolName]: WebFetchTool,
     [SearchToolName]: SearchTool,
     [ListToolName]: ListTool,
-    [CreateCommandToolName]: CreateCommandTool,
+    [CreateArtifactToolName]: CreateArtifactTool,
+    [SkillToolName]: SkillTool,
   }
 
   private builtinToolConfigs: BuiltinToolConfig[] = [];

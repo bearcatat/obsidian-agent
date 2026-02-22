@@ -5,6 +5,7 @@ import { getSystemPrompts, getTitleGenerationPrompt } from "./system-prompts";
 import AIToolManager from "@/tool-ai/ToolManager";
 import { MessageV2 } from "@/types";
 import AIModelManager from "./ModelManager";
+import SkillLogic from "@/logic/skill-logic";
 
 export default class AIAgent {
     private static instance: AIAgent
@@ -38,6 +39,23 @@ export default class AIAgent {
         return mergedTools;
     }
 
+    private buildSystemPrompt(): string {
+        const basePrompt = getSystemPrompts()[0];
+        const skillLogic = SkillLogic.getInstance();
+        const activeSkills = skillLogic.getActiveSkillsForSession();
+        
+        if (activeSkills.length === 0) {
+            return basePrompt;
+        }
+        
+        // 构建 skills 部分
+        const skillsContent = activeSkills.map(skill => {
+            return `## Skill: ${skill.name}\n${skill.description}\n\n${skill.body}`;
+        }).join('\n\n---\n\n');
+        
+        return `${basePrompt}\n\n# Active Skills\n\nThe following skills are active for this conversation:\n\n${skillsContent}`;
+    }
+
     async query(message: UserMessage,
         abortController: AbortController,
         addMessage: (message: MessageV2) => void
@@ -47,9 +65,11 @@ export default class AIAgent {
         const builtinTools = modelManager.agentConfig.tools;
         const mergedTools = this.mergeTools(userTools, builtinTools);
 
+        console.log(this.buildSystemPrompt())
+
         const agent = new ToolLoopAgent({
             ...modelManager.agentConfig,
-            instructions: getSystemPrompts()[0],
+            instructions: this.buildSystemPrompt(),
             tools: mergedTools,
             toolChoice: 'auto',
             experimental_context: {
@@ -86,5 +106,7 @@ export default class AIAgent {
 
     async clearMemory(): Promise<void> {
         this.messages = new Array<ModelMessage>()
+        // 清除会话级激活的技能，避免影响新对话
+        SkillLogic.getInstance().clearSessionSkills()
     }
 }
