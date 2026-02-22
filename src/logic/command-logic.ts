@@ -124,7 +124,6 @@ export class CommandLogic {
     const trimmed = input.trim();
     const commandRegex = /^\/(\S+)\s*(.*)$/s;
     const match = trimmed.match(commandRegex);
-    console.log(match)
 
     if (!match) return null;
 
@@ -197,7 +196,6 @@ export class CommandLogic {
   async processCommand(input: string): Promise<string | null> {
     const parsed = this.parseInput(input);
     if (!parsed) return null;
-    console.log(parsed)
 
     const builtinCommand = getBuiltinCommand(parsed.commandName);
     if (builtinCommand) {
@@ -209,7 +207,6 @@ export class CommandLogic {
     // 检查是否是 skill 触发命令
     const skill = SkillLogic.getInstance().getSkillByName(parsed.commandName);
     if (skill) {
-      console.log(parsed.commandName)
       // 激活该 skill 用于当前会话
       SkillLogic.getInstance().activateSessionSkill(parsed.commandName);
       // 返回 skill 的 body 内容

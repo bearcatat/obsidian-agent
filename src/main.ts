@@ -137,7 +137,6 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 				if (file instanceof TFile && 
 				    file.path.startsWith(SKILL_FOLDER) && 
 				    file.name === 'SKILL.md') {
-					console.log(`Skill file modified: ${file.path}, reloading skills...`);
 					SkillLogic.getInstance().loadSkills().catch(error => {
 						console.error('Failed to reload skills:', error);
 					});
@@ -151,7 +150,6 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 				if (file instanceof TFile && 
 				    file.path.startsWith(SKILL_FOLDER) && 
 				    file.name === 'SKILL.md') {
-					console.log(`Skill file created: ${file.path}, reloading skills...`);
 					SkillLogic.getInstance().loadSkills().catch(error => {
 						console.error('Failed to reload skills:', error);
 					});
@@ -165,7 +163,6 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 				if (file instanceof TFile && 
 				    file.path.startsWith(SKILL_FOLDER) && 
 				    file.name === 'SKILL.md') {
-					console.log(`Skill file deleted: ${file.path}, reloading skills...`);
 					SkillLogic.getInstance().loadSkills().catch(error => {
 						console.error('Failed to reload skills:', error);
 					});
@@ -183,7 +180,6 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 				if (file instanceof TFile &&
 				    file.path.startsWith(COMMAND_FOLDER) &&
 				    file.extension === 'md') {
-					console.log(`Command file modified: ${file.path}, reloading commands...`);
 					CommandLogic.getInstance().loadCommands().catch(error => {
 						console.error('Failed to reload commands:', error);
 					});
@@ -197,7 +193,6 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 				if (file instanceof TFile &&
 				    file.path.startsWith(COMMAND_FOLDER) &&
 				    file.extension === 'md') {
-					console.log(`Command file created: ${file.path}, reloading commands...`);
 					CommandLogic.getInstance().loadCommands().catch(error => {
 						console.error('Failed to reload commands:', error);
 					});
@@ -211,7 +206,6 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 				if (file instanceof TFile &&
 				    file.path.startsWith(COMMAND_FOLDER) &&
 				    file.extension === 'md') {
-					console.log(`Command file deleted: ${file.path}, reloading commands...`);
 					CommandLogic.getInstance().loadCommands().catch(error => {
 						console.error('Failed to reload commands:', error);
 					});

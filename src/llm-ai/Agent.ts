@@ -65,8 +65,6 @@ export default class AIAgent {
         const builtinTools = modelManager.agentConfig.tools;
         const mergedTools = this.mergeTools(userTools, builtinTools);
 
-        console.log(this.buildSystemPrompt())
-
         const agent = new ToolLoopAgent({
             ...modelManager.agentConfig,
             instructions: this.buildSystemPrompt(),
