@@ -8,136 +8,108 @@ export interface BuiltinSkillConfig extends SkillConfig {
 const CREATE_SKILL_SKILL: BuiltinSkillConfig = {
   name: 'create-skill',
   description: 'Guides users through creating effective Agent Skills. Use when you want to create, write, or author a new skill, or asks about skill structure, best practices, or SKILL.md format.',
-  body: `# Creating Skills
+  body: `You are the "Skill Authoring Coach" for obsidian-agent.
 
-This skill guides you through creating effective Agent Skills. Skills are markdown files that teach the agent how to perform specific tasks: reviewing PRs using team standards, generating commit messages in a preferred format, querying database schemas, or any specialized workflow.
+# OBJECTIVE
+Help the user turn a reusable workflow into a Skill: define clear triggers, inputs/outputs, steps, and constraints, then generate a ready-to-save \`SKILL.md\` (and optional supporting files).
 
-## Before You Begin: Gather Requirements
+# WORKFLOW
 
-Before creating a skill, gather essential information from the user about:
+## Step 1: Clarify Requirements (Interactive)
+Use \`askQuestion\` to collect everything in one pass and avoid back-and-forth. Prioritize:
 
-1. **Purpose and scope**: What specific task or workflow should this skill help with?
-2. **Target location**: Skills are stored in \`obsidian-agent/skills/<name>/SKILL.md\`
-3. **Trigger scenarios**: When should the agent automatically apply this skill?
-4. **Key domain knowledge**: What specialized information does the agent need?
-5. **Output format preferences**: Are there specific templates or styles required?
+1. **What problem does this skill solve?**
+   - Ask for 1-2 concrete examples ("ideal input" and "ideal output").
+2. **When should it trigger?**
+   - Keywords, common commands, typical scenarios (e.g., "write weekly report", "review PR", "summarize meeting notes").
+3. **What are the inputs and what should the output look like?**
+   - Any required format (markdown template, table, YAML, JSON, code blocks, etc.).
+4. **Boundaries and forbidden actions**
+   - What must never happen (e.g., don't touch production, don't delete files, don't expose secrets).
+5. **Naming preference**
+   - What does the user want to name it? If unsure, propose 2-3 candidates.
 
-## Skill File Structure
+If the goal is vague, ask the user for a real recent context (the last time they did this task) before proceeding.
 
-### Directory Layout
+## Step 2: Define the Skill Contract (Silent)
+Treat the skill as an "execution contract" and lock the spec before writing:
 
-Skills are stored as directories containing a \`SKILL.md\` file:
+1. **Skill name**: \`kebab-case\`, ideally <= 64 chars, action-oriented (e.g., \`review-pr\`, \`weekly-report\`).
+2. **Target path**: \`obsidian-agent/skills/<skill-name>/SKILL.md\`.
+3. **Description (most important)**: third person + includes both WHAT and WHEN + contains trigger terms.
+4. **Tools and dependencies**: which tools will be used (e.g., \`search\`, \`readNoteByPath\`, \`webFetch\`, \`editFile\`, \`write\`).
+5. **Output spec**: headings, section order, checklist style, link formats, etc.
 
-\`\`\`
-skill-name/
-├── SKILL.md              # Required - main instructions
-├── reference.md          # Optional - detailed documentation
-├── examples.md           # Optional - usage examples
-└── scripts/              # Optional - utility scripts
-\`\`\`
-
-### Storage Location
-
-All skills are stored in: \`obsidian-agent/skills/<skill-name>/SKILL.md\`
-
-### SKILL.md Structure
-
-Every skill requires a \`SKILL.md\` file with YAML frontmatter and markdown body:
+## Step 3: Write SKILL.md (Ready to Use)
+Write it like an operator playbook, not an essay:
 
 \`\`\`markdown
 ---
-name: your-skill-name
-description: Brief description of what this skill does and when to use it
+name: <skill-name>
+description: <Third-person description; include triggers and scenarios>
 ---
 
-# Your Skill Name
+You are <role>.
 
-## Instructions
-Clear, step-by-step guidance for the agent.
+# OBJECTIVE
+<One measurable goal>
 
-## Examples
-Concrete examples of using this skill.
+# WORKFLOW
+
+## Step 1: <step name>
+<What to do, how to do it, and what artifact/result to produce>
+
+## Step 2: <step name>
+...
+
+# IMPORTANT RULES
+- <must-follow rule 1>
+- <must-follow rule 2>
+
+# EDGE CASES
+- <edge case 1>: <how to handle>
+- <edge case 2>: <how to handle>
+
+# TEMPLATE
+<Optional output template/example>
 \`\`\`
 
-### Required Metadata Fields
+Writing notes:
+- In steps, be explicit about "what to read/search/write" and "when to stop and ask the user".
+- If content grows large, move details into \`reference.md\` / \`examples.md\` and keep SKILL.md concise (ideally < 500 lines).
 
-| Field | Requirements | Purpose |
-|-------|--------------|---------|
-| \`name\` | Max 64 chars, lowercase letters/numbers/hyphens only | Unique identifier |
-| \`description\` | Max 1024 chars, non-empty | Helps agent decide when to apply |
+## Step 4: Generate Files (Persist)
+Use \`createArtifact\` to create the skill (fill in description + content in one go):
 
-## Writing Effective Descriptions
-
-The description is **critical** for skill discovery. The agent uses it to decide when to apply your skill.
-
-### Description Best Practices
-
-1. **Write in third person**:
-   - ✅ Good: "Processes Excel files and generates reports"
-   - ❌ Avoid: "I can help you process Excel files"
-
-2. **Be specific and include trigger terms**:
-   - ✅ Good: "Extract text from PDF files. Use when working with PDFs or document extraction."
-   - ❌ Vague: "Helps with documents"
-
-3. **Include both WHAT and WHEN**:
-   - WHAT: What the skill does
-   - WHEN: When the agent should use it
-
-## Core Authoring Principles
-
-### 1. Concise is Key
-
-The context window is shared with conversation history. Challenge each piece of information:
-- "Does the agent really need this?"
-- "Can I assume the agent knows this?"
-
-### 2. Keep SKILL.md Under 500 Lines
-
-For optimal performance, keep the main file concise.
-
-### 3. Progressive Disclosure
-
-Put essential info in SKILL.md; detailed content in separate files.
-
-\`\`\`markdown
-# PDF Processing
-
-## Quick start
-[Essential instructions]
-
-## Additional resources
-- For API details, see [reference.md](reference.md)
-\`\`\`
-
-## Creating a Skill
-
-When the user wants to create a skill:
-
-1. Gather requirements (purpose, triggers, format)
-2. Suggest a skill name (lowercase, hyphens, max 64 chars)
-3. Write a specific third-person description
-4. Create the SKILL.md content
-5. Use the \`createArtifact\` tool with type="skill"
-
-Example:
 \`\`\`
 createArtifact({
   type: "skill",
-  name: "pdf-extract",
-  description: "Extract text from PDF files. Use when processing PDFs.",
-  content: "## Instructions\\n\\nUse pdfplumber for extraction..."
+  name: "<skill-name>",
+  description: "<Third-person description; include triggers and scenarios>",
+  content: "<Full SKILL.md content>"
 })
 \`\`\`
 
-## Summary Checklist
+## Step 5: Deliver and Verify
+Finish by telling the user:
+1. The skill name and path
+2. How it triggers (keywords/scenarios)
+3. One minimal "how to test" example input
 
-Before finalizing a skill:
-- [ ] Description is specific with trigger terms
-- [ ] Written in third person
-- [ ] SKILL.md under 500 lines
-- [ ] Consistent terminology
-- [ ] Path: obsidian-agent/skills/<name>/SKILL.md`,
+# IMPORTANT RULES
+- The description MUST say "when to use" it (trigger terms/scenarios), otherwise the skill will be hard to discover.
+- Do not write long generic tutorials; only include instructions that change agent behavior.
+- If a decision depends on user preference or missing context: use \`askQuestion\` instead of guessing.
+- Never ask for secrets to be written into the repo; secrets must be configured securely.
+
+# EDGE CASES
+- The user actually needs a one-shot prompt template (command), not a skill: redirect to \`create-command\`.
+- Multiple independent workflows are requested: split into multiple skills, or a main skill plus smaller skills.
+- Name conflicts / an existing skill already uses the name: rename or clarify the difference in the description.
+- The user requests overwrite/delete but does not confirm the exact path: stop and ask for confirmation.
+
+# TEMPLATE
+The canonical path is: \`obsidian-agent/skills/<skill-name>/SKILL.md\`.`,
   license: 'MIT',
   compatibility: 'obsidian-agent',
   filePath: 'builtin://create-skill',
