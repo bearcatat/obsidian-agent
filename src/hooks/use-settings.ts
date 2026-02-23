@@ -1,7 +1,7 @@
 import { useSettingsStore, settingsStore } from '../state/settings-state-impl';
 import { SettingsLogic } from '../logic/settings-logic';
 import { useShallow } from 'zustand/react/shallow';
-import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig } from '../types';
+import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig } from '../types';
 
 export { useSettingsStore };
 
@@ -15,6 +15,7 @@ export function useSettingsState() {
       builtinTools: state.builtinTools,
       exaSearchConfig: state.exaSearchConfig,
       bochaSearchConfig: state.bochaSearchConfig,
+      bashPermissions: state.bashPermissions,
     }))
   );
 }
@@ -53,6 +54,9 @@ export function useSettingsLogic() {
       await settingsLogic.updateBochaSearchConfig(config),
     setBochaSearchEnabled: async (enabled: boolean) =>
       await settingsLogic.setBochaSearchEnabled(enabled),
+
+    updateBashPermissions: async (config: BashPermissionConfig) =>
+      await settingsLogic.updateBashPermissions(config),
   };
 }
 

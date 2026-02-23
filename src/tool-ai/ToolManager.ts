@@ -13,6 +13,7 @@ import { BochaWebSearchTool, toolName as BochaWebSearchToolName, updateBochaConf
 import { ListTool, toolName as ListToolName } from "./List/ListTool";
 import { CreateArtifactTool, toolName as CreateArtifactToolName } from "./CreateArtifact/CreateArtifactTool";
 import { SkillTool, toolName as SkillToolName } from "./Skill/SkillTool";
+import { BashTool, toolName as BashToolName } from "./Bash/BashTool";
 import MCPManager from "./MCP/MCPManager";
 import SubAgentManager from "./SubAgent/SubAgentManager";
 import SubAgentLogic from "../logic/subagent-logic";
@@ -32,6 +33,7 @@ export default class AIToolManager {
     [ListToolName]: ListTool,
     [CreateArtifactToolName]: CreateArtifactTool,
     [SkillToolName]: SkillTool,
+    [BashToolName]: BashTool,
   }
 
   private builtinToolConfigs: BuiltinToolConfig[] = [];

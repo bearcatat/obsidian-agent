@@ -1,4 +1,23 @@
-import { BuiltinToolConfig } from '../types';
+import { BuiltinToolConfig, BashPermissionConfig } from '../types';
+
+// 默认 Bash 权限配置
+export const DEFAULT_BASH_PERMISSIONS: BashPermissionConfig = {
+  default: "ask",
+  rules: [
+    { pattern: "git status*", permission: "allow" },
+    { pattern: "git log*", permission: "allow" },
+    { pattern: "git diff*", permission: "allow" },
+    { pattern: "git *", permission: "ask" },
+    { pattern: "npm *", permission: "allow" },
+    { pattern: "node *", permission: "allow" },
+    { pattern: "pnpm *", permission: "allow" },
+    { pattern: "yarn *", permission: "allow" },
+    { pattern: "rm *", permission: "deny" },
+    { pattern: "del *", permission: "deny" },
+    { pattern: "rmdir *", permission: "deny" },
+    { pattern: "format *", permission: "deny" },
+  ],
+};
 
 // 默认内置工具配置
 export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
@@ -56,6 +75,12 @@ export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
     name: "skill",
     description: "Load a skill (SKILL.md file) on-demand",
     enabled: true,
+  },
+  {
+    name: "bash",
+    description: "Execute shell commands in vault directory",
+    enabled: true,
+    permissions: DEFAULT_BASH_PERMISSIONS,
   }
 ];
 

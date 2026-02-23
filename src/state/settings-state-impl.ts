@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { ModelConfig, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig } from '../types';
+import { ModelConfig, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig } from '../types';
 import { getDefaultBuiltinTools } from '../tool-ai/BuiltinTools';
 import AIModelManager from '../llm-ai/ModelManager';
 import { SettingsStateData } from './settings-state';
@@ -24,6 +24,8 @@ interface SettingsStore extends SettingsStateData {
   setBochaSearchConfig: (config: BochaSearchConfig) => void;
   updateBochaSearchEnabled: (enabled: boolean) => void;
 
+  setBashPermissions: (config: BashPermissionConfig) => void;
+
   setAllData: (data: SettingsStateData) => void;
 }
 
@@ -45,6 +47,23 @@ const initialState: SettingsStateData = {
     enabled: false,
     count: 10,
     freshness: "noLimit",
+  },
+  bashPermissions: {
+    default: "ask",
+    rules: [
+      { pattern: "git status*", permission: "allow" },
+      { pattern: "git log*", permission: "allow" },
+      { pattern: "git diff*", permission: "allow" },
+      { pattern: "git *", permission: "ask" },
+      { pattern: "npm *", permission: "allow" },
+      { pattern: "node *", permission: "allow" },
+      { pattern: "pnpm *", permission: "allow" },
+      { pattern: "yarn *", permission: "allow" },
+      { pattern: "rm *", permission: "deny" },
+      { pattern: "del *", permission: "deny" },
+      { pattern: "rmdir *", permission: "deny" },
+      { pattern: "format *", permission: "deny" },
+    ],
   },
 };
 
@@ -162,6 +181,11 @@ export const useSettingsStore = create<SettingsStore>()(
         state.bochaSearchConfig.enabled = enabled;
       }),
 
+    setBashPermissions: (config: BashPermissionConfig) =>
+      set((state) => {
+        state.bashPermissions = config;
+      }),
+
     setAllData: (data: SettingsStateData) =>
       set((state) => {
         const builtinTools = data.builtinTools || [...getDefaultBuiltinTools()];
@@ -190,6 +214,7 @@ export const useSettingsStore = create<SettingsStore>()(
           count: 10,
           freshness: "noLimit",
         };
+        state.bashPermissions = data.bashPermissions || initialState.bashPermissions;
       }),
   }))
 );

@@ -1,4 +1,4 @@
-import { ModelConfig, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig } from '../types';
+import { ModelConfig, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig } from '../types';
 import { getDefaultBuiltinTools } from '../tool-ai/BuiltinTools';
 
 export interface ISettingsState {
@@ -9,6 +9,7 @@ export interface ISettingsState {
   readonly builtinTools: BuiltinToolConfig[];
   readonly exaSearchConfig: ExaSearchConfig;
   readonly bochaSearchConfig: BochaSearchConfig;
+  readonly bashPermissions: BashPermissionConfig;
 }
 
 export function clone(settingsState: ISettingsState): ISettingsState {
@@ -20,6 +21,7 @@ export function clone(settingsState: ISettingsState): ISettingsState {
     builtinTools: settingsState.builtinTools,
     exaSearchConfig: settingsState.exaSearchConfig || { apiKey: "", enabled: false },
     bochaSearchConfig: settingsState.bochaSearchConfig || { apiKey: "", enabled: false },
+    bashPermissions: settingsState.bashPermissions || { default: "ask", rules: [] },
   };
 }
 
@@ -31,4 +33,5 @@ export interface SettingsStateData {
   builtinTools: BuiltinToolConfig[];
   exaSearchConfig: ExaSearchConfig;
   bochaSearchConfig: BochaSearchConfig;
+  bashPermissions: BashPermissionConfig;
 }

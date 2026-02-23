@@ -20,7 +20,7 @@ export const ThinkingMessageCard = ({ content, isStreaming }: Props) => {
         <Collapsible
             open={isOpen}
             onOpenChange={setIsOpen}
-            className="tw-flex-col tw-group tw-flex tw-rounded-md tw-p-1 tw-border tw-border-solid tw-border-border"
+            className="tw-flex-col tw-group tw-flex tw-rounded-md tw-py-1 tw-border tw-border-solid tw-border-border"
         >
             <div className="tw-flex tw-items-center tw-justify-between tw-px-2 tw-text-sm">
                 <div className="tw-text-muted tw-text-xs">

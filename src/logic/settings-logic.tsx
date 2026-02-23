@@ -1,8 +1,9 @@
-import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig } from "../types";
+import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig } from "../types";
 import { settingsStore } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
 import AIToolManager from "@/tool-ai/ToolManager";
 import { ToolSet } from "ai";
+import { setSettingsPlugin } from "./settings-persistence";
 
 export class SettingsLogic {
     private static instance: SettingsLogic;
@@ -10,6 +11,9 @@ export class SettingsLogic {
 
     private constructor(plugin?: Plugin) {
         this.plugin = plugin;
+        if (plugin) {
+            setSettingsPlugin(plugin);
+        }
     }
 
     static getInstance(plugin?: Plugin): SettingsLogic {
@@ -26,6 +30,7 @@ export class SettingsLogic {
     // 设置Plugin实例（用于持久化）
     setPlugin(plugin: Plugin): void {
         this.plugin = plugin;
+        setSettingsPlugin(plugin);
     }
 
     // 模型管理业务逻辑
@@ -214,6 +219,7 @@ export class SettingsLogic {
                 builtinTools: state.builtinTools,
                 exaSearchConfig: state.exaSearchConfig,
                 bochaSearchConfig: state.bochaSearchConfig,
+                bashPermissions: state.bashPermissions,
             };
             await this.plugin?.saveData(stateData);
         } catch (error) {
@@ -268,6 +274,12 @@ export class SettingsLogic {
         // 同步更新ToolManager
         await AIToolManager.getInstance().updateBochaSearchConfig(settingsStore.getState().bochaSearchConfig);
 
+        await this.saveSettings();
+    }
+
+    async updateBashPermissions(config: BashPermissionConfig): Promise<void> {
+        const state = settingsStore.getState();
+        state.setBashPermissions(config);
         await this.saveSettings();
     }
 }

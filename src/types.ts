@@ -77,11 +77,27 @@ export enum MCPTransportTypes {
   SSE = "sse",
 }
 
+// 权限级别
+export type PermissionLevel = "allow" | "ask" | "deny";
+
+// 权限规则
+export interface PermissionRule {
+  pattern: string;
+  permission: PermissionLevel;
+}
+
+// Bash 工具权限配置
+export interface BashPermissionConfig {
+  default: PermissionLevel;
+  rules: PermissionRule[];
+}
+
 // 内置工具配置
 export interface BuiltinToolConfig {
   name: string;
   description: string;
   enabled: boolean;
+  permissions?: BashPermissionConfig;
 }
 
 // SubAgent Configuration (file-based)
@@ -116,6 +132,16 @@ export interface FileEdit {
   new_string: string;
   old_content?: string;  // 完整旧文件内容（用于 diff 显示）
   new_content?: string;  // 完整新文件内容（用于 diff 显示）
+}
+
+export interface BashCommand {
+  id: string;
+  command: string;
+  workingDirectory: string;
+  output?: string;
+  exitCode?: number;
+  error?: string;
+  duration?: number;
 }
 
 export interface CursorPosition {

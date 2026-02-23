@@ -3,6 +3,7 @@ import { MCPToolManagerDialog } from "./MCPToolManagerDialog";
 import { BuiltinToolTable } from "./builtin-tool-table";
 import { ExternalToolsTable, ExternalToolId } from "./external-tools-table";
 import { ExternalToolDialog } from "./external-tool-dialog";
+import { BashPermissionSettings } from "./bash-permission-settings";
 import { useState } from "react";
 import { MCPServerTable } from "./mcp-server-table";
 import { MCPServerConfig } from "@/types";
@@ -36,6 +37,11 @@ export const ToolSetting: React.FC = () => {
       <section>
         <div className="tw-mb-3 tw-text-xl tw-font-bold">Builtin Tools</div>
         <BuiltinToolTable />
+      </section>
+
+      <section>
+        <div className="tw-mb-3 tw-text-xl tw-font-bold">Bash Permissions</div>
+        <BashPermissionSettings />
       </section>
 
       <section>
