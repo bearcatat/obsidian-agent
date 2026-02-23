@@ -41,8 +41,8 @@ export default class SubAgentManager {
 
           let messages: MessageV2[] = [userMessage];
           const toolMessage = ToolMessage.from(config.name, toolCallId)
-            toolMessage.setChildren(render(config.name, messages));
-            context.addMessage(toolMessage)
+          toolMessage.setChildren(render(config.name, messages, true));
+          context.addMessage(toolMessage)
 
           const agent = new SubAgent(config.name, config.systemPrompt, config.description, agentModelConfig)
           agent.setTools(getToolSetForSubAgent(config, allToolSet))
@@ -54,10 +54,12 @@ export default class SubAgentManager {
               messages.pop();
             }
             messages = [...messages, message];
-            
-          toolMessage.setChildren(render(config.name, messages));
+
+            toolMessage.setChildren(render(config.name, messages, true));
             context.addMessage(toolMessage)
           })
+          toolMessage.setChildren(render(config.name, messages, false));
+          toolMessage.close()
           return text
         }
       })
@@ -67,10 +69,9 @@ export default class SubAgentManager {
   }
 }
 
-function render(name: string, messages: MessageV2[]): React.ReactNode {
-  // const messagesOnlyWithTools = messages.filter((message: MessageV2) => message.role === "tool");
+function render(name: string, messages: MessageV2[], isStreaming: boolean): React.ReactNode {
   return (
-    <SubAgentMessagesCard name={name} messages={messages} />
+    <SubAgentMessagesCard name={name} messages={messages} isStreaming={isStreaming} />
   )
 }
 

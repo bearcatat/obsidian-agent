@@ -1,15 +1,13 @@
-import { MessageCard } from "./message-card";
-
 type Props = {
   content: string;
   errorDetails?: Record<string, any>;
   errorType?: string;
 };
 
-export const ErrorToolMessageCard = ({ 
-  content, 
-  errorDetails, 
-  errorType 
+export const ErrorToolMessageCard = ({
+  content,
+  errorDetails,
+  errorType
 }: Props) => {
   const getErrorTypeLabel = (type?: string) => {
     switch (type) {
@@ -33,7 +31,7 @@ export const ErrorToolMessageCard = ({
   };
 
   return (
-    <MessageCard has_border={true}>
+    <div className="tw-flex tw-w-full tw-flex-col tw-group tw-rounded-md tw-border tw-border-solid tw-border-border tw-p-1" >
       <div className="tw-flex tw-flex-col tw-gap-2">
         <div className="tw-flex tw-items-start tw-gap-2">
           <div className="tw-text-error tw-text-lg">⚠️</div>
@@ -46,7 +44,7 @@ export const ErrorToolMessageCard = ({
             )}
           </div>
         </div>
-        
+
         {errorDetails && Object.keys(errorDetails).length > 0 && (
           <div className="tw-mt-2 tw-border tw-border-muted tw-rounded tw-p-2 tw-bg-muted/10">
             <div className="tw-text-xs tw-text-muted tw-font-medium tw-mb-1">错误详情:</div>
@@ -56,6 +54,6 @@ export const ErrorToolMessageCard = ({
           </div>
         )}
       </div>
-    </MessageCard>
+    </div>
   );
 };

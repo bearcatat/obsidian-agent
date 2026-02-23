@@ -1,6 +1,5 @@
 import { useRef } from "react";
 import { RichTextViewer, RichTextViewerRef } from "../../input/RichTextViewer";
-import { MessageCard } from "./message-card";
 import { UserContext } from "../../input/context";
 
 type Props = {
@@ -12,7 +11,7 @@ export function UserMessageCard({ content, images }: Props) {
     const viewerRef = useRef<RichTextViewerRef>(null);
 
     return (
-        <MessageCard has_border={true}>
+        <div className="tw-flex tw-w-full tw-flex-col tw-group tw-rounded-md tw-border tw-border-solid tw-border-border tw-p-1" >
             {images && images.length > 0 && (
                 <UserContext context={{ images }} />
             )}
@@ -20,6 +19,6 @@ export function UserMessageCard({ content, images }: Props) {
                 ref={viewerRef}
                 content={content}
             />
-        </MessageCard>
+        </div>
     )
 }

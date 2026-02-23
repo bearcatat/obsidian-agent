@@ -1,7 +1,6 @@
-import { MessageCard } from "./message-card";
 import { ThinkingMessageCard } from "./thinking-message-card";
 import { useRef, useCallback, useEffect } from "react";
-import { Component, MarkdownRenderer, App, TFile} from "obsidian";
+import { Component, MarkdownRenderer, App, TFile } from "obsidian";
 import { useApp } from "@/hooks/app-context";
 
 type Props = {
@@ -39,12 +38,12 @@ export function AssistantMessageCard({ content, reasoning_content, isStreaming =
     }, [app, content, preprocess]);
 
     return (
-        <MessageCard>
+        <div className="tw-group tw-flex tw-w-full tw-flex-col tw-py-0">
             {reasoning_content && (
                 <ThinkingMessageCard content={reasoning_content} isStreaming={isStreaming} />
             )}
             <div ref={contentRef} className="assistant-markdown-content tw-leading-tight">{content}</div>
-        </MessageCard>
+        </div>
     )
 }
 
