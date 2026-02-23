@@ -80,6 +80,7 @@ export default class AIAgent {
         const result = await streamer.stream(this.messages, abortController.signal)
         const messages = (await result.response).messages
         this.messages.push(...messages)
+        console.log(messages)
     }
 
 

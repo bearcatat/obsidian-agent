@@ -41,7 +41,6 @@ export default class SubAgent {
         abortSignal: AbortSignal,
         addMessage: (message: MessageV2) => void
     ) {
-        console.log("query", message)
         const builtinTools = this.agentConfig.tools;
         const mergedTools = this.mergeTools(this.toolset, builtinTools);
 
@@ -60,7 +59,6 @@ export default class SubAgent {
         const result = await streamer.stream(this.messages, abortSignal)
         const messages = (await result.response).messages
         this.messages.push(...messages)
-        console.log("sub agent", messages)
         return result.text
     }
 
