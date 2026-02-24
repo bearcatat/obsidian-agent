@@ -47,7 +47,7 @@ export const Messages = memo(
         <div
           ref={containerRef}
           onScroll={handleScroll}
-          className="tw-mt-auto tw-box-border tw-flex tw-w-full tw-flex-1 tw-select-text tw-flex-col tw-items-start tw-justify-start tw-overflow-y-auto tw-scroll-smooth tw-break-words tw-text-[calc(var(--font-text-size)_-_2px)] tw-gap-1"
+          className="tw-mt-auto tw-box-border tw-flex tw-w-full tw-flex-1 tw-select-text tw-flex-col tw-items-start tw-justify-start tw-overflow-y-auto tw-scroll-smooth tw-break-words tw-text-[calc(var(--font-text-size)_-_2px)] tw-gap-1 tw-px-1"
         >
           {messageElements}
         </div>
@@ -96,7 +96,7 @@ export const SubAgentMessagesCard = memo(({ name, messages, isStreaming }: Props
           </Button>
         </CollapsibleTrigger>
       </div>
-      <CollapsibleContent className="tw-text-muted tw-p-1 tw-rounded-sm tw-bg-primary tw-max-h-64 tw-overflow-y-auto">
+      <CollapsibleContent className="tw-text-muted tw-gap-1 tw-px-1 tw-rounded-sm tw-bg-primary tw-max-h-64 tw-overflow-y-auto">
         {messageElements}
       </CollapsibleContent>
     </Collapsible>

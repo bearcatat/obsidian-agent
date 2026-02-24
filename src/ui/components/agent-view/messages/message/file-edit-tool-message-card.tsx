@@ -144,7 +144,7 @@ export const FileEditToolMessageCard = ({ origin_answered_state, fileEdit, decis
                                         <span className={`tw-select-none tw-px-2 tw-py-0.5 tw-min-w-[2rem] tw-text-center ${prefixBg}`}>
                                             {prefix}
                                         </span>
-                                        <span className={`tw-flex-1 tw-py-0.5 tw-pr-2 ${textColor || 'tw-text-foreground'}`}>
+<span className={`tw-flex-1 tw-py-0.5 tw-pr-2 tw-whitespace-pre ${textColor || 'tw-text-foreground'}`}>
                                             {diff.text || '\n'}
                                         </span>
                                     </div>
@@ -186,7 +186,7 @@ export const FileEditToolMessageCard = ({ origin_answered_state, fileEdit, decis
                                         <span className={`tw-select-none tw-px-2 tw-py-0.5 tw-min-w-[2rem] tw-text-center ${prefixBg}`}>
                                             {prefix}
                                         </span>
-                                        <span className={`tw-flex-1 tw-py-0.5 tw-pr-2 ${textColor || 'tw-text-foreground'}`}>
+<span className={`tw-flex-1 tw-py-0.5 tw-pr-2 tw-whitespace-pre ${textColor || 'tw-text-foreground'}`}>
                                             {text}
                                         </span>
                                     </div>
