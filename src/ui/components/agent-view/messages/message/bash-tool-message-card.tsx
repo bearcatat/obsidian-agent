@@ -11,10 +11,10 @@ type Props = {
     origin_answered_state: boolean;
     bashCommand: BashCommand;
     decision: Decision;
-    onApply: () => void;
-    onReject: () => void;
-    onAlwaysAllow: () => void;
-    onAlwaysDeny: () => void;
+    onApply?: () => void;
+    onReject?: () => void;
+    onAlwaysAllow?: () => void;
+    onAlwaysDeny?: () => void;
 }
 
 export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decision, onApply, onReject, onAlwaysAllow, onAlwaysDeny }: Props) => {
@@ -24,25 +24,25 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
 
     const handleApply = () => {
         setIsOpen(false);
-        onApply();
+        onApply?.();
         setIsAnswered(true);
     };
 
     const handleReject = () => {
         setIsOpen(false);
-        onReject();
+        onReject?.();
         setIsAnswered(true);
     };
 
     const handleAlwaysAllow = () => {
         setIsOpen(false);
-        onAlwaysAllow();
+        onAlwaysAllow?.();
         setIsAnswered(true);
     };
 
     const handleAlwaysDeny = () => {
         setIsOpen(false);
-        onAlwaysDeny();
+        onAlwaysDeny?.();
         setIsAnswered(true);
     };
 

@@ -15,13 +15,8 @@ function getShellInfo(): string {
   if (!isWindows) {
     return 'Shell: /bin/bash';
   }
-  
-  const shellEnv = process.env.SHELL;
-  if (shellEnv && shellEnv.includes('bash')) {
-    return `Shell: ${shellEnv}`;
-  }
-  
-  return 'Shell: cmd.exe';
+
+  return 'Shell: Git Bash (bash.exe) preferred -> cmd.exe fallback';
 }
 
 export const DESCRIPTION = `Execute shell commands in the vault directory.
