@@ -15,9 +15,11 @@ type Props = {
     onReject?: () => void;
     onAlwaysAllow?: () => void;
     onAlwaysDeny?: () => void;
+    onAlwaysAllowGroup?: () => void;
+    onAlwaysDenyGroup?: () => void;
 }
 
-export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decision, onApply, onReject, onAlwaysAllow, onAlwaysDeny }: Props) => {
+export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decision, onApply, onReject, onAlwaysAllow, onAlwaysDeny, onAlwaysAllowGroup, onAlwaysDenyGroup }: Props) => {
     const [isOpen, setIsOpen] = React.useState(!origin_answered_state);
     const [isAnswered, setIsAnswered] = React.useState(origin_answered_state);
     const [isRememberDropdownOpen, setIsRememberDropdownOpen] = React.useState(false);
@@ -46,6 +48,18 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
         setIsAnswered(true);
     };
 
+    const handleAlwaysAllowGroup = () => {
+        setIsOpen(false);
+        onAlwaysAllowGroup?.();
+        setIsAnswered(true);
+    };
+
+    const handleAlwaysDenyGroup = () => {
+        setIsOpen(false);
+        onAlwaysDenyGroup?.();
+        setIsAnswered(true);
+    };
+
     const getStatusText = () => {
         if (isAnswered) {
             if (decision === "apply" || decision === "allow") {
@@ -62,6 +76,10 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
     const isDangerous = React.useMemo(() => {
         const cmd = bashCommand.command.toLowerCase();
         return cmd.includes('rm') || cmd.includes('del') || cmd.includes('format') || cmd.includes('shutdown') || cmd.includes('reboot');
+    }, [bashCommand.command]);
+
+    const commandBase = React.useMemo(() => {
+        return bashCommand.command.trim().split(/\s+/)[0];
     }, [bashCommand.command]);
 
     return (
@@ -163,6 +181,12 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => { setIsRememberDropdownOpen(false); handleAlwaysDeny(); }}>
                                     拒绝并记住
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => { setIsRememberDropdownOpen(false); handleAlwaysAllowGroup(); }}>
+                                    允许所有 {commandBase} 命令
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => { setIsRememberDropdownOpen(false); handleAlwaysDenyGroup(); }}>
+                                    拒绝所有 {commandBase} 命令
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>

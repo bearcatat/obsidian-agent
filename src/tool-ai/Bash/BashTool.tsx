@@ -65,14 +65,29 @@ function matchPattern(command: string, pattern: string): boolean {
   return regex.test(command);
 }
 
+function extractCommandGroupPattern(command: string): string {
+  const firstToken = command.trim().split(/\s+/)[0];
+  return `${firstToken} *`;
+}
+
 function checkPermission(command: string, config: BashPermissionConfig | undefined): PermissionLevel {
   const permConfig = config || DEFAULT_BASH_PERMISSIONS;
   
-  for (let i = permConfig.rules.length - 1; i >= 0; i--) {
-    if (matchPattern(command, permConfig.rules[i].pattern)) {
-      return permConfig.rules[i].permission;
+  let hasDeny = false;
+  let hasAllow = false;
+  
+  for (const rule of permConfig.rules) {
+    if (matchPattern(command, rule.pattern)) {
+      if (rule.permission === "deny") {
+        hasDeny = true;
+      } else if (rule.permission === "allow") {
+        hasAllow = true;
+      }
     }
   }
+  
+  if (hasDeny) return "deny";
+  if (hasAllow) return "allow";
   
   return permConfig.default;
 }
@@ -194,9 +209,25 @@ export const BashTool = tool({
       await persistSettingsStore();
     };
 
+    const updatePermissionRuleWithPattern = async (perm: PermissionLevel, pattern: string) => {
+      const newRule = { pattern, permission: perm };
+      const currentConfig = settingsStore.getState().bashPermissions || DEFAULT_BASH_PERMISSIONS;
+      const existingIndex = currentConfig.rules.findIndex(r => r.pattern === pattern);
+      let newRules = [...currentConfig.rules];
+      if (existingIndex >= 0) {
+        newRules[existingIndex] = newRule;
+      } else {
+        newRules.push(newRule);
+      }
+      const newConfig = { ...currentConfig, rules: newRules };
+      settingsStore.getState().setBashPermissions(newConfig);
+      await persistSettingsStore();
+    };
+
     try {
-      let resolver: (value: "apply" | "reject" | "allow" | "deny") => void
-      const waitForDecision = () => new Promise<"apply" | "reject" | "allow" | "deny">((resolve) => { resolver = resolve })
+      type DecisionValue = "apply" | "reject" | "allow" | "deny" | "allow_group" | "deny_group";
+      let resolver: (value: DecisionValue) => void
+      const waitForDecision = () => new Promise<DecisionValue>((resolve) => { resolver = resolve })
       const handleApply = () => { resolver("apply") }
       const handleReject = () => { resolver("reject") }
       
@@ -206,8 +237,14 @@ export const BashTool = tool({
       const handleAlwaysDeny = async () => {
         resolver("deny")
       }
+      const handleAlwaysAllowGroup = async () => {
+        resolver("allow_group")
+      }
+      const handleAlwaysDenyGroup = async () => {
+        resolver("deny_group")
+      }
 
-      toolMessage.setChildren(render(bashCommand, false, null, handleApply, handleReject, handleAlwaysAllow, handleAlwaysDeny))
+      toolMessage.setChildren(render(bashCommand, false, null, handleApply, handleReject, handleAlwaysAllow, handleAlwaysDeny, handleAlwaysAllowGroup, handleAlwaysDenyGroup))
       context.addMessage(toolMessage)
 
       const decision = await waitForDecision()
@@ -216,10 +253,14 @@ export const BashTool = tool({
         await updatePermissionRule("allow");
       } else if (decision === "deny") {
         await updatePermissionRule("deny");
+      } else if (decision === "allow_group") {
+        await updatePermissionRuleWithPattern("allow", extractCommandGroupPattern(command));
+      } else if (decision === "deny_group") {
+        await updatePermissionRuleWithPattern("deny", extractCommandGroupPattern(command));
       }
 
-      if (decision === "apply" || decision === "allow") {
-        const { result, success } = await executeAndRespond(command, decision);
+      if (decision === "apply" || decision === "allow" || decision === "allow_group") {
+        const { result, success } = await executeAndRespond(command, decision === "allow_group" ? "allow" : decision);
         return JSON.stringify({
           success: success ? "Command executed successfully" : "Command failed",
           command,
@@ -229,11 +270,25 @@ export const BashTool = tool({
         });
       }
 
+      let denyMessage = "User rejected the command";
+      let displayDecision: "apply" | "reject" | "allow" | "deny" | null = "reject";
+      
+      if (decision === "deny") {
+        denyMessage = "User denied and remembered this command pattern";
+        displayDecision = "deny";
+      } else if (decision === "deny_group") {
+        denyMessage = `User denied and remembered all ${extractCommandGroupPattern(command).replace(' *', '')} commands`;
+        displayDecision = "deny";
+      } else if (decision === "reject") {
+        denyMessage = "User rejected the command";
+        displayDecision = "reject";
+      }
+      
       toolMessage.setContent(JSON.stringify({
         cancelled: true,
-        message: decision === "deny" ? "User denied and remembered this command pattern" : "User rejected the command",
+        message: denyMessage,
       }));
-      toolMessage.setChildren(render(bashCommand, true, decision, undefined, undefined, undefined, undefined));
+      toolMessage.setChildren(render(bashCommand, true, displayDecision, undefined, undefined, undefined, undefined));
       toolMessage.close();
       context.addMessage(toolMessage);
 
@@ -259,7 +314,9 @@ function render(
   onApply?: () => void,
   onReject?: () => void,
   onAlwaysAllow?: () => void,
-  onAlwaysDeny?: () => void
+  onAlwaysDeny?: () => void,
+  onAlwaysAllowGroup?: () => void,
+  onAlwaysDenyGroup?: () => void
 ): React.ReactNode {
   return (
     <BashToolMessageCard
@@ -270,6 +327,8 @@ function render(
       onReject={onReject}
       onAlwaysAllow={onAlwaysAllow}
       onAlwaysDeny={onAlwaysDeny}
+      onAlwaysAllowGroup={onAlwaysAllowGroup}
+      onAlwaysDenyGroup={onAlwaysDenyGroup}
     />
   )
 }
