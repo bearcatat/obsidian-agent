@@ -35,14 +35,15 @@ export const useAgentStore = create<AgentStore>()(
 
     addMessage: (message: MessageV2) =>
       set((state) => {
-        const lastMessage = state.messages[state.messages.length - 1];
+        const existingIndex = state.messages.findIndex((m) => m.id === message.id);
 
-        // 优化流式消息处理：移除之前的流式消息，如果消息id相同
-        if (lastMessage && lastMessage.id === message.id) {
-          state.messages.pop();
+        if (existingIndex >= 0) {
+          const newMessages = [...state.messages];
+          newMessages.splice(existingIndex, 1, message);
+          state.messages = newMessages;
+        } else {
+          state.messages.push(message);
         }
-
-        state.messages.push(message);
       }),
 
     setTitle: (title: string) =>

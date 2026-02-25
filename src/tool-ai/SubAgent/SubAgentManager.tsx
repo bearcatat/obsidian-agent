@@ -48,12 +48,15 @@ export default class SubAgentManager {
           agent.setTools(getToolSetForSubAgent(config, allToolSet))
 
           const text = await agent.query(userMessage, abortSignal ?? new AbortController().signal, (message: MessageV2) => {
-            const lastMessage = messages[messages.length - 1];
-            // 优化流式消息处理：移除之前的流式消息，如果消息id相同
-            if (lastMessage && lastMessage.id === message.id) {
-              messages.pop();
+            const existingIndex = messages.findIndex((m) => m.id === message.id);
+
+            if (existingIndex >= 0) {
+              const newMessages = [...messages];
+              newMessages[existingIndex] = message;
+              messages = newMessages;
+            } else {
+              messages = [...messages, message];
             }
-            messages = [...messages, message];
 
             toolMessage.setChildren(render(config.name, messages, true));
             context.addMessage(toolMessage)
