@@ -51,12 +51,12 @@ export const WriteToolMessageCard = ({ origin_answered_state, writeResult, decis
         const dmp = new DiffMatchPatch();
         const oldLines = writeResult.old_content.split('\n');
         const newLines = writeResult.new_content.split('\n');
-        
+
         const lineDiffs = dmp.diff_linesToChars_(writeResult.old_content, writeResult.new_content);
         const diffs = dmp.diff_main(lineDiffs.chars1, lineDiffs.chars2, false);
         dmp.diff_cleanupSemantic(diffs);
         dmp.diff_charsToLines_(diffs, lineDiffs.lineArray);
-        
+
         const result: Array<{ type: 'equal' | 'delete' | 'add', text: string }> = [];
         diffs.forEach((diff: [number, string]) => {
             const [op, text] = diff;
@@ -75,7 +75,7 @@ export const WriteToolMessageCard = ({ origin_answered_state, writeResult, decis
         return result;
     }, [writeResult]);
 
-    const statusText = isAnswered 
+    const statusText = isAnswered
         ? (decision === "apply" ? "已应用" : decision === "reject" ? "已拒绝" : "已处理")
         : "待确认";
 
@@ -126,38 +126,38 @@ export const WriteToolMessageCard = ({ origin_answered_state, writeResult, decis
                                 const isDelete = diff.type === 'delete';
                                 const isAdd = diff.type === 'add';
                                 const isEqual = diff.type === 'equal';
-                                
-                                const bgColor = isDelete 
-                                    ? 'tw-bg-[#fff5f5] dark:tw-bg-[#490202]' 
+
+                                const bgColor = isDelete
+                                    ? 'tw-bg-[#fff5f5] dark:tw-bg-[#490202]'
                                     : isAdd
-                                    ? 'tw-bg-[#f0fff4] dark:tw-bg-[#033a16]'
-                                    : 'tw-bg-transparent';
-                                
+                                        ? 'tw-bg-[#f0fff4] dark:tw-bg-[#033a16]'
+                                        : 'tw-bg-transparent';
+
                                 const borderColor = isDelete
                                     ? 'tw-border-l-2 tw-border-l-[#fa4549] dark:tw-border-l-[#f85149]'
                                     : isAdd
-                                    ? 'tw-border-l-2 tw-border-l-[#3fb950] dark:tw-border-l-[#3fb950]'
-                                    : '';
-                                
+                                        ? 'tw-border-l-2 tw-border-l-[#3fb950] dark:tw-border-l-[#3fb950]'
+                                        : '';
+
                                 const prefix = isDelete ? '-' : isAdd ? '+' : ' ';
                                 const prefixBg = isDelete
                                     ? 'tw-bg-[#ffd7d9] dark:tw-bg-[#67060c] tw-text-[#82071e] dark:tw-text-[#ffa198]'
                                     : isAdd
-                                    ? 'tw-bg-[#acf2bd] dark:tw-bg-[#0c3228] tw-text-[#116329] dark:tw-text-[#3fb950]'
-                                    : 'tw-bg-transparent tw-text-muted-foreground';
-                                
-                                const textColor = isDelete 
-                                    ? 'tw-text-[#82071e] dark:tw-text-[#ffa198]' 
+                                        ? 'tw-bg-[#acf2bd] dark:tw-bg-[#0c3228] tw-text-[#116329] dark:tw-text-[#3fb950]'
+                                        : 'tw-bg-transparent tw-text-muted-foreground';
+
+                                const textColor = isDelete
+                                    ? 'tw-text-[#82071e] dark:tw-text-[#ffa198]'
                                     : isAdd
-                                    ? 'tw-text-[#116329] dark:tw-text-[#3fb950]'
-                                    : '';
-                                
+                                        ? 'tw-text-[#116329] dark:tw-text-[#3fb950]'
+                                        : '';
+
                                 return (
                                     <div key={index} className={`tw-flex tw-items-start ${bgColor} ${borderColor} ${textColor}`}>
                                         <span className={`tw-select-none tw-px-2 tw-py-0.5 tw-min-w-[2rem] tw-text-center ${prefixBg}`}>
                                             {prefix}
                                         </span>
-                                        <span className={`tw-flex-1 tw-py-0.5 tw-pr-2 ${textColor || 'tw-text-foreground'}`}>
+                                        <span className={`tw-flex-1 tw-py-0.5 tw-pr-2 tw-whitespace-pre ${textColor || 'tw-text-foreground'}`}>
                                             {diff.text || '\n'}
                                         </span>
                                     </div>
@@ -168,19 +168,19 @@ export const WriteToolMessageCard = ({ origin_answered_state, writeResult, decis
                 )}
                 {!isAnswered && (
                     <div className="tw-flex tw-justify-start tw-gap-2 tw-mt-2 tw-px-2">
-                        <Button 
-                            variant="ghost" 
-                            size="fit" 
-                            className="tw-text-green-600 dark:tw-text-green-400 hover:tw-bg-green-50 dark:hover:tw-bg-green-900/20" 
+                        <Button
+                            variant="ghost"
+                            size="fit"
+                            className="tw-text-green-600 dark:tw-text-green-400 hover:tw-bg-green-50 dark:hover:tw-bg-green-900/20"
                             onClick={handleApply}
                         >
                             <Check className="tw-size-4 tw-mr-1" />
                             应用
                         </Button>
-                        <Button 
-                            variant="ghost" 
-                            size="fit" 
-                            className="tw-text-red-600 dark:tw-text-red-400 hover:tw-bg-red-50 dark:hover:tw-bg-red-900/20" 
+                        <Button
+                            variant="ghost"
+                            size="fit"
+                            className="tw-text-red-600 dark:tw-text-red-400 hover:tw-bg-red-50 dark:hover:tw-bg-red-900/20"
                             onClick={handleReject}
                         >
                             <X className="tw-size-4 tw-mr-1" />
