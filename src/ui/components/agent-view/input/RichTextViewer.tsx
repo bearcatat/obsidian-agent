@@ -41,9 +41,10 @@ export const RichTextViewer = forwardRef<RichTextViewerRef, RichTextViewerProps>
     const view = new EditorView({
       state: EditorState.create({
         doc: content,
-        extensions: [
+extensions: [
           minimalSetup,
           viewerTheme,
+          EditorView.lineWrapping,
           createWikiLinkPlugin(app),
           createMarkdownLinkPlugin(),
           createFolderRefPlugin(),

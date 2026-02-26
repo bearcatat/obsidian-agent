@@ -12,6 +12,10 @@ export const toolName = "editFile"
 
 const dmp = new diff_match_patch()
 
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function normalizeWhitespace(text: string): string {
   return text.replace(/\s+/g, ' ').trim()
 }
@@ -45,8 +49,16 @@ function findBestMatch(
   replaceStr: string,
   replaceAll: boolean
 ): { matched: boolean; content: string; protected: boolean; message?: string } {
-  const exactMatch = oldContent.includes(old_string)
-  if (exactMatch) {
+  const exactMatchCount = (oldContent.match(new RegExp(escapeRegExp(old_string), 'g')) || []).length
+  if (exactMatchCount > 0) {
+    if (exactMatchCount > 1 && !replaceAll) {
+      return {
+        matched: false,
+        content: oldContent,
+        protected: true,
+        message: `old_string appears multiple times (${exactMatchCount} matches). Use replaceAll=true to replace all occurrences, or provide a more specific old_string that is unique in the file.`
+      }
+    }
     const newContent = replaceAll
       ? oldContent.split(old_string).join(replaceStr)
       : oldContent.replace(old_string, replaceStr)
@@ -60,15 +72,27 @@ function findBestMatch(
   const trimmedOld = normalizeWhitespace(old_string)
   if (trimmedOld) {
     const lines = oldContent.split('\n')
+    const matchedIndices: number[] = []
     for (let i = 0; i < lines.length; i++) {
       if (normalizeWhitespace(lines[i]) === trimmedOld) {
-        const newLines = [...lines]
-        newLines[i] = replaceStr
+        matchedIndices.push(i)
+      }
+    }
+    if (matchedIndices.length > 0) {
+      if (matchedIndices.length > 1 && !replaceAll) {
         return {
-          matched: true,
-          content: newLines.join('\n'),
-          protected: false
+          matched: false,
+          content: oldContent,
+          protected: true,
+          message: `old_string appears multiple times (${matchedIndices.length} matches). Use replaceAll=true to replace all occurrences, or provide a more specific old_string that is unique in the file.`
         }
+      }
+      const newLines = [...lines]
+      newLines[matchedIndices[0]] = replaceStr
+      return {
+        matched: true,
+        content: newLines.join('\n'),
+        protected: false
       }
     }
   }

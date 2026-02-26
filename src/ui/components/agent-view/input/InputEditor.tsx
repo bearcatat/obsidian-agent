@@ -250,9 +250,10 @@ export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
     const view = new EditorView({
       state: EditorState.create({
         doc: value,
-        extensions: [
+extensions: [
           minimalSetup,
           editorTheme,
+          EditorView.lineWrapping,
           createWikiLinkPlugin(app),
           createMarkdownLinkPlugin(),
           createFolderRefPlugin(),

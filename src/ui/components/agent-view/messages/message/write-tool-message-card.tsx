@@ -112,7 +112,7 @@ export const WriteToolMessageCard = ({ origin_answered_state, writeResult, decis
                                     <span className="tw-select-none tw-px-2 tw-py-0.5 tw-min-w-[2rem] tw-text-center tw-bg-[#acf2bd] dark:tw-bg-[#0c3228]">
                                         +
                                     </span>
-                                    <span className="tw-flex-1 tw-py-0.5 tw-pr-2">
+                                    <span className="tw-flex-1 tw-py-0.5 tw-pr-2 tw-whitespace-pre">
                                         {line || '\n'}
                                     </span>
                                 </div>
