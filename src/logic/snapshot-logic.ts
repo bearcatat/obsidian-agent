@@ -99,4 +99,16 @@ export class SnapshotLogic {
         }
     }
   }
+
+  /**
+   * Deletes a snapshot file from the disk.
+   */
+  async deleteSnapshot(snapshotId: string): Promise<void> {
+    const adapter = this.app.vault.adapter;
+    const snapshotPath = `${this.SNAPSHOTS_DIR}/${snapshotId}.txt`;
+    
+    if (await adapter.exists(snapshotPath)) {
+      await adapter.remove(snapshotPath);
+    }
+  }
 }

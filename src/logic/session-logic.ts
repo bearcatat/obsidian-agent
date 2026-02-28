@@ -185,9 +185,13 @@ export class SessionLogic {
         }
       }
       
-      // Restore modelMessages from the last turn
-      const lastTurn = sessionData.turns[sessionData.turns.length - 1];
-      const restoredModelMessages = lastTurn ? lastTurn.modelMessages : [];
+      // Restore modelMessages by concatenating all turns
+      let restoredModelMessages: ModelMessage[] = [];
+      for (const turn of sessionData.turns) {
+          if (turn.modelMessages) {
+              restoredModelMessages = restoredModelMessages.concat(turn.modelMessages);
+          }
+      }
 
       return {
           sessionId: sessionId,
@@ -209,6 +213,23 @@ export class SessionLogic {
     const filePath = `${this.SESSIONS_DIR}/${sessionId}.json`;
     const adapter = this.app.vault.adapter;
     if (await adapter.exists(filePath)) {
+        try {
+            const content = await adapter.read(filePath);
+            const sessionData = JSON.parse(content) as SessionData;
+            const snapshotLogic = SnapshotLogic.getInstance();
+            
+            // Delete all snapshots associated with this session
+            for (const turn of sessionData.turns) {
+                for (const snapKey in turn.snapshots) {
+                    const snapshotId = turn.snapshots[snapKey].snapshotId;
+                    if (snapshotId) {
+                        await snapshotLogic.deleteSnapshot(snapshotId);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Failed to parse session for snapshot cleanup", e);
+        }
         await adapter.remove(filePath);
     }
   }
@@ -218,6 +239,7 @@ export class SessionLogic {
   private serializeToTurns(messages: MessageV2[], modelMessages: ModelMessage[]): TurnData[] {
     const turns: TurnData[] = [];
     let currentTurn: TurnData | null = null;
+    let modelMessageIndex = 0;
     
     // This is a heuristic: UserMessage starts a new turn.
     for (const msg of messages) {
@@ -225,10 +247,30 @@ export class SessionLogic {
         if (currentTurn) {
           turns.push(currentTurn);
         }
+        
+        // Find the start of the next turn in modelMessages
+        const turnModelMessages: ModelMessage[] = [];
+        let foundUserMsg = false;
+        
+        while (modelMessageIndex < modelMessages.length) {
+            const mm = modelMessages[modelMessageIndex];
+            if (mm.role === 'user') {
+                if (foundUserMsg) {
+                    // This is the start of the NEXT turn, stop collecting
+                    break;
+                }
+                foundUserMsg = true;
+            }
+            if (foundUserMsg) {
+                turnModelMessages.push(mm);
+            }
+            modelMessageIndex++;
+        }
+
         currentTurn = {
           id: msg.id,
           userMessage: this.serializeUserMessage(msg as UserMessage),
-          modelMessages: [], // Will populate for the last turn only
+          modelMessages: turnModelMessages,
           assistantMessages: [],
           snapshots: {} 
         };
@@ -261,8 +303,10 @@ export class SessionLogic {
     }
     
     if (currentTurn) {
-        // Save full history on the last turn only
-        currentTurn.modelMessages = modelMessages;
+        // For the very last turn, it's possible some model messages were generated 
+        // after the last user message that haven't been picked up if the loop broke early,
+        // but our logic above consumes until the next 'user' message, so it should have
+        // consumed everything to the end of the array for the last turn.
         turns.push(currentTurn);
     }
     
