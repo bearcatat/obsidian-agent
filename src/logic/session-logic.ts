@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { renderHistoricalToolMessage } from "@/ui/components/agent-view/messages/message/historical-tool-renderer";
 import { SnapshotLogic } from "@/logic/snapshot-logic";
 import { agentStore } from "@/state/agent-state-impl";
+import { SkillLogic } from "@/logic/skill-logic";
 
 function debounce<T extends (...args: any[]) => void>(func: T, wait: number): T {
   let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -40,6 +41,7 @@ export interface SessionData {
   createdAt: number;
   updatedAt: number;
   turns: TurnData[];
+  activeSkills: string[];
 }
 
 export interface SessionMetadata {
@@ -122,12 +124,16 @@ export class SessionLogic {
       
       const turns = this.serializeToTurns(state.messages, state.modelMessages);
       
+      // Get active skills for the session
+      const activeSkills = SkillLogic.getInstance().getActiveSkillsForSession().map(s => s.name);
+      
       const sessionData: SessionData = {
         id: sessionId,
         title: state.title,
-        createdAt: Date.now(), // ideally this should be persisted too, but for update it's fine
+        createdAt: Date.now(),
         updatedAt: Date.now(),
-        turns
+        turns,
+        activeSkills
       };
 
       const filePath = `${this.SESSIONS_DIR}/${sessionId}.json`;
@@ -199,8 +205,9 @@ export class SessionLogic {
           messages: messages,
           modelMessages: restoredModelMessages,
           isLoading: false,
-          model: null, // Model config is not persisted in session for now, uses default
-          abortController: null
+          model: null,
+          abortController: null,
+          activeSkills: sessionData.activeSkills || []
       };
 
     } catch (e) {

@@ -258,6 +258,17 @@ export class SkillLogic {
     this.sessionActiveSkills.clear();
   }
 
+  // 恢复会话激活的 skills（从历史会话加载时调用）
+  restoreSessionSkills(skillNames: string[]): void {
+    this.sessionActiveSkills.clear();
+    for (const name of skillNames) {
+      const skill = this.getSkillByName(name);
+      if (skill) {
+        this.sessionActiveSkills.add(name);
+      }
+    }
+  }
+
   // 解析技能命令（/skill-name）
   parseSkillCommand(input: string): { type: 'activate' | null; skillName: string | null; args: string } | null {
     const trimmed = input.trim();

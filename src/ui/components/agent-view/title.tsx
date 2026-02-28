@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import React, { useState, useEffect } from "react";
 import { SessionLogic, SessionMetadata } from "@/logic/session-logic";
 import { agentStore } from "@/state/agent-state-impl";
+import { SkillLogic } from "@/logic/skill-logic";
 
 export interface TitleProps { }
 
@@ -27,8 +28,11 @@ export const Title: React.FC<TitleProps> = () => {
 	const handleLoadSession = async (sessionId: string) => {
 		const state = await SessionLogic.getInstance().loadSession(sessionId);
 		if (state) {
-			// 将重构好的历史状态强制覆盖当前状态机，触发 UI 全面重新渲染
 			agentStore.setState(state);
+			// Restore active skills from the loaded session
+			if (state.activeSkills && state.activeSkills.length > 0) {
+				SkillLogic.getInstance().restoreSessionSkills(state.activeSkills);
+			}
 			setIsHistoryOpen(false);
 		}
 	};

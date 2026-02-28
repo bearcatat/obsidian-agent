@@ -33,4 +33,5 @@ export interface AgentStateData {
   title: string;
   model: ModelConfig | null;
   abortController: AbortController | null;
+  activeSkills?: string[];
 }
