@@ -6,6 +6,7 @@ import { useApp } from "../../../hooks/app-context";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../elements/dialog";
 import React, { useState, useEffect } from "react";
 import { SessionLogic, SessionMetadata } from "@/logic/session-logic";
+import { agentStore } from "@/state/agent-state-impl";
 
 export interface TitleProps { }
 
@@ -26,7 +27,8 @@ export const Title: React.FC<TitleProps> = () => {
 	const handleLoadSession = async (sessionId: string) => {
 		const state = await SessionLogic.getInstance().loadSession(sessionId);
 		if (state) {
-			// Actually the state was already applied in loadSession via agentStore.setState... wait, loadSession directly updates store.
+			// 将重构好的历史状态强制覆盖当前状态机，触发 UI 全面重新渲染
+			agentStore.setState(state);
 			setIsHistoryOpen(false);
 		}
 	};
