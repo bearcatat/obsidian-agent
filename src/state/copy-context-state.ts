@@ -81,6 +81,11 @@ export class CopyContextManager {
     const selectionRange = ContextLogic.getInstance().getSelectionRange(editor);
     if (!selectionRange) return;
 
+    // 如果选中内容不足一行（起始行和结束行相同），则直接返回，不转换为上下文
+    if (selectionRange.from.line === selectionRange.to.line) {
+      return;
+    }
+
     const context: CopyContext = {
       notePath: activeFile.path,
       noteName: activeFile.basename,

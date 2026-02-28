@@ -38,6 +38,13 @@
 
 ## 📦 安装
 
+### 使用 BRAT 安装（推荐）
+1. 在 Obsidian 社区插件中安装并启用 [BRAT](https://github.com/TfTHacker/obsidian42-brat) 插件。
+2. 打开 BRAT 设置，点击 "Add Beta plugin"（添加测试版插件）。
+3. 输入仓库地址：`https://github.com/bearcatat/obsidian-agent`
+4. 点击 "Add Plugin"（添加插件）。
+5. 安装完成后，前往 Obsidian 设置 -> 第三方插件，启用 "Obsidian Agent"。
+
 ### 手动安装
 1. 从 [GitHub Releases](https://github.com/bearcatat/obsidian-agent/releases) 下载最新版本
 2. 解压到 `.obsidian/plugins/obsidian-agent/`

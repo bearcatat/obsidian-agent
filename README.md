@@ -38,6 +38,13 @@ A powerful Obsidian plugin that brings AI assistant capabilities directly into y
 
 ## 📦 Installation
 
+### Install using BRAT (Recommended)
+1. Install and enable the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin from the Obsidian Community Plugins.
+2. Open BRAT settings, click "Add Beta plugin".
+3. Enter the repository address: `https://github.com/bearcatat/obsidian-agent`
+4. Click "Add Plugin".
+5. Once installed, go to Obsidian Settings -> Community Plugins and enable "Obsidian Agent".
+
 ### Manual Installation
 1. Download the latest release from [GitHub Releases](https://github.com/bearcatat/obsidian-agent/releases)
 2. Extract to `.obsidian/plugins/obsidian-agent/`
