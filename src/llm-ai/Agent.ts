@@ -9,7 +9,6 @@ import SkillLogic from "@/logic/skill-logic";
 
 export default class AIAgent {
     private static instance: AIAgent
-    private messages: Array<ModelMessage> = new Array<ModelMessage>();
 
     static getInstance(): AIAgent {
         if (!AIAgent.instance) {
@@ -57,9 +56,10 @@ export default class AIAgent {
     }
 
     async query(message: UserMessage,
+        history: ModelMessage[],
         abortController: AbortController,
         addMessage: (message: MessageV2) => void
-    ) {
+    ): Promise<ModelMessage[]> {
         const modelManager = AIModelManager.getInstance();
         const userTools = AIToolManager.getInstance().getMainAgentEnabledTools();
         const builtinTools = modelManager.agentConfig.tools;
@@ -75,12 +75,11 @@ export default class AIAgent {
             },
             maxRetries: 3,
         })
-        this.messages.push(message.toModelMessage())
+        const newHistory = [...history, message.toModelMessage()];
         const streamer = new Streamer(agent, addMessage)
-        const result = await streamer.stream(this.messages, abortController.signal)
+        const result = await streamer.stream(newHistory, abortController.signal)
         const messages = (await result.response).messages
-        this.messages.push(...messages)
-        console.log(messages)
+        return [...newHistory, ...messages];
     }
 
 
@@ -104,7 +103,6 @@ export default class AIAgent {
     }
 
     async clearMemory(): Promise<void> {
-        this.messages = new Array<ModelMessage>()
         // 清除会话级激活的技能，避免影响新对话
         SkillLogic.getInstance().clearSessionSkills()
     }

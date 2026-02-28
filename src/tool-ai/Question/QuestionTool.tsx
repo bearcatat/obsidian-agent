@@ -55,11 +55,16 @@ export const QuestionTool = tool({
 			const results: string[][] = await Promise.all(promises)
 			
 			toolMessage.setChildren(render(questionData, true, results, submitAnswer))
-			toolMessage.setContent(JSON.stringify(results))
+			const payload = {
+				toolName,
+				questions: questionData,
+				results
+			};
+			toolMessage.setContent(JSON.stringify(payload))
 			toolMessage.close()
 			context.addMessage(toolMessage)
 
-			return results
+			return JSON.stringify(results)
 		} catch (error) {
 			const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
 			context.addMessage(errorMessage)

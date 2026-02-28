@@ -4,12 +4,18 @@ import { App, TFile } from "obsidian";
 import { UserMessage } from "@/messages/user-message";
 import AIAgent from "@/llm-ai/Agent";
 import AIModelManager from "@/llm-ai/ModelManager";
-
+import { SessionLogic } from "./session-logic";
 
 export class AgentViewLogic {
   private static instance: AgentViewLogic;
 
-  private constructor() {}
+  private constructor() {
+    agentStore.subscribe((state, prevState) => {
+      if (state.sessionId && !state.isLoading && state.messages !== prevState.messages) {
+        SessionLogic.getInstance().saveSession(state);
+      }
+    });
+  }
 
   static getInstance(): AgentViewLogic {
     if (!AgentViewLogic.instance) {
@@ -26,22 +32,35 @@ export class AgentViewLogic {
   async sendMessage(content: string, context: Context): Promise<void> {
     // 设置加载状态
     const store = agentStore.getState();
-    store.setLoading(true);
+    if (!store.sessionId) {
+      await SessionLogic.getInstance().createSession();
+    }
+    
+    agentStore.getState().setLoading(true);
     const abortController = new AbortController()
-    store.setAbortController(abortController);
+    agentStore.getState().setAbortController(abortController);
 
     try {
       this.setTitleIfNewChat(content);
       // 添加用户消息
       const userMessage = new UserMessage(content, context);
-      store.addMessage(userMessage);
-      await AIAgent.getInstance().query(userMessage, abortController, (message: MessageV2) => {
-        agentStore.getState().addMessage(message);
-      })
+      agentStore.getState().addMessage(userMessage);
+      const currentStore = agentStore.getState();
+      const newModelMessages = await AIAgent.getInstance().query(
+        userMessage, 
+        currentStore.modelMessages,
+        abortController, 
+        (message: MessageV2) => {
+          agentStore.getState().addMessage(message);
+        }
+      );
+      agentStore.getState().setModelMessages(newModelMessages);
     } catch (error) {
       console.error('Failed to send message:', error);
     } finally {
       agentStore.getState().setLoading(false);
+      // Force a save after the turn completes
+      SessionLogic.getInstance().saveSession(agentStore.getState());
     }
   }
 

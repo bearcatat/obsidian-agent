@@ -163,13 +163,14 @@ export const BashTool = tool({
         error: result.error,
       };
 
-      toolMessage.setContent(JSON.stringify({
-        success: result.exitCode === 0 ? "Command executed successfully" : "Command failed",
-        command: cmd,
-        output: result.output,
-        exitCode: result.exitCode,
-        error: result.error,
-      }));
+      const payload = {
+        toolName,
+        decision,
+        bashCommand: finalCommand,
+        success: result.exitCode === 0,
+        isCancelled: false
+      };
+      toolMessage.setContent(JSON.stringify(payload));
 
       toolMessage.setChildren(render(finalCommand, true, decision, undefined, undefined, undefined, undefined));
       toolMessage.close();
@@ -284,10 +285,16 @@ export const BashTool = tool({
         displayDecision = "reject";
       }
       
-      toolMessage.setContent(JSON.stringify({
-        cancelled: true,
-        message: denyMessage,
-      }));
+      const payload = {
+        toolName,
+        decision: displayDecision,
+        bashCommand,
+        success: false,
+        isCancelled: true,
+        message: denyMessage
+      };
+      toolMessage.setContent(JSON.stringify(payload));
+      
       toolMessage.setChildren(render(bashCommand, true, displayDecision, undefined, undefined, undefined, undefined));
       toolMessage.close();
       context.addMessage(toolMessage);

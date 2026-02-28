@@ -8,6 +8,8 @@ import { FileEditToolMessageCard } from "@/ui/components/agent-view/messages/mes
 import { FileEdit, MessageV2 } from "@/types";
 import { diff_match_patch } from "diff-match-patch";
 
+import { SnapshotLogic } from "@/logic/snapshot-logic";
+
 export const toolName = "editFile"
 
 const dmp = new diff_match_patch()
@@ -182,21 +184,40 @@ export const FileEditTool = tool({
 
 			const decision = await waitForDecision()
 
+			let payloadError: any = null;
+			let isCancelled = false;
+			let snapshotId = "";
+
 			if (decision === "apply") {
 				try {
+					if (file) {
+						snapshotId = await SnapshotLogic.getInstance().createSnapshot(relativePath);
+					}
 					await vault.process(file!, () => newContent)
 				} catch (error) {
-					toolMessage.setContent(JSON.stringify({
+					payloadError = {
 						error: "File operation failed",
 						details: error instanceof Error ? error.message : "unknown error",
-					}))
+					};
 				}
 			} else {
-				toolMessage.setContent(JSON.stringify({
+				isCancelled = true;
+				payloadError = {
 					cancelled: true,
 					message: "User rejected the file edit",
-				}))
+				};
 			}
+
+			// Save the complete state for historical rendering
+			const payload = {
+				toolName,
+				decision,
+				fileEdit,
+				error: payloadError,
+				isCancelled,
+				snapshotId,
+			};
+			toolMessage.setContent(JSON.stringify(payload));
 
 			toolMessage.setChildren(render(fileEdit, true, decision, handleApply, handleReject))
 			toolMessage.close()

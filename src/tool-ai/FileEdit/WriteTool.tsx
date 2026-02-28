@@ -8,6 +8,8 @@ import { WriteToolMessageCard } from "@/ui/components/agent-view/messages/messag
 import { MessageV2 } from "@/types";
 import { diff_match_patch } from "diff-match-patch";
 
+import { SnapshotLogic } from "@/logic/snapshot-logic";
+
 export const toolName = "write"
 
 const dmp = new diff_match_patch()
@@ -104,8 +106,13 @@ export const WriteTool = tool({
 
       const decision = await waitForDecision()
 
+      let payloadError: any = null;
+      let isCancelled = false;
+      let snapshotId = "";
+
       if (decision === "apply") {
         try {
+          snapshotId = await SnapshotLogic.getInstance().createSnapshot(relativePath);
           if (exists) {
             await vault.modify(file!, content)
           } else {
@@ -119,17 +126,29 @@ export const WriteTool = tool({
             await vault.create(relativePath, content)
           }
         } catch (error) {
-  				toolMessage.setContent(JSON.stringify({
+					payloadError = {
   					error: "File write failed",
   					details: error instanceof Error ? error.message : "unknown error",
-  				}))
+  				};
         }
   		} else {
-  				toolMessage.setContent(JSON.stringify({
+          isCancelled = true;
+  				payloadError = {
   					cancelled: true,
   					message: "User rejected the file write",
-  				}))
+  				};
   		}
+
+      // Save the complete state for historical rendering
+			const payload = {
+				toolName,
+				decision,
+				writeResult,
+				error: payloadError,
+				isCancelled,
+				snapshotId,
+			};
+			toolMessage.setContent(JSON.stringify(payload));
 
       toolMessage.setChildren(render(writeResult, true, decision, handleApply, handleReject))
       toolMessage.close()

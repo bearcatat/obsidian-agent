@@ -38,4 +38,18 @@ export class InputEditorState {
     view.focus();
     return true;
   }
+
+  setText(text: string): boolean {
+    if (!this.editorView) return false;
+
+    const view = this.editorView;
+    const length = view.state.doc.length;
+
+    view.dispatch({
+      changes: { from: 0, to: length, insert: text },
+      selection: { anchor: text.length, head: text.length }
+    });
+    view.focus();
+    return true;
+  }
 }
