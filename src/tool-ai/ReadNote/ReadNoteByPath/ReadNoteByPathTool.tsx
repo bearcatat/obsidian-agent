@@ -18,7 +18,14 @@ export const ReadNoteByPathTool = tool({
 		try {
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
 			const result = await readNoteByPath(filePath)
-			toolMessage.setContent(result)
+			
+			// Save standardized JSON payload for history instead of raw string
+			const payload = {
+				toolName,
+				filePath
+			}
+			toolMessage.setContent(JSON.stringify(payload))
+			
 			toolMessage.setChildren(render(filePath))
 			toolMessage.close()
 			context.addMessage(toolMessage)

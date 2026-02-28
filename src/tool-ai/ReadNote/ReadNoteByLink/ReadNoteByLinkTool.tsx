@@ -20,7 +20,15 @@ export const ReadNoteByLinkTool = tool({
 		try {
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
 			const result = await readNoteByLink(linkPath, filePath)
-			toolMessage.setContent(result)
+			
+			// Save standardized JSON payload for history instead of raw string
+			const payload = {
+				toolName,
+				linkPath,
+				filePath
+			}
+			toolMessage.setContent(JSON.stringify(payload))
+			
 			toolMessage.setChildren(render(linkPath))
 			toolMessage.close()
 			context.addMessage(toolMessage)

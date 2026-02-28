@@ -20,7 +20,15 @@ export const SearchTool = tool({
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
 			const params = args as SearchParams
 			const { content, metadata } = await executeSearch(params)
-			toolMessage.setContent(content)
+			
+			// Save standardized JSON payload for history instead of raw string
+			const payload = {
+				toolName,
+				params,
+				metadata
+			}
+			toolMessage.setContent(JSON.stringify(payload))
+			
 			toolMessage.setChildren(render(params.query, metadata))
 			toolMessage.close()
 			context.addMessage(toolMessage)

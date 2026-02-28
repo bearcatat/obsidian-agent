@@ -28,7 +28,15 @@ export const ListTool = tool({
 		try {
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
 			const result = await listDirectory(path || "/", ignore)
-			toolMessage.setContent(result.content)
+			
+			// Save standardized JSON payload for history instead of raw string
+			const payload = {
+				toolName,
+				path: path || "/",
+				stats: result.stats
+			}
+			toolMessage.setContent(JSON.stringify(payload))
+			
 			toolMessage.setChildren(render(path || "/", result.stats))
 			toolMessage.close()
 			context.addMessage(toolMessage)
