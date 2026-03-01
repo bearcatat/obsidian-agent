@@ -26,8 +26,10 @@ export const Title: React.FC<TitleProps> = () => {
 	}, [isHistoryOpen]);
 
 	const handleLoadSession = async (sessionId: string) => {
+		const currentModel = agentStore.getState().model;
 		const state = await SessionLogic.getInstance().loadSession(sessionId);
 		if (state) {
+			state.model = currentModel;
 			agentStore.setState(state);
 			// Restore active skills from the loaded session
 			if (state.activeSkills && state.activeSkills.length > 0) {

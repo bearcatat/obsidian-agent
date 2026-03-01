@@ -1,6 +1,6 @@
 # Obsidian Agent
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/bearcatat/obsidian-agent/releases)
+[![Version](https://img.shields.io/badge/version-0.11.2-blue.svg)](https://github.com/bearcatat/obsidian-agent/releases)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
 [![Obsidian](https://img.shields.io/badge/Obsidian-0.15.0+-purple.svg)](https://obsidian.md)
 
@@ -26,7 +26,7 @@ A powerful Obsidian plugin that brings AI assistant capabilities directly into y
 - **Image Support** - Paste images from clipboard into conversations
 
 ### 🛠️ Extensible Tools
-- **Built-in Tools** - Time, note reading, file editing, web fetching, local search
+- **Built-in Tools** - Time, note reading/writing, file editing, web search, local search, command execution, and more
 - **MCP Servers** - Extend with Model Context Protocol servers
 - **SubAgents** - Create specialized AI assistants for specific tasks
 - **Tool Management** - Enable/disable tools with granular permissions
@@ -91,6 +91,7 @@ Create specialized assistants for specific workflows:
 | Anthropic | ✅ | No thinking mode |
 | Moonshot | ⚠️ | Enable "Use CORS Proxy" in model settings |
 | Google Gemini | ✅ | Full support |
+| OpenAI Compatible | ✅ | Support for OpenAI-compatible APIs |
 
 ### MCP Servers
 Extend functionality with external tools:

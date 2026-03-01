@@ -1,6 +1,6 @@
 # Obsidian Agent
 
-[![版本](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/bearcatat/obsidian-agent/releases)
+[![版本](https://img.shields.io/badge/version-0.11.2-blue.svg)](https://github.com/bearcatat/obsidian-agent/releases)
 [![许可证](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
 [![Obsidian](https://img.shields.io/badge/Obsidian-0.15.0+-purple.svg)](https://obsidian.md)
 
@@ -26,7 +26,7 @@
 - **图片支持** - 从剪贴板粘贴图片到对话中
 
 ### 🛠️ 可扩展工具
-- **内置工具** - 时间、笔记读取、文件编辑、网页获取、本地搜索
+- **内置工具** - 时间获取、笔记读写、文件编辑、网页搜索、本地搜索、命令执行等
 - **MCP 服务器** - 通过 Model Context Protocol 扩展功能
 - **子代理** - 创建专门的 AI 助手处理特定任务
 - **工具管理** - 精细控制工具启用和权限
