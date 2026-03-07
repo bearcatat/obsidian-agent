@@ -89,7 +89,7 @@ export const Input = () => {
         disabled={isLoading}
         onPasteImages={handlePasteImages}
       />
-      <InputButtom onSend={onSend} />
+      <InputButtom onSend={onSend} onAddImages={handlePasteImages} />
     </div>
   );
 };
