@@ -1,6 +1,6 @@
 import { Context, MessageV2, ModelConfig } from "../types";
 import { useAgentStore, agentStore } from "../state/agent-state-impl";
-import { App, TFile } from "obsidian";
+import { App, Notice, TFile } from "obsidian";
 import { UserMessage } from "@/messages/user-message";
 import AIAgent from "@/llm-ai/Agent";
 import AIModelManager from "@/llm-ai/ModelManager";
@@ -57,6 +57,7 @@ export class AgentViewLogic {
       agentStore.getState().setModelMessages(newModelMessages);
     } catch (error) {
       console.error('Failed to send message:', error);
+      new Notice(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`, 3000);
     } finally {
       agentStore.getState().setLoading(false);
       // Force a save after the turn completes
