@@ -62,11 +62,11 @@ export const Title: React.FC<TitleProps> = () => {
 						</TooltipTrigger>
 						<TooltipContent side="bottom">Chat History</TooltipContent>
 					</Tooltip>
-					<DialogContent className="tw-max-h-[60vh] tw-flex tw-flex-col tw-overflow-hidden">
+					<DialogContent className="tw-flex tw-flex-col">
 						<DialogHeader>
 							<DialogTitle>Chat History</DialogTitle>
 						</DialogHeader>
-						<div className="tw-flex tw-flex-col tw-gap-2 tw-overflow-y-auto tw-flex-1 tw-min-h-0 tw-pr-2">
+						<div className="tw-max-h-[60vh] tw-flex tw-flex-col tw-gap-2 tw-overflow-y-auto tw-flex-1 tw-min-h-0 tw-pr-2">
 							{sessions.length === 0 ? (
 								<div className="tw-text-center tw-text-muted tw-py-4">No history found</div>
 							) : (
