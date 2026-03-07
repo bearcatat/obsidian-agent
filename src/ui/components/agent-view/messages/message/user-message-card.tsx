@@ -19,6 +19,9 @@ export function UserMessageCard({ id, content, images }: Props) {
     const handleUndo = () => {
         undoToMessage(id);
         InputEditorState.getInstance().setText(content);
+        if (images && images.length > 0) {
+            InputEditorState.getInstance().setContext(images);
+        }
     };
 
     return (

@@ -33,6 +33,12 @@ export const Input = () => {
     if (view) {
       editorState.setEditorView(view);
     }
+    editorState.setOnContextChange((images) => {
+      setContext(prev => ({
+        ...prev,
+        images
+      }));
+    });
   }, [message]);
 
   const onSend = async () => {

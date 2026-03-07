@@ -3,6 +3,7 @@ import { EditorView } from '@codemirror/view';
 export class InputEditorState {
   private static instance: InputEditorState;
   private editorView: EditorView | null = null;
+  private onContextChange: ((images: string[]) => void) | null = null;
 
   private constructor() {}
 
@@ -23,6 +24,10 @@ export class InputEditorState {
 
   getEditorView(): EditorView | null {
     return this.editorView;
+  }
+
+  setOnContextChange(callback: (images: string[]) => void): void {
+    this.onContextChange = callback;
   }
 
   insertText(text: string): boolean {
@@ -51,5 +56,11 @@ export class InputEditorState {
     });
     view.focus();
     return true;
+  }
+
+  setContext(images: string[]): void {
+    if (this.onContextChange) {
+      this.onContextChange(images);
+    }
   }
 }

@@ -7,6 +7,7 @@ import { tool, ToolSet } from "ai";
 import { z } from 'zod';
 import SubAgentLogic from "@/logic/subagent-logic";
 import AIModelManager from "@/llm-ai/ModelManager";
+import { agentStore } from "@/state/agent-state-impl";
 
 
 export default class SubAgentManager {
@@ -20,7 +21,8 @@ export default class SubAgentManager {
     }
 
     const modelManager = AIModelManager.getInstance();
-    const agentModelConfig = modelManager.agentModelConfig;
+    const currentModel = agentStore.getState().model;
+    const agentModelConfig = currentModel ?? modelManager.agentModelConfig;
 
     if (!agentModelConfig) {
       console.warn('SubAgentManager: No agent model configured');
