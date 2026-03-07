@@ -52,6 +52,7 @@ export default class SubAgent {
             experimental_context: {
                 addMessage: addMessage
             },
+            stopWhen: []
         })
 
         this.messages.push(message.toModelMessage())

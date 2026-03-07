@@ -74,6 +74,7 @@ export default class AIAgent {
                 addMessage: addMessage
             },
             maxRetries: 3,
+            stopWhen: []
         })
         const newHistory = [...history, message.toModelMessage()];
         const streamer = new Streamer(agent, addMessage)

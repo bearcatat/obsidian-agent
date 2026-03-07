@@ -62,7 +62,7 @@ export const Title: React.FC<TitleProps> = () => {
 						</TooltipTrigger>
 						<TooltipContent side="bottom">Chat History</TooltipContent>
 					</Tooltip>
-					<DialogContent className="tw-max-h-[60vh] tw-flex tw-flex-col">
+					<DialogContent className="tw-max-h-[60vh] tw-flex tw-flex-col tw-overflow-hidden">
 						<DialogHeader>
 							<DialogTitle>Chat History</DialogTitle>
 						</DialogHeader>
