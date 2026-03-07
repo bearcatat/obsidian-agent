@@ -77,8 +77,8 @@ export const FileEditToolMessageCard = ({ origin_answered_state, fileEdit, decis
     }, [fileEdit]);
 
     const statusText = isAnswered
-        ? (decision === "apply" ? "已应用" : decision === "reject" ? "已拒绝" : "已处理")
-        : "待确认";
+        ? (decision === "apply" ? "Applied" : decision === "reject" ? "Rejected" : "Processed")
+        : "Pending confirmation";
 
     return (
         <Collapsible
@@ -204,7 +204,7 @@ export const FileEditToolMessageCard = ({ origin_answered_state, fileEdit, decis
                             onClick={handleApply}
                         >
                             <Check className="tw-size-4 tw-mr-1" />
-                            应用
+                            Apply
                         </Button>
                         <Button
                             variant="ghost"
@@ -213,7 +213,7 @@ export const FileEditToolMessageCard = ({ origin_answered_state, fileEdit, decis
                             onClick={handleReject}
                         >
                             <X className="tw-size-4 tw-mr-1" />
-                            拒绝
+                            Deny
                         </Button>
                     </div>
                 )}

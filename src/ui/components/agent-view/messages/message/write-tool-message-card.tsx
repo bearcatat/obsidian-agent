@@ -76,11 +76,11 @@ export const WriteToolMessageCard = ({ origin_answered_state, writeResult, decis
     }, [writeResult]);
 
     const statusText = isAnswered
-        ? (decision === "apply" ? "已应用" : decision === "reject" ? "已拒绝" : "已处理")
-        : "待确认";
+        ? (decision === "apply" ? "Applied" : decision === "reject" ? "Rejected" : "Processed")
+        : "Pending confirmation";
 
     const fileIcon = writeResult.is_new_file ? <FilePlus className="tw-size-4" /> : <FilePen className="tw-size-4" />;
-    const fileStatus = writeResult.is_new_file ? "新建" : "覆盖";
+    const fileStatus = writeResult.is_new_file ? "New" : "Overwrite";
 
     return (
         <Collapsible
@@ -175,7 +175,7 @@ export const WriteToolMessageCard = ({ origin_answered_state, writeResult, decis
                             onClick={handleApply}
                         >
                             <Check className="tw-size-4 tw-mr-1" />
-                            应用
+                            Apply
                         </Button>
                         <Button
                             variant="ghost"
@@ -184,7 +184,7 @@ export const WriteToolMessageCard = ({ origin_answered_state, writeResult, decis
                             onClick={handleReject}
                         >
                             <X className="tw-size-4 tw-mr-1" />
-                            拒绝
+                            Deny
                         </Button>
                     </div>
                 )}

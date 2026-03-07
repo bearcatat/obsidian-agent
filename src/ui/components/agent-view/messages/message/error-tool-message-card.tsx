@@ -11,13 +11,13 @@ export const ErrorToolMessageCard = ({
 }: Props) => {
   const getErrorTypeLabel = (type?: string) => {
     switch (type) {
-      case "validation": return "验证错误";
-      case "runtime": return "运行时错误";
-      case "permission": return "权限错误";
-      case "network": return "网络错误";
-      case "configuration": return "配置错误";
-      case "not_found": return "资源不存在";
-      default: return "工具错误";
+      case "validation": return "Validation Error";
+      case "runtime": return "Runtime Error";
+      case "permission": return "Permission Error";
+      case "network": return "Network Error";
+      case "configuration": return "Configuration Error";
+      case "not_found": return "Resource Not Found";
+      default: return "Tool Error";
     }
   };
 
@@ -47,7 +47,7 @@ export const ErrorToolMessageCard = ({
 
         {errorDetails && Object.keys(errorDetails).length > 0 && (
           <div className="tw-mt-2 tw-border tw-border-muted tw-rounded tw-p-2 tw-bg-muted/10">
-            <div className="tw-text-xs tw-text-muted tw-font-medium tw-mb-1">错误详情:</div>
+            <div className="tw-text-xs tw-text-muted tw-font-medium tw-mb-1">Error Details:</div>
             <pre className="tw-text-xs tw-overflow-auto tw-max-h-40 tw-whitespace-pre-wrap">
               {JSON.stringify(errorDetails, null, 2)}
             </pre>

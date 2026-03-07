@@ -63,14 +63,14 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
     const getStatusText = () => {
         if (isAnswered) {
             if (decision === "apply" || decision === "allow") {
-                return bashCommand.exitCode === 0 ? "执行成功" : "执行失败";
+                return bashCommand.exitCode === 0 ? "Executed successfully" : "Execution failed";
             }
             if (decision === "deny") {
-                return "已拒绝(记住)";
+                return "Denied (remembered)";
             }
-            return decision === "reject" ? "已拒绝" : "已处理";
+            return decision === "reject" ? "Rejected" : "Processed";
         }
-        return "待确认";
+        return "Pending confirmation";
     };
 
     const isDangerous = React.useMemo(() => {
@@ -156,7 +156,7 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
                             onClick={handleApply}
                         >
                             <Check className="tw-size-4 tw-mr-1" />
-                            执行
+                            Execute
                         </Button>
                         <Button 
                             variant="ghost" 
@@ -165,28 +165,28 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
                             onClick={handleReject}
                         >
                             <X className="tw-size-4 tw-mr-1" />
-                            拒绝
+                            Deny
                         </Button>
                         <div className="tw-w-px tw-h-6 tw-bg-border" />
                         <DropdownMenu open={isRememberDropdownOpen} onOpenChange={setIsRememberDropdownOpen}>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost2" size="fit">
-                                    记住...
+                                    Remember...
                                     <ChevronDown className="tw-mt-0.5 tw-size-4" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start">
                                 <DropdownMenuItem onSelect={() => { setIsRememberDropdownOpen(false); handleAlwaysAllow(); }}>
-                                    允许并记住
+                                    Allow and remember
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => { setIsRememberDropdownOpen(false); handleAlwaysDeny(); }}>
-                                    拒绝并记住
+                                    Deny and remember
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => { setIsRememberDropdownOpen(false); handleAlwaysAllowGroup(); }}>
-                                    允许所有 {commandBase} 命令
+                                    Allow all {commandBase} commands
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => { setIsRememberDropdownOpen(false); handleAlwaysDenyGroup(); }}>
-                                    拒绝所有 {commandBase} 命令
+                                    Deny all {commandBase} commands
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
