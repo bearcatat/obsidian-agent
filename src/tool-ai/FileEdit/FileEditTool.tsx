@@ -9,6 +9,7 @@ import { FileEdit, MessageV2 } from "@/types";
 import { diff_match_patch } from "diff-match-patch";
 
 import { SnapshotLogic } from "@/logic/snapshot-logic";
+import { fileMutex } from "./mutex";
 
 export const toolName = "editFile"
 
@@ -117,25 +118,29 @@ export const FileEditTool = tool({
 	}),
 	execute: async ({ file_path, old_string, new_string, replaceAll }, { toolCallId, experimental_context }) => {
 		const context = experimental_context as { addMessage: (message: MessageV2) => void }
-		try {
-			const toolMessage = ToolMessage.from(toolName, toolCallId)
-			const app = getGlobalApp()
-			const vault = app.vault
+		
+		const app = getGlobalApp()
+		const vault = app.vault
 
-			let relativePath = file_path.replace(/\\/g, '/')
+		let relativePath = file_path.replace(/\\/g, '/')
 
-			if (relativePath.startsWith('/') || /^[A-Za-z]:/.test(relativePath)) {
-				try {
-					const vaultPath = (vault.adapter as any).basePath || ''
-					if (vaultPath && (file_path.startsWith(vaultPath) || relativePath.startsWith(vaultPath.replace(/\\/g, '/')))) {
-						relativePath = relativePath.replace(vaultPath.replace(/\\/g, '/'), '').replace(/^\/+/, '')
-					} else if (relativePath.startsWith('/')) {
-						relativePath = relativePath.replace(/^\/+/, '')
-					}
-				} catch (e) {
+		if (relativePath.startsWith('/') || /^[A-Za-z]:/.test(relativePath)) {
+			try {
+				const vaultPath = (vault.adapter as any).basePath || ''
+				if (vaultPath && (file_path.startsWith(vaultPath) || relativePath.startsWith(vaultPath.replace(/\\/g, '/')))) {
+					relativePath = relativePath.replace(vaultPath.replace(/\\/g, '/'), '').replace(/^\/+/, '')
+				} else if (relativePath.startsWith('/')) {
 					relativePath = relativePath.replace(/^\/+/, '')
 				}
+			} catch (e) {
+				relativePath = relativePath.replace(/^\/+/, '')
 			}
+		}
+
+		const release = await fileMutex.acquire(relativePath);
+
+		try {
+			const toolMessage = ToolMessage.from(toolName, toolCallId)
 
 			const file = vault.getAbstractFileByPath(relativePath) as TFile | null
 
@@ -232,6 +237,8 @@ export const FileEditTool = tool({
 			const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
 			context.addMessage(errorMessage)
 			throw error
+		} finally {
+			release();
 		}
 	}
 })
