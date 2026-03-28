@@ -29,7 +29,7 @@ export const ReadNoteByLinkTool = tool({
 			}
 			toolMessage.setContent(JSON.stringify(payload))
 			
-			toolMessage.setChildren(render(linkPath))
+			toolMessage.setChildren(renderReadNoteByLinkMessage(linkPath))
 			toolMessage.close()
 			context.addMessage(toolMessage)
 			return result
@@ -88,6 +88,6 @@ ${numberedContent}
 </content>`
 }
 
-function render(linkPath: string): React.ReactNode {
+export function renderReadNoteByLinkMessage(linkPath: string): React.ReactNode {
 	return `Read note by link: ${linkPath}`
 }

@@ -223,7 +223,7 @@ The tool will:
       const handleApply = () => { resolver("apply"); };
       const handleReject = () => { resolver("reject"); };
 
-      toolMessage.setChildren(render(result, false, null, handleApply, handleReject));
+      toolMessage.setChildren(renderCreateArtifactMessage(result, false, null, handleApply, handleReject));
       context.addMessage(toolMessage);
 
       const decision = await waitForDecision();
@@ -292,7 +292,7 @@ The tool will:
         }));
       }
 
-      toolMessage.setChildren(render(result, true, decision, handleApply, handleReject));
+      toolMessage.setChildren(renderCreateArtifactMessage(result, true, decision, handleApply, handleReject));
       toolMessage.close();
       context.addMessage(toolMessage);
 
@@ -314,7 +314,7 @@ The tool will:
   }
 });
 
-function render(
+export function renderCreateArtifactMessage(
   result: CreateArtifactResult,
   answered: boolean,
   decision: "apply" | "reject" | null,

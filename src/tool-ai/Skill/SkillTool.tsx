@@ -78,7 +78,7 @@ export const SkillTool = tool({
         message: `Skill "${name}" loaded and activated for this session`,
       };
       
-      toolMessage.setChildren(render(result));
+      toolMessage.setChildren(renderSkillMessage(result));
       context.addMessage(toolMessage);
       
       return JSON.stringify(result);
@@ -90,37 +90,6 @@ export const SkillTool = tool({
   }
 });
 
-function render(result: { success: boolean; name: string; description: string; content: string; message: string }): React.ReactNode {
-  return (
-    <div className="tw-p-3 tw-border tw-rounded-lg tw-bg-muted/30">
-      <div className="tw-flex tw-items-center tw-gap-2 tw-mb-2">
-        <span className="tw-text-lg">🎯</span>
-        <span className="tw-font-medium">Load Skill</span>
-        <span className="tw-ml-auto tw-text-sm tw-text-green-600">✓ Activated</span>
-      </div>
-      
-      <div className="tw-space-y-1 tw-text-sm tw-mb-3">
-        <div>
-          <span className="tw-text-muted-foreground">Skill:</span>{' '}
-          <code className="tw-px-1 tw-bg-muted tw-rounded">{result.name}</code>
-        </div>
-        <div>
-          <span className="tw-text-muted-foreground">Description:</span> {result.description}
-        </div>
-      </div>
-
-      <details className="tw-mb-3">
-        <summary className="tw-cursor-pointer tw-text-sm tw-text-muted-foreground hover:tw-text-normal">
-          View skill content
-        </summary>
-        <pre className="tw-mt-2 tw-p-2 tw-bg-muted tw-rounded tw-text-xs tw-overflow-x-auto tw-whitespace-pre-wrap">
-          {result.content}
-        </pre>
-      </details>
-
-      <div className="tw-text-xs tw-text-muted-foreground">
-        {result.message}
-      </div>
-    </div>
-  );
+export function renderSkillMessage(result: { success: boolean; name: string; description: string; content: string; message: string }): React.ReactNode {
+  return `use ${result.name}`;
 }

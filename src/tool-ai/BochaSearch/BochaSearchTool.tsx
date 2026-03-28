@@ -48,8 +48,16 @@ export const BochaWebSearchTool = tool({
 				args.freshness
 			)
 			
-			toolMessage.setContent(searchResult)
-			toolMessage.setChildren(render(args.query))
+			const payload = {
+				toolName,
+				query: args.query,
+				count: args.count,
+				freshness: args.freshness,
+				results: searchResult
+			}
+			toolMessage.setContent(JSON.stringify(payload))
+			
+			toolMessage.setChildren(renderBochaWebSearchMessage(args.query))
 			toolMessage.close()
 			context.addMessage(toolMessage)
 			
@@ -136,6 +144,6 @@ function formatBochaResults(results: BochaSearchResult[]): string {
 	return formattedResults.join("\n\n");
 }
 
-function render(searchQuery: string): React.ReactNode {
+export function renderBochaWebSearchMessage(searchQuery: string): React.ReactNode {
 	return `Bocha Web Search: "${searchQuery}"`;
 }

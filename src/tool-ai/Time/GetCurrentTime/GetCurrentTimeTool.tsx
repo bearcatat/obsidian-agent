@@ -17,7 +17,7 @@ export const GetCurrentTimeTool = tool({
 		const toolMessage = ToolMessage.from(toolName, toolCallId)
 		try {
 			const timeInfo = getCurrentTime()
-			toolMessage.setChildren(render(timeInfo))
+			toolMessage.setChildren(renderGetCurrentTimeMessage(timeInfo))
 			toolMessage.close()
 			context.addMessage(toolMessage)
 			return timeInfo
@@ -33,8 +33,6 @@ function getCurrentTime(): TimeInfo {
 	return convertDateToTimeInfo(now);
 }
 
-function render(timeInfo: TimeInfo): React.ReactNode {
-	return (
-		`Current time: ${timeInfo.formatted}`
-	)
+export function renderGetCurrentTimeMessage(timeInfo: TimeInfo): React.ReactNode {
+	return `Current time: ${timeInfo?.formatted || 'Current time'}`;
 }

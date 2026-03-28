@@ -25,8 +25,17 @@ export const WebFetchTool = tool({
 		try {
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
 			const result = await fetchWebContent({ url, format, timeout })
-			toolMessage.setContent(result)
-			toolMessage.setChildren(render(url))
+			
+			const payload = {
+				toolName,
+				url,
+				format,
+				timeout,
+				result
+			}
+			toolMessage.setContent(JSON.stringify(payload))
+			
+			toolMessage.setChildren(renderWebFetchMessage(url))
 			toolMessage.close()
 			context.addMessage(toolMessage)
 			return result
@@ -176,6 +185,6 @@ ${content}
 </content>`
 }
 
-function render(url: string): React.ReactNode {
-	return `Fetched: ${url}`
+export function renderWebFetchMessage(url: string): React.ReactNode {
+	return `Fetched: ${url}`;
 }

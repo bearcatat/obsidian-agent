@@ -26,7 +26,7 @@ export const ReadNoteByPathTool = tool({
 			}
 			toolMessage.setContent(JSON.stringify(payload))
 			
-			toolMessage.setChildren(render(filePath))
+			toolMessage.setChildren(renderReadNoteByPathMessage(filePath))
 			toolMessage.close()
 			context.addMessage(toolMessage)
 			return result
@@ -81,6 +81,6 @@ ${numberedContent}
 </content>`
 }
 
-function render(filePath: string): React.ReactNode {
+export function renderReadNoteByPathMessage(filePath: string): React.ReactNode {
 	return `Read note by path: ${filePath}`
 }

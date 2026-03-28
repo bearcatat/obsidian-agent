@@ -37,7 +37,7 @@ export const ListTool = tool({
 			}
 			toolMessage.setContent(JSON.stringify(payload))
 			
-			toolMessage.setChildren(render(path || "/", result.stats))
+			toolMessage.setChildren(renderListMessage(path || "/", result.stats))
 			toolMessage.close()
 			context.addMessage(toolMessage)
 			return result.content
@@ -179,7 +179,7 @@ async function listDirectory(path: string, ignorePatterns?: string[]): Promise<L
 	return { content, stats }
 }
 
-function render(path: string, stats: { fileCount: number; folderCount: number; truncated: boolean }): React.ReactNode {
+export function renderListMessage(path: string, stats: { fileCount: number; folderCount: number; truncated: boolean }): React.ReactNode {
 	const parts = [`List: ${path || "/"}`]
 	if (stats.fileCount > 0 || stats.folderCount > 0) {
 		parts.push(`(${stats.folderCount} folders, ${stats.fileCount} files)`)

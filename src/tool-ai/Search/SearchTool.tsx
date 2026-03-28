@@ -29,7 +29,7 @@ export const SearchTool = tool({
 			}
 			toolMessage.setContent(JSON.stringify(payload))
 			
-			toolMessage.setChildren(render(params.query, metadata))
+			toolMessage.setChildren(renderSearchMessage(params.query, metadata))
 			toolMessage.close()
 			context.addMessage(toolMessage)
 			return content
@@ -79,7 +79,7 @@ async function executeSearch(params: SearchParams): Promise<{ content: string; m
 	}
 }
 
-function render(searchQuery: string, metadata: SearchMetadata): React.ReactNode {
+export function renderSearchMessage(searchQuery: string, metadata: SearchMetadata): React.ReactNode {
 	return (
 		<div className="tw-flex tw-items-center tw-gap-2">
 			<span>Search: "{searchQuery}"</span>

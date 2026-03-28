@@ -44,8 +44,15 @@ export const ExaWebSearchTool = tool({
 			// Execute Exa web search
 			const searchResult = await executeExaSearch(args.query, args.numResults)
 			
-			toolMessage.setContent(searchResult)
-			toolMessage.setChildren(render(args.query))
+			const payload = {
+				toolName,
+				query: args.query,
+				numResults: args.numResults,
+				results: searchResult
+			}
+			toolMessage.setContent(JSON.stringify(payload))
+			
+			toolMessage.setChildren(renderExaWebSearchMessage(args.query))
 			toolMessage.close()
 			context.addMessage(toolMessage)
 			
@@ -163,6 +170,6 @@ function escapeXml(text: string): string {
 		.replace(/'/g, "&apos;");
 }
 
-function render(searchQuery: string): React.ReactNode {
+export function renderExaWebSearchMessage(searchQuery: string): React.ReactNode {
 	return `Exa Web Search: "${searchQuery}"`;
 }
