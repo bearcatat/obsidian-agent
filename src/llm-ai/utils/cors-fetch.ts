@@ -7,6 +7,11 @@ export function createCORSFetchAdapter(): typeof fetch {
     return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
         const url = typeof input === "string" ? input : input.toString();
         
+        // 如果请求已经被取消，立即抛出 AbortError
+        if (init?.signal?.aborted) {
+            throw new DOMException("The user aborted a request.", "AbortError");
+        }
+
         // 将 RequestInit 转换为 RequestUrlParam
         const requestParam: RequestUrlParam = {
             url,
@@ -16,7 +21,20 @@ export function createCORSFetchAdapter(): typeof fetch {
         };
 
         try {
-            const response: RequestUrlResponse = await requestUrl(requestParam);
+            let abortListener: () => void;
+            const abortPromise = new Promise<never>((_, reject) => {
+                abortListener = () => reject(new DOMException("The user aborted a request.", "AbortError"));
+                init?.signal?.addEventListener('abort', abortListener);
+            });
+
+            const requestPromise = requestUrl(requestParam).finally(() => {
+                if (init?.signal && abortListener) {
+                    init.signal.removeEventListener('abort', abortListener);
+                }
+            });
+
+            // 使用 Promise.race，使得可以通过 signal 取消等待
+            const response: RequestUrlResponse = await Promise.race([requestPromise, abortPromise]);
             
             // 将 RequestUrlResponse 转换为 Response 对象
             return {
@@ -38,6 +56,10 @@ export function createCORSFetchAdapter(): typeof fetch {
                 formData: async () => { throw new Error("formData not supported"); },
             } as unknown as Response;
         } catch (error) {
+            // 如果是被取消的错误，原样抛出，AI SDK 会识别它
+            if (error instanceof DOMException && error.name === "AbortError") {
+                throw error;
+            }
             // 如果 requestUrl 失败，抛出网络错误
             throw new Error(`Network error: ${error}`);
         }
@@ -52,6 +74,11 @@ export function createOpenAICORSPseudoStreamFetchAdapter(): typeof fetch {
     return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
         const url = typeof input === "string" ? input : input.toString();
         
+        // 如果请求已经被取消，立即抛出 AbortError
+        if (init?.signal?.aborted) {
+            throw new DOMException("The user aborted a request.", "AbortError");
+        }
+
         // 解析并修改请求体，强制设为非流式
         let bodyObj: any = {};
         if (init?.body) {
@@ -73,7 +100,19 @@ export function createOpenAICORSPseudoStreamFetchAdapter(): typeof fetch {
         };
 
         try {
-            const response: RequestUrlResponse = await requestUrl(requestParam);
+            let abortListener: () => void;
+            const abortPromise = new Promise<never>((_, reject) => {
+                abortListener = () => reject(new DOMException("The user aborted a request.", "AbortError"));
+                init?.signal?.addEventListener('abort', abortListener);
+            });
+
+            const requestPromise = requestUrl(requestParam).finally(() => {
+                if (init?.signal && abortListener) {
+                    init.signal.removeEventListener('abort', abortListener);
+                }
+            });
+
+            const response: RequestUrlResponse = await Promise.race([requestPromise, abortPromise]);
             
             // 解析完整的响应
             const data = response.json;
@@ -107,6 +146,10 @@ export function createOpenAICORSPseudoStreamFetchAdapter(): typeof fetch {
                 }),
             });
         } catch (error) {
+            // 如果是被取消的错误，原样抛出，AI SDK 会识别它
+            if (error instanceof DOMException && error.name === "AbortError") {
+                throw error;
+            }
             throw new Error(`Network error: ${error}`);
         }
     };

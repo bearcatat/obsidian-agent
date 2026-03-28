@@ -116,7 +116,7 @@ export const FileEditTool = tool({
 		new_string: z.string().describe("用于替换 old_string 的编辑后文本"),
 		replaceAll: z.boolean().optional().describe("是否替换所有匹配项（默认 false，仅替换第一个匹配）").default(false),
 	}),
-	execute: async ({ file_path, old_string, new_string, replaceAll }, { toolCallId, experimental_context }) => {
+	execute: async ({ file_path, old_string, new_string, replaceAll }, { toolCallId, experimental_context, abortSignal }) => {
 		const context = experimental_context as { addMessage: (message: MessageV2) => void }
 		
 		const app = getGlobalApp()
@@ -140,6 +140,10 @@ export const FileEditTool = tool({
 		const release = await fileMutex.acquire(relativePath);
 
 		try {
+			if (abortSignal?.aborted) {
+				throw new Error("Tool execution was cancelled.")
+			}
+
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
 
 			const file = vault.getAbstractFileByPath(relativePath) as TFile | null
@@ -171,7 +175,19 @@ export const FileEditTool = tool({
 			const diff = createDiff(oldContent, newContent)
 
 			let resolver: (value: "apply" | "reject") => void
-			const waitForDecision = () => new Promise<"apply" | "reject">((resolve) => { resolver = resolve })
+			let rejecter: (reason?: any) => void
+			const waitForDecision = () => new Promise<"apply" | "reject">((resolve, reject) => { 
+				resolver = resolve
+				rejecter = reject
+				
+				if (abortSignal) {
+					if (abortSignal.aborted) {
+						reject(new Error("Tool execution was cancelled."))
+					} else {
+						abortSignal.addEventListener('abort', () => reject(new Error("Tool execution was cancelled.")))
+					}
+				}
+			})
 			const handleApply = () => { resolver("apply") }
 			const handleReject = () => { resolver("reject") }
 
@@ -234,8 +250,10 @@ export const FileEditTool = tool({
 				diff,
 			})
 		} catch (error) {
-			const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
-			context.addMessage(errorMessage)
+			if (!abortSignal?.aborted && !(error instanceof Error && error.message === "Tool execution was cancelled.")) {
+				const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
+				context.addMessage(errorMessage)
+			}
 			throw error
 		} finally {
 			release();

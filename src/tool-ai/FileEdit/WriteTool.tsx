@@ -53,7 +53,7 @@ export const WriteTool = tool({
     file_path: z.string().describe("要创建或覆盖的笔记路径（相对于 vault 根目录，例如：'项目/文档/README.md'）"),
     content: z.string().describe("要写入的笔记完整内容"),
   }),
-  execute: async ({ file_path, content }, { toolCallId, experimental_context }) => {
+  execute: async ({ file_path, content }, { toolCallId, experimental_context, abortSignal }) => {
     const context = experimental_context as { addMessage: (message: MessageV2) => void }
     
     const app = getGlobalApp()
@@ -77,6 +77,10 @@ export const WriteTool = tool({
     const release = await fileMutex.acquire(relativePath);
 
     try {
+      if (abortSignal?.aborted) {
+        throw new Error("Tool execution was cancelled.")
+      }
+
       const toolMessage = ToolMessage.from(toolName, toolCallId)
 
       const file = vault.getAbstractFileByPath(relativePath) as TFile | null
@@ -94,7 +98,19 @@ export const WriteTool = tool({
       const diff = exists ? createDiff(oldContent, content) : ''
 
       let resolver: (value: "apply" | "reject") => void
-      const waitForDecision = () => new Promise<"apply" | "reject">((resolve) => { resolver = resolve })
+      let rejecter: (reason?: any) => void
+      const waitForDecision = () => new Promise<"apply" | "reject">((resolve, reject) => { 
+        resolver = resolve
+        rejecter = reject
+        
+        if (abortSignal) {
+          if (abortSignal.aborted) {
+            reject(new Error("Tool execution was cancelled."))
+          } else {
+            abortSignal.addEventListener('abort', () => reject(new Error("Tool execution was cancelled.")))
+          }
+        }
+      })
       const handleApply = () => { resolver("apply") }
       const handleReject = () => { resolver("reject") }
 
@@ -166,8 +182,10 @@ export const WriteTool = tool({
   				diff,
   			})
     } catch (error) {
-      const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
-      context.addMessage(errorMessage)
+      if (!abortSignal?.aborted && !(error instanceof Error && error.message === "Tool execution was cancelled.")) {
+        const errorMessage = ToolMessage.createErrorToolMessage2(toolName, toolCallId, error)
+        context.addMessage(errorMessage)
+      }
       throw error
     } finally {
       release();

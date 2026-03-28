@@ -13,7 +13,7 @@ export interface TitleProps { }
 
 export const Title: React.FC<TitleProps> = () => {
 	const { title } = useAgentState();
-	const { resetForNewChat } = useAgentLogic();
+	const { resetForNewChat, stopLoading } = useAgentLogic();
 	const app = useApp();
 	
 	const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -26,6 +26,8 @@ export const Title: React.FC<TitleProps> = () => {
 	}, [isHistoryOpen]);
 
 	const handleLoadSession = async (sessionId: string) => {
+		stopLoading();
+		
 		const currentModel = agentStore.getState().model;
 		const state = await SessionLogic.getInstance().loadSession(sessionId);
 		if (state) {
