@@ -21,11 +21,9 @@ export default class SubAgentManager {
     }
 
     const modelManager = AIModelManager.getInstance();
-    const currentModel = agentStore.getState().model;
-    const agentModelConfig = currentModel ?? modelManager.agentModelConfig;
-
-    if (!agentModelConfig) {
-      console.warn('SubAgentManager: No agent model configured');
+    // Check if default model is configured
+    if (!modelManager.agentModelConfig) {
+      console.warn('SubAgentManager: No default agent model configured');
       return {};
     }
 
@@ -38,6 +36,14 @@ export default class SubAgentManager {
           message: z.string().describe("The message to send to the sub agent, should include context information"),
         }),
         execute: async ({ message }, { toolCallId, experimental_context, abortSignal }) => {
+          // Dynamically get current model configuration
+          const currentModel = agentStore.getState().model;
+          const agentModelConfig = currentModel ?? modelManager.agentModelConfig;
+          
+          if (!agentModelConfig) {
+            throw new Error('No model configured for SubAgent');
+          }
+
           const context = experimental_context as { addMessage: (message: MessageV2) => void }
           const userMessage = new UserMessage(message)
 
