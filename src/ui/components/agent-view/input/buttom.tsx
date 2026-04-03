@@ -1,6 +1,7 @@
-import { ArrowUp, ChevronDown, Loader2, StopCircle, Image } from "lucide-react";
+import { ArrowUp, ChevronDown, Loader2, StopCircle, Image, Activity } from "lucide-react";
 import { Button } from "../../../elements/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../../elements/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../../elements/tooltip";
 import { useState, useRef } from "react";
 import { useAgentLogic, useAgentState } from "../../../../hooks/use-agent";
 import { useSettingsState } from "../../../../hooks/use-settings";
@@ -23,6 +24,12 @@ const fileToBase64 = (file: File): Promise<string> => {
 const isValidImageFile = (file: File): boolean => {
   const ext = '.' + file.name.toLowerCase().split('.').pop();
   return IMAGE_EXTENSIONS.includes(ext);
+};
+
+const formatTokens = (num: number) => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'm';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+  return num.toString();
 };
 
 interface InputButtomGenerateProps {
@@ -61,11 +68,23 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
   onAddImages,
 }) => {
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
-  const { model } = useAgentState();
+  const { model, messages } = useAgentState();
   const { setModel } = useAgentLogic();
   const { models } = useSettingsState();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const app = useApp();
+
+  const assistantMessages = messages.filter(m => m.role === 'assistant' && (m as any).usage);
+  
+  let totalSessionTokens = 0;
+  assistantMessages.forEach(m => {
+    const usage = (m as any).usage;
+    if (usage?.totalTokens) totalSessionTokens += usage.totalTokens;
+  });
+
+  const lastUsage = assistantMessages.length > 0 
+    ? (assistantMessages[assistantMessages.length - 1] as any).usage 
+    : null;
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -123,7 +142,51 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-      <div>
+      <div className="tw-flex tw-items-center">
+        {lastUsage && lastUsage.totalTokens && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost2"
+                  size="fit"
+                  className="tw-text-muted tw-cursor-help"
+                >
+                  <Activity className="tw-size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <div className="tw-flex tw-flex-col tw-gap-1.5 tw-text-xs">
+                  <div className="tw-flex tw-justify-between tw-items-center tw-gap-8 group">
+                    <span className="tw-text-muted">Input</span>
+                    <span className="tw-font-mono" title={(lastUsage.inputTokens || 0).toString()}>{formatTokens(lastUsage.inputTokens || 0)}</span>
+                  </div>
+                  
+                  <div className="tw-flex tw-justify-between tw-items-center tw-gap-8 group">
+                    <span className="tw-text-muted">Output</span>
+                    <span className="tw-font-mono" title={(lastUsage.outputTokens || 0).toString()}>{formatTokens(lastUsage.outputTokens || 0)}</span>
+                  </div>
+                  
+                  {((lastUsage.cacheReadTokens || 0) + (lastUsage.cacheWriteTokens || 0)) > 0 && (
+                    <div className="tw-flex tw-justify-between tw-items-center tw-gap-8 group">
+                      <span className="tw-text-muted">Cached</span>
+                      <span className="tw-font-mono" title={((lastUsage.cacheReadTokens || 0) + (lastUsage.cacheWriteTokens || 0)).toString()}>
+                        {formatTokens((lastUsage.cacheReadTokens || 0) + (lastUsage.cacheWriteTokens || 0))}
+                      </span>
+                    </div>
+                  )}
+                  
+                  <div className="tw-h-px tw-w-full tw-bg-border tw-my-1" />
+                  
+                  <div className="tw-flex tw-justify-between tw-items-center tw-gap-8 group">
+                    <span className="tw-text-muted">Total</span>
+                    <span className="tw-font-mono tw-font-medium" title={totalSessionTokens.toString()}>{formatTokens(totalSessionTokens)}</span>
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         <Button
           variant="ghost2"
           size="fit"

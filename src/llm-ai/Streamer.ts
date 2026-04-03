@@ -41,7 +41,40 @@ export default class Streamer {
                 this.assistantMessage.appendReasoningContent(chunk.text);
                 this.addMessage(this.assistantMessage)
                 break;
-            case "finish":
+            case "finish": {
+                const finishChunk = chunk as any;
+                if (finishChunk.usage) {
+                    const usage = finishChunk.usage;
+                    this.assistantMessage.usage = {
+                        inputTokens: usage?.inputTokens,
+                        outputTokens: usage?.outputTokens,
+                        totalTokens: usage?.totalTokens ?? ((usage?.inputTokens ?? 0) + (usage?.outputTokens ?? 0)),
+                        cacheReadTokens: usage?.inputTokenDetails?.cacheReadTokens,
+                        cacheWriteTokens: usage?.inputTokenDetails?.cacheWriteTokens,
+                        reasoningTokens: usage?.outputTokenDetails?.reasoningTokens,
+                    };
+                }
+                this.assistantMessage.close();
+                this.addMessage(this.assistantMessage);
+                break;
+            }
+            case "finish-step": {
+                const finishStepChunk = chunk as any;
+                if (finishStepChunk.usage) {
+                    const usage = finishStepChunk.usage;
+                    this.assistantMessage.usage = {
+                        inputTokens: usage.inputTokens,
+                        outputTokens: usage.outputTokens,
+                        totalTokens: usage.totalTokens ?? ((usage.inputTokens ?? 0) + (usage.outputTokens ?? 0)),
+                        cacheReadTokens: usage.inputTokenDetails?.cacheReadTokens,
+                        cacheWriteTokens: usage.inputTokenDetails?.cacheWriteTokens,
+                        reasoningTokens: usage.outputTokenDetails?.reasoningTokens,
+                    };
+                }
+                this.assistantMessage.close();
+                this.addMessage(this.assistantMessage);
+                break;
+            }
             case "tool-input-start":
                 this.assistantMessage.close();
                 this.addMessage(this.assistantMessage);
@@ -56,10 +89,23 @@ export default class Streamer {
         const result = await this.agent.generate({
             messages: messages,
             abortSignal: abortSignal,
-            onStepFinish: async ({ text, reasoningText }) => {
+            onStepFinish: async ({ text, reasoningText, usage }) => {
                 this.assistantMessage = AssistantMessage.createEmpty(uuidv4())
                 this.assistantMessage.appendContent(text)
                 this.assistantMessage.appendReasoningContent(reasoningText ?? "")
+                
+                if (usage) {
+                    const u = usage as any;
+                    this.assistantMessage.usage = {
+                        inputTokens: u.promptTokens ?? u.inputTokens,
+                        outputTokens: u.completionTokens ?? u.outputTokens,
+                        totalTokens: u.totalTokens,
+                        cacheReadTokens: u.promptTokensDetails?.cachedTokens ?? u.inputTokenDetails?.cacheReadTokens,
+                        cacheWriteTokens: u.inputTokenDetails?.cacheWriteTokens,
+                        reasoningTokens: u.completionTokensDetails?.reasoningTokens ?? u.outputTokenDetails?.reasoningTokens,
+                    };
+                }
+
                 this.assistantMessage.close()
                 this.addMessage(this.assistantMessage)
             }

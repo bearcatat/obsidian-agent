@@ -15,12 +15,22 @@ export interface IObsidianAgentPlugin extends Plugin {
   saveSettings(): Promise<void>;
 }
 
+export interface TokenUsage {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
+  reasoningTokens?: number;
+}
+
 export interface MessageV2 {
   id: string;
   role: "user" | "assistant" | "tool" | "thinking" | "error" | "none";
   isStreaming: boolean;
   content: string;
   reasoning_content?: string;
+  usage?: TokenUsage;
   render(): React.ReactElement;
 }
 
