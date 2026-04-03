@@ -1,4 +1,4 @@
-import { MessageV2 } from "@/types";
+import { MessageV2, TokenUsage } from "@/types";
 import { AssistantMessageCard } from "@/ui/components/agent-view/messages/message/assistant-message-card";
 
 export class AssistantMessage implements MessageV2 {
@@ -7,6 +7,7 @@ export class AssistantMessage implements MessageV2 {
     public id: string;
     public isStreaming: boolean;
     public role: "assistant" = "assistant";
+    public usage?: TokenUsage;
 
     private constructor(content: string, reasoning_content: string, isStreaming: boolean, id: string) {
         this.content = content;
