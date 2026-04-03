@@ -126,6 +126,9 @@ export function createOpenAICORSPseudoStreamFetchAdapter(): typeof fetch {
             const content = message.content || "";
             const toolCalls = message.tool_calls || [];
             
+            // 提取 usage 信息
+            const usage = data.usage || undefined;
+            
             // 创建伪流式响应
             const stream = createPseudoStream({
                 id,
@@ -134,6 +137,7 @@ export function createOpenAICORSPseudoStreamFetchAdapter(): typeof fetch {
                 reasoningContent,
                 content,
                 toolCalls,
+                usage,
             });
             
             return new Response(stream, {
@@ -162,10 +166,16 @@ interface PseudoStreamOptions {
     reasoningContent: string;
     content: string;
     toolCalls: any[];
+    usage?: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+        cachedTokens: number;
+    };
 }
 
 function createPseudoStream(options: PseudoStreamOptions): ReadableStream<Uint8Array> {
-    const { id, model, created, reasoningContent, content, toolCalls } = options;
+    const { id, model, created, reasoningContent, content, toolCalls, usage } = options;
     const encoder = new TextEncoder();
     const chunkSize = 100; // 每个 chunk 的字符数
     
@@ -174,8 +184,8 @@ function createPseudoStream(options: PseudoStreamOptions): ReadableStream<Uint8A
             let index = 0;
             
             // 辅助函数：创建 SSE chunk
-            const createSSEChunk = (delta: any) => {
-                const chunk = {
+            const createSSEChunk = (delta: any, finishReason: string | null = null) => {
+                const chunk: any = {
                     id,
                     object: "chat.completion.chunk",
                     created,
@@ -183,9 +193,13 @@ function createPseudoStream(options: PseudoStreamOptions): ReadableStream<Uint8A
                     choices: [{
                         index: 0,
                         delta,
-                        finish_reason: null,
+                        finish_reason: finishReason,
                     }],
                 };
+                // 如果有 usage 且是最后一块，附加 usage 信息
+                if (usage && finishReason === "stop") {
+                    chunk.usage = usage;
+                }
                 return `data: ${JSON.stringify(chunk)}\n\n`;
             };
             
@@ -219,8 +233,8 @@ function createPseudoStream(options: PseudoStreamOptions): ReadableStream<Uint8A
                 }
             }
             
-            // 发送完成标记
-            controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
+            // 发送完成标记，附带 usage 信息
+            controller.enqueue(encoder.encode(createSSEChunk({}, "stop")));
             controller.close();
         },
     });
