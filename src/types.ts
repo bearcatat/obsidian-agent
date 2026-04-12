@@ -172,6 +172,89 @@ export interface Context {
   recentEdits?: TFile[];
 }
 
+export interface TelegramFeedbackReply {
+  messageId: number;
+  text: string;
+  imageFileIds: string[];
+  images?: string[];
+  receivedAt: number;
+}
+
+export type TelegramFeedbackStatus = "pending" | "received" | "processing" | "completed";
+
+export interface TelegramFeedbackProgress {
+  requestId: string;
+  question: string;
+  status: TelegramFeedbackStatus;
+  replies: TelegramFeedbackReply[];
+  imageCount: number;
+  imageAnalysis?: string;
+  submittedAt?: number;
+  username?: string;
+}
+
+export interface TelegramFeedbackRequest {
+  requestId: string;
+  sessionId?: string | null;
+  toolCallId?: string;
+  question: string;
+  allowImages: boolean;
+  submitButtonText: string;
+  createdAt: number;
+  expiresAt: number;
+  status: "pending" | "submitted" | "cancelled" | "timed-out";
+  replyCount: number;
+}
+
+export interface TelegramFeedbackResult {
+  requestId: string;
+  question: string;
+  text: string;
+  imageCount: number;
+  imageAnalysis?: string;
+  submittedAt: number;
+  replies: TelegramFeedbackReply[];
+  userId: number;
+  chatId: number;
+  username?: string;
+}
+
+export interface TelegramFeedbackConfig {
+  enabled: boolean;
+  botToken: string;
+  proxyUrl: string;
+  verificationCode: string;
+  verificationExpiresAt: number | null;
+  verificationGeneratedAt: number | null;
+  boundUserId: number | null;
+  boundChatId: number | null;
+  boundUsername: string;
+  boundFirstName: string;
+  boundAt: number | null;
+  pollingTimeoutSeconds: number;
+  feedbackTimeoutMs: number;
+  imageAnalysisSubagentName: string;
+}
+
+export function createDefaultTelegramFeedbackConfig(): TelegramFeedbackConfig {
+  return {
+    enabled: false,
+    botToken: "",
+    proxyUrl: "",
+    verificationCode: "",
+    verificationExpiresAt: null,
+    verificationGeneratedAt: null,
+    boundUserId: null,
+    boundChatId: null,
+    boundUsername: "",
+    boundFirstName: "",
+    boundAt: null,
+    pollingTimeoutSeconds: 15,
+    feedbackTimeoutMs: 5 * 60 * 1000,
+    imageAnalysisSubagentName: "telegram-image-feedback",
+  };
+}
+
 // Exa Web Search Configuration
 export interface ExaSearchConfig {
   apiKey: string;

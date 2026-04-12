@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { ModelConfig, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig } from '../types';
+import { ModelConfig, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig } from '../types';
 import { getDefaultBuiltinTools } from '../tool-ai/BuiltinTools';
 import AIModelManager from '../llm-ai/ModelManager';
 import { SettingsStateData } from './settings-state';
@@ -23,6 +23,9 @@ interface SettingsStore extends SettingsStateData {
 
   setBochaSearchConfig: (config: BochaSearchConfig) => void;
   updateBochaSearchEnabled: (enabled: boolean) => void;
+
+  setTelegramFeedbackConfig: (config: TelegramFeedbackConfig) => void;
+  updateTelegramFeedbackEnabled: (enabled: boolean) => void;
 
   setBashPermissions: (config: BashPermissionConfig) => void;
 
@@ -48,6 +51,7 @@ const initialState: SettingsStateData = {
     count: 10,
     freshness: "noLimit",
   },
+  telegramFeedbackConfig: createDefaultTelegramFeedbackConfig(),
   bashPermissions: {
     default: "ask",
     rules: [
@@ -181,6 +185,16 @@ export const useSettingsStore = create<SettingsStore>()(
         state.bochaSearchConfig.enabled = enabled;
       }),
 
+    setTelegramFeedbackConfig: (config: TelegramFeedbackConfig) =>
+      set((state) => {
+        state.telegramFeedbackConfig = config;
+      }),
+
+    updateTelegramFeedbackEnabled: (enabled: boolean) =>
+      set((state) => {
+        state.telegramFeedbackConfig.enabled = enabled;
+      }),
+
     setBashPermissions: (config: BashPermissionConfig) =>
       set((state) => {
         state.bashPermissions = config;
@@ -214,6 +228,7 @@ export const useSettingsStore = create<SettingsStore>()(
           count: 10,
           freshness: "noLimit",
         };
+        state.telegramFeedbackConfig = data.telegramFeedbackConfig || createDefaultTelegramFeedbackConfig();
         state.bashPermissions = data.bashPermissions || initialState.bashPermissions;
       }),
   }))

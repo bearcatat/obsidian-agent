@@ -17,9 +17,10 @@ import SkillLogic from './logic/skill-logic';
 import SubAgentLogic from './logic/subagent-logic';
 import { skillStore } from './state/skill-state';
 import { subAgentStore } from './state/subagent-state';
+import TelegramFeedbackRuntime from './tool-ai/TelegramFeedback/TelegramFeedbackRuntime';
 
 export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgentPlugin {
-	private uiManager: UIManager;
+	private uiManager!: UIManager;
 
 	async onload() {
 		// 设置全局App访问器
@@ -79,6 +80,8 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 	async onunload() {
 		try {
+			await TelegramFeedbackRuntime.getInstance().stop();
+
 			// 1. 中断正在进行的请求
 			const agentState = agentStore.getState();
 			if (agentState.abortController) {

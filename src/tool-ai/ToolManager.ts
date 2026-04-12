@@ -14,6 +14,7 @@ import { ListTool, toolName as ListToolName } from "./List/ListTool";
 import { CreateArtifactTool, toolName as CreateArtifactToolName } from "./CreateArtifact/CreateArtifactTool";
 import { SkillTool, toolName as SkillToolName } from "./Skill/SkillTool";
 import { BashTool, toolName as BashToolName } from "./Bash/BashTool";
+import { TelegramFeedbackTool, toolName as TelegramFeedbackToolName } from "./TelegramFeedback/TelegramFeedbackTool";
 import MCPManager from "./MCP/MCPManager";
 import SubAgentManager from "./SubAgent/SubAgentManager";
 import SubAgentLogic from "../logic/subagent-logic";
@@ -34,6 +35,7 @@ export default class AIToolManager {
     [CreateArtifactToolName]: CreateArtifactTool,
     [SkillToolName]: SkillTool,
     [BashToolName]: BashTool,
+    [TelegramFeedbackToolName]: TelegramFeedbackTool,
   }
 
   private builtinToolConfigs: BuiltinToolConfig[] = [];

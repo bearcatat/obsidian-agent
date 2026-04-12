@@ -81,6 +81,11 @@ export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
     description: "Execute shell commands in vault directory",
     enabled: true,
     permissions: DEFAULT_BASH_PERMISSIONS,
+  },
+  {
+    name: "telegramFeedback",
+    description: "Send async feedback requests through a Telegram bot",
+    enabled: false,
   }
 ];
 

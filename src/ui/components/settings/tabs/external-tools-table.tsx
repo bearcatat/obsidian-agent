@@ -4,7 +4,7 @@ import { Pencil } from "lucide-react";
 import React from "react";
 import { useSettingsState } from "@/hooks/use-settings";
 
-export type ExternalToolId = "exa" | "bocha";
+export type ExternalToolId = "exa" | "bocha" | "telegram";
 
 interface ExternalTool {
   id: ExternalToolId;
@@ -20,7 +20,7 @@ interface ExternalToolsTableProps {
 }
 
 export const ExternalToolsTable: React.FC<ExternalToolsTableProps> = ({ onEdit }) => {
-  const { exaSearchConfig, bochaSearchConfig } = useSettingsState();
+  const { exaSearchConfig, bochaSearchConfig, telegramFeedbackConfig } = useSettingsState();
 
   const externalTools: ExternalTool[] = [
     {
@@ -38,6 +38,14 @@ export const ExternalToolsTable: React.FC<ExternalToolsTableProps> = ({ onEdit }
       enabled: bochaSearchConfig.enabled && !!bochaSearchConfig.apiKey,
       hasApiKey: !!bochaSearchConfig.apiKey,
       getLink: "https://open.bochaai.com",
+    },
+    {
+      id: "telegram",
+      name: "Telegram Feedback",
+      description: "Push async feedback requests to a bound Telegram user",
+      enabled: telegramFeedbackConfig.enabled && !!telegramFeedbackConfig.botToken,
+      hasApiKey: !!telegramFeedbackConfig.botToken,
+      getLink: "https://t.me/BotFather",
     },
   ];
 

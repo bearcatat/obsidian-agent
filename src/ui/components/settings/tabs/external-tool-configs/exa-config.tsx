@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/ui/elements/button";
 import { Input } from "@/ui/elements/input";
 import { Label } from "@/ui/elements/label";
@@ -9,6 +9,7 @@ import { useShallow } from "zustand/react/shallow";
 import { ExaSearchConfig } from "@/types";
 import SettingsLogic from "@/logic/settings-logic";
 import { ExternalLink, Key, Settings2 } from "lucide-react";
+import { Notice } from "obsidian";
 
 interface ExaConfigProps {
   onSave?: () => void;
@@ -28,13 +29,19 @@ export const ExaConfig: React.FC<ExaConfigProps> = ({ onSave, dialogElement }) =
 
   const settingsLogic = SettingsLogic.getInstance();
 
+  useEffect(() => {
+    setLocalConfig(exaSearchConfig);
+  }, [exaSearchConfig]);
+
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
       await settingsLogic.updateExaSearchConfig(localConfig);
+      new Notice("Exa search config saved.", 3000);
       onSave?.();
     } catch (error) {
       console.error("Failed to save Exa search config:", error);
+      new Notice(`Failed to save Exa search config: ${error instanceof Error ? error.message : "Unknown error"}`, 5000);
     } finally {
       setIsSaving(false);
     }

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/ui/elements/button";
 import { Input } from "@/ui/elements/input";
 import { Label } from "@/ui/elements/label";
@@ -9,6 +9,7 @@ import { useShallow } from "zustand/react/shallow";
 import { BochaSearchConfig } from "@/types";
 import SettingsLogic from "@/logic/settings-logic";
 import { ExternalLink, Key, Settings2 } from "lucide-react";
+import { Notice } from "obsidian";
 
 interface BochaConfigProps {
   onSave?: () => void;
@@ -28,13 +29,19 @@ export const BochaConfig: React.FC<BochaConfigProps> = ({ onSave, dialogElement 
 
   const settingsLogic = SettingsLogic.getInstance();
 
+  useEffect(() => {
+    setLocalConfig(bochaSearchConfig);
+  }, [bochaSearchConfig]);
+
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
       await settingsLogic.updateBochaSearchConfig(localConfig);
+      new Notice("Bocha search config saved.", 3000);
       onSave?.();
     } catch (error) {
       console.error("Failed to save Bocha search config:", error);
+      new Notice(`Failed to save Bocha search config: ${error instanceof Error ? error.message : "Unknown error"}`, 5000);
     } finally {
       setIsSaving(false);
     }

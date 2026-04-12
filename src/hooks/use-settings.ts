@@ -1,7 +1,7 @@
 import { useSettingsStore, settingsStore } from '../state/settings-state-impl';
 import { SettingsLogic } from '../logic/settings-logic';
 import { useShallow } from 'zustand/react/shallow';
-import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig } from '../types';
+import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig } from '../types';
 
 export { useSettingsStore };
 
@@ -15,6 +15,7 @@ export function useSettingsState() {
       builtinTools: state.builtinTools,
       exaSearchConfig: state.exaSearchConfig,
       bochaSearchConfig: state.bochaSearchConfig,
+      telegramFeedbackConfig: state.telegramFeedbackConfig,
       bashPermissions: state.bashPermissions,
     }))
   );
@@ -54,6 +55,15 @@ export function useSettingsLogic() {
       await settingsLogic.updateBochaSearchConfig(config),
     setBochaSearchEnabled: async (enabled: boolean) =>
       await settingsLogic.setBochaSearchEnabled(enabled),
+
+    updateTelegramFeedbackConfig: async (config: TelegramFeedbackConfig) =>
+      await settingsLogic.updateTelegramFeedbackConfig(config),
+    generateTelegramVerificationCode: async (config?: TelegramFeedbackConfig) =>
+      await settingsLogic.generateTelegramVerificationCode(config),
+    clearTelegramVerificationCode: async (config?: TelegramFeedbackConfig) =>
+      await settingsLogic.clearTelegramVerificationCode(config),
+    clearTelegramBinding: async (config?: TelegramFeedbackConfig) =>
+      await settingsLogic.clearTelegramBinding(config),
 
     updateBashPermissions: async (config: BashPermissionConfig) =>
       await settingsLogic.updateBashPermissions(config),

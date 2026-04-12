@@ -11,6 +11,7 @@ import { renderReadNoteByLinkMessage } from '@/tool-ai/ReadNote/ReadNoteByLink/R
 import { renderReadNoteByPathMessage } from '@/tool-ai/ReadNote/ReadNoteByPath/ReadNoteByPathTool';
 import { renderSearchMessage } from '@/tool-ai/Search/SearchTool';
 import { renderSkillMessage } from '@/tool-ai/Skill/SkillTool';
+import { renderTelegramFeedbackMessage } from './telegram-feedback-message-card';
 import { renderGetCurrentTimeMessage } from '@/tool-ai/Time/GetCurrentTime/GetCurrentTimeTool';
 import { renderWebFetchMessage } from '@/tool-ai/WebFetch/WebFetchTool';
 
@@ -167,6 +168,8 @@ export function renderHistoricalToolMessage(toolName: string, contentJson: strin
         }
         return renderGetCurrentTimeMessage(timeInfo as any);
       }
+      case 'telegramFeedback':
+        return renderTelegramFeedbackMessage(data);
       default:
         return <div className="tw-p-2 tw-text-muted">No historical renderer for {toolName}. Raw data: {contentJson}</div>;
     }

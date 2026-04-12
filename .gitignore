@@ -32,3 +32,5 @@ AGENTS.md
 
 .claude
 dist/manifest.json
+.github/instructions/*
+.github/skills/*

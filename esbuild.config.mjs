@@ -119,6 +119,9 @@ const context = await esbuild.context({
 		"@lezer/common",
 		"@lezer/highlight",
 		"@lezer/lr",
+		"node:crypto",
+		"node:fs/promises",
+		"node:path",
 		"node:async_hooks",
 		...builtins],
 	format: "cjs",
@@ -134,6 +137,9 @@ const context = await esbuild.context({
 	alias: {
 		"node:process": "process",
 		"node:stream": "stream-browserify",
+		"node:fs/promises": "fs/promises",
+		"node:path": "path",
+		"node:crypto": "crypto",
 		"node:util": "util",
 		"node:buffer": "buffer"
 	},

@@ -1,9 +1,10 @@
-import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig } from "../types";
+import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig } from "../types";
 import { settingsStore } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
 import AIToolManager from "@/tool-ai/ToolManager";
 import { ToolSet } from "ai";
 import { setSettingsPlugin } from "./settings-persistence";
+import TelegramFeedbackRuntime from "@/tool-ai/TelegramFeedback/TelegramFeedbackRuntime";
 
 export class SettingsLogic {
     private static instance: SettingsLogic;
@@ -203,6 +204,7 @@ export class SettingsLogic {
             if (savedData) {
                 settingsStore.getState().setAllData(savedData);
             }
+            await TelegramFeedbackRuntime.getInstance().configure(settingsStore.getState().telegramFeedbackConfig);
         } catch (error) {
             console.error('Failed to load settings:', error);
         }
@@ -219,6 +221,7 @@ export class SettingsLogic {
                 builtinTools: state.builtinTools,
                 exaSearchConfig: state.exaSearchConfig,
                 bochaSearchConfig: state.bochaSearchConfig,
+                telegramFeedbackConfig: state.telegramFeedbackConfig,
                 bashPermissions: state.bashPermissions,
             };
             await this.plugin?.saveData(stateData);
@@ -275,6 +278,64 @@ export class SettingsLogic {
         await AIToolManager.getInstance().updateBochaSearchConfig(settingsStore.getState().bochaSearchConfig);
 
         await this.saveSettings();
+    }
+
+    async updateTelegramFeedbackConfig(config: TelegramFeedbackConfig): Promise<void> {
+        const state = settingsStore.getState();
+        state.setTelegramFeedbackConfig(config);
+        await TelegramFeedbackRuntime.getInstance().configure(config);
+        await this.saveSettings();
+    }
+
+    async generateTelegramVerificationCode(config?: TelegramFeedbackConfig): Promise<TelegramFeedbackConfig> {
+        const state = settingsStore.getState();
+        const baseConfig = config ?? state.telegramFeedbackConfig;
+        const generatedAt = Date.now();
+        const nextConfig: TelegramFeedbackConfig = {
+            ...baseConfig,
+            verificationCode: `${Math.floor(100000 + Math.random() * 900000)}`,
+            verificationGeneratedAt: generatedAt,
+            verificationExpiresAt: generatedAt + 10 * 60 * 1000,
+        };
+
+        state.setTelegramFeedbackConfig(nextConfig);
+        await TelegramFeedbackRuntime.getInstance().configure(nextConfig);
+        await this.saveSettings();
+        return nextConfig;
+    }
+
+    async clearTelegramVerificationCode(config?: TelegramFeedbackConfig): Promise<TelegramFeedbackConfig> {
+        const state = settingsStore.getState();
+        const baseConfig = config ?? state.telegramFeedbackConfig;
+        const nextConfig: TelegramFeedbackConfig = {
+            ...baseConfig,
+            verificationCode: "",
+            verificationGeneratedAt: null,
+            verificationExpiresAt: null,
+        };
+
+        state.setTelegramFeedbackConfig(nextConfig);
+        await TelegramFeedbackRuntime.getInstance().configure(nextConfig);
+        await this.saveSettings();
+        return nextConfig;
+    }
+
+    async clearTelegramBinding(config?: TelegramFeedbackConfig): Promise<TelegramFeedbackConfig> {
+        const state = settingsStore.getState();
+        const baseConfig = config ?? state.telegramFeedbackConfig;
+        const nextConfig: TelegramFeedbackConfig = {
+            ...baseConfig,
+            boundUserId: null,
+            boundChatId: null,
+            boundUsername: "",
+            boundFirstName: "",
+            boundAt: null,
+        };
+
+        state.setTelegramFeedbackConfig(nextConfig);
+        await TelegramFeedbackRuntime.getInstance().configure(nextConfig);
+        await this.saveSettings();
+        return nextConfig;
     }
 
     async updateBashPermissions(config: BashPermissionConfig): Promise<void> {

@@ -24,6 +24,7 @@ export async function persistSettingsStore(): Promise<void> {
     builtinTools: state.builtinTools,
     exaSearchConfig: state.exaSearchConfig,
     bochaSearchConfig: state.bochaSearchConfig,
+    telegramFeedbackConfig: state.telegramFeedbackConfig,
     bashPermissions: state.bashPermissions,
   };
 
