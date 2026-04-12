@@ -11,7 +11,6 @@ import { UserMessage } from "@/messages/user-message";
 
 interface BeginFeedbackRequestParams {
   question: string;
-  allowImages: boolean;
   timeoutMs: number;
   submitButtonText: string;
   sessionId?: string | null;
@@ -148,7 +147,6 @@ export default class TelegramFeedbackRuntime {
       sessionId: params.sessionId,
       toolCallId: params.toolCallId,
       question: params.question,
-      allowImages: params.allowImages,
       submitButtonText: params.submitButtonText,
       createdAt: now,
       expiresAt: now + params.timeoutMs,
@@ -159,9 +157,7 @@ export default class TelegramFeedbackRuntime {
     const prompt = [
       `Agent question:\n${params.question}`,
       "",
-      params.allowImages
-        ? "Reply in Telegram with text or images. When you are done, tap the inline button below."
-        : "Reply in Telegram with text. When you are done, tap the inline button below.",
+      "Reply in Telegram with text or images. When you are done, tap the inline button below.",
     ].join("\n");
 
     const sentMessage = await this.client.sendMessage({
@@ -384,7 +380,7 @@ export default class TelegramFeedbackRuntime {
   }
 
   private async collectFeedbackReply(message: any): Promise<void> {
-    if (!this.pendingRequest || !this.pendingRequest.request.allowImages && !message.text && !message.caption) {
+    if (!this.pendingRequest) {
       return;
     }
 
@@ -392,7 +388,7 @@ export default class TelegramFeedbackRuntime {
       return;
     }
 
-    const imageFileIds = this.extractImageFileIds(message, this.pendingRequest.request.allowImages);
+    const imageFileIds = this.extractImageFileIds(message);
     const text = [message.text, message.caption].filter((value): value is string => typeof value === "string" && value.trim().length > 0).join("\n\n");
 
     if (!text && imageFileIds.length === 0) {
@@ -581,11 +577,7 @@ export default class TelegramFeedbackRuntime {
     return context?.chat?.id ?? context?.message?.chat?.id ?? context?.update?.message?.chat?.id ?? null;
   }
 
-  private extractImageFileIds(message: any, allowImages: boolean): string[] {
-    if (!allowImages) {
-      return [];
-    }
-
+  private extractImageFileIds(message: any): string[] {
     const photos = Array.isArray(message.photo) ? message.photo : [];
     const photoFileId = photos.length > 0 ? photos[photos.length - 1]?.file_id : null;
     const documentFileId = message.document?.mime_type?.startsWith("image/") ? message.document.file_id : null;

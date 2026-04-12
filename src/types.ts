@@ -198,7 +198,6 @@ export interface TelegramFeedbackRequest {
   sessionId?: string | null;
   toolCallId?: string;
   question: string;
-  allowImages: boolean;
   submitButtonText: string;
   createdAt: number;
   expiresAt: number;

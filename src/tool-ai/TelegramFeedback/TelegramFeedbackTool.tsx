@@ -15,10 +15,9 @@ export const TelegramFeedbackTool = tool({
   inputSchema: z.object({
     question: z.string().min(1).describe("The question or feedback request to send to the bound Telegram user."),
     timeoutMs: z.number().min(10_000).max(60 * 60 * 1000).optional().describe("How long to wait for Telegram feedback before timing out."),
-    allowImages: z.boolean().optional().describe("Whether the user can reply with images."),
     submitButtonText: z.string().min(1).max(32).optional().describe("Inline button text used to finish the feedback flow."),
   }),
-  execute: async ({ question, timeoutMs, allowImages, submitButtonText }, { toolCallId, experimental_context, abortSignal }) => {
+  execute: async ({ question, timeoutMs, submitButtonText }, { toolCallId, experimental_context, abortSignal }) => {
     const context = experimental_context as { addMessage: (message: MessageV2) => void };
 
     try {
@@ -41,7 +40,6 @@ export const TelegramFeedbackTool = tool({
 
       const awaiter = await runtime.beginFeedbackRequest({
         question,
-        allowImages: allowImages ?? true,
         timeoutMs: timeoutMs ?? config.feedbackTimeoutMs,
         submitButtonText: submitButtonText ?? "结束反馈",
         sessionId: agentStore.getState().sessionId,

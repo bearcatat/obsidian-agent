@@ -1,6 +1,6 @@
 # Obsidian Agent
 
-[![Version](https://img.shields.io/badge/version-0.11.2-blue.svg)](https://github.com/bearcatat/obsidian-agent/releases)
+[![Version](https://img.shields.io/badge/version-0.14.1-blue.svg)](https://github.com/bearcatat/obsidian-agent/releases)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
 [![Obsidian](https://img.shields.io/badge/Obsidian-0.15.0+-purple.svg)](https://obsidian.md)
 
