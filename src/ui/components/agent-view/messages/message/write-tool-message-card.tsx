@@ -4,7 +4,7 @@ import React from "react";
 import { FileReviewStatus } from "@/types";
 import { useAgentStore } from "@/state/agent-state-impl";
 import { ChevronsUpDown, FilePlus, FilePen } from "lucide-react";
-import DiffMatchPatch from "diff-match-patch";
+import { buildHunkPreviewRows, buildLineDiff } from "./diff-preview-utils";
 
 type WriteResult = {
     file_path: string
@@ -65,43 +65,25 @@ export const WriteToolMessageCard = ({ origin_answered_state, writeResult, decis
         }
     }, [effectiveStatusText]);
 
-    const diffLines = React.useMemo(() => {
+    const diffRows = React.useMemo(() => {
         if (writeResult.is_new_file) {
-            return writeResult.new_content.split('\n').map(line => ({
-                type: 'add' as const,
-                text: line,
+            return writeResult.new_content.split("\n").map((line) => ({
+                type: "line" as const,
+                line: {
+                    type: "add" as const,
+                    text: line,
+                },
             }));
         }
 
-        if (!writeResult.old_content) {
+        const oldText = writeResult.old_content ?? "";
+        const newText = writeResult.new_content ?? "";
+
+        if (!oldText && !newText) {
             return [];
         }
 
-        const dmp = new DiffMatchPatch();
-        const oldLines = writeResult.old_content.split('\n');
-        const newLines = writeResult.new_content.split('\n');
-
-        const lineDiffs = dmp.diff_linesToChars_(writeResult.old_content, writeResult.new_content);
-        const diffs = dmp.diff_main(lineDiffs.chars1, lineDiffs.chars2, false);
-        dmp.diff_cleanupSemantic(diffs);
-        dmp.diff_charsToLines_(diffs, lineDiffs.lineArray);
-
-        const result: Array<{ type: 'equal' | 'delete' | 'add', text: string }> = [];
-        diffs.forEach((diff: [number, string]) => {
-            const [op, text] = diff;
-            const textLines = text.split('\n');
-            textLines.forEach((line: string, index: number) => {
-                if (index === textLines.length - 1 && line === '') return;
-                if (op === -1) {
-                    result.push({ type: 'delete', text: line });
-                } else if (op === 1) {
-                    result.push({ type: 'add', text: line });
-                } else {
-                    result.push({ type: 'equal', text: line });
-                }
-            });
-        });
-        return result;
+        return buildHunkPreviewRows(buildLineDiff(oldText, newText), 2);
     }, [writeResult]);
 
     const fileIcon = writeResult.is_new_file ? <FilePlus className="tw-size-4" /> : <FilePen className="tw-size-4" />;
@@ -129,7 +111,7 @@ export const WriteToolMessageCard = ({ origin_answered_state, writeResult, decis
             <CollapsibleContent className="tw-flex tw-flex-col tw-w-full tw-px-1">
                 {writeResult.is_new_file ? (
                     <div className="tw-w-full tw-mt-2 tw-rounded tw-border tw-border-border tw-overflow-hidden tw-bg-[#f0fff4] dark:tw-bg-[#033a16]">
-                        <div className="tw-font-mono tw-text-xs tw-leading-relaxed tw-max-h-96 tw-overflow-y-auto">
+                        <div className="tw-font-mono tw-text-xs tw-leading-relaxed tw-max-h-48 tw-overflow-y-auto">
                             {writeResult.new_content.split('\n').map((line, index) => (
                                 <div key={index} className="tw-flex tw-items-start tw-bg-[#acf2bd] dark:tw-bg-[#0c3228] tw-text-[#116329] dark:tw-text-[#3fb950]">
                                     <span className="tw-select-none tw-px-2 tw-py-0.5 tw-min-w-[2rem] tw-text-center tw-bg-[#acf2bd] dark:tw-bg-[#0c3228]">
@@ -144,8 +126,19 @@ export const WriteToolMessageCard = ({ origin_answered_state, writeResult, decis
                     </div>
                 ) : (
                     <div className="tw-w-full tw-mt-2 tw-rounded tw-border tw-border-border tw-overflow-hidden tw-bg-[#f6f8fa] dark:tw-bg-[#0d1117]">
-                        <div className="tw-font-mono tw-text-xs tw-leading-relaxed tw-max-h-96 tw-overflow-y-auto">
-                            {diffLines.map((diff, index) => {
+                        <div className="tw-font-mono tw-text-xs tw-leading-relaxed tw-max-h-48 tw-overflow-y-auto">
+                            {diffRows.length === 0 ? (
+                                <div className="tw-px-2 tw-py-1 tw-text-muted-foreground">No changes</div>
+                            ) : diffRows.map((row, index) => {
+                                if (row.type === "ellipsis") {
+                                    return (
+                                        <div key={index} className="tw-flex tw-items-center tw-px-2 tw-py-0.5 tw-bg-transparent tw-text-muted-foreground">
+                                            <span className="tw-font-mono tw-text-xs">...</span>
+                                        </div>
+                                    );
+                                }
+
+                                const diff = row.line;
                                 const isDelete = diff.type === 'delete';
                                 const isAdd = diff.type === 'add';
                                 const isEqual = diff.type === 'equal';
