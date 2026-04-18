@@ -73,6 +73,9 @@ export const FileReviewPanel = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [selectedFilePath, setSelectedFilePath] = React.useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  // savedIndexRef records the last valid pending index before the current file is reviewed,
+  // used to determine which file to advance to after the current one is completed.
+  const savedIndexRef = React.useRef(-1);
 
   const activeReviews = React.useMemo(
     () => fileReviews
@@ -99,16 +102,39 @@ export const FileReviewPanel = () => {
     [activeReviews, selectedFilePath]
   );
 
+  const currentPendingIndex = React.useMemo(
+    () => pending.findIndex((r) => r.filePath === selectedFilePath),
+    [pending, selectedFilePath]
+  );
+
+  // Keep savedIndexRef in sync with the current position while the dialog is open
+  React.useEffect(() => {
+    if (currentPendingIndex >= 0) savedIndexRef.current = currentPendingIndex;
+  }, [currentPendingIndex]);
+
+  // Auto-advance to the next pending file when the current file is reviewed.
+  // When pending becomes empty, close the dialog.
   React.useEffect(() => {
     if (!selectedFilePath || !isDialogOpen) {
       return;
     }
 
     if (!selectedReview) {
-      setIsDialogOpen(false);
-      setSelectedFilePath(null);
+      if (pending.length > 0) {
+        const nextIndex = Math.min(savedIndexRef.current, pending.length - 1);
+        const nextFile = pending[Math.max(nextIndex, 0)];
+        if (nextFile) {
+          setSelectedFilePath(nextFile.filePath);
+        } else {
+          setIsDialogOpen(false);
+          setSelectedFilePath(null);
+        }
+      } else {
+        setIsDialogOpen(false);
+        setSelectedFilePath(null);
+      }
     }
-  }, [isDialogOpen, selectedFilePath, selectedReview]);
+  }, [isDialogOpen, selectedFilePath, selectedReview, pending]);
 
   const handleDialogOpenChange = React.useCallback((open: boolean) => {
     setIsDialogOpen(open);
@@ -116,6 +142,22 @@ export const FileReviewPanel = () => {
       setSelectedFilePath(null);
     }
   }, []);
+
+  const navigateToReview = React.useCallback(async (item: FileReviewEntry) => {
+    const itemStatus = item.status as string;
+    if (itemStatus !== "reviewing" && itemStatus !== "reviewed") {
+      await adoptFileReviewHead(item.filePath);
+    }
+    setSelectedFilePath(item.filePath);
+  }, [adoptFileReviewHead]);
+
+  const handlePrev = React.useCallback(() => {
+    if (currentPendingIndex > 0) void navigateToReview(pending[currentPendingIndex - 1]);
+  }, [currentPendingIndex, pending, navigateToReview]);
+
+  const handleNext = React.useCallback(() => {
+    if (currentPendingIndex < pending.length - 1) void navigateToReview(pending[currentPendingIndex + 1]);
+  }, [currentPendingIndex, pending, navigateToReview]);
 
   const handleFocusReview = React.useCallback(async (item: FileReviewEntry) => {
     if (item.status === "reviewed") {
@@ -190,7 +232,17 @@ export const FileReviewPanel = () => {
           />
         </CollapsibleContent>
       </Collapsible>
-      <FileReviewDialog review={selectedReview} open={isDialogOpen} onOpenChange={handleDialogOpenChange} />
+      <FileReviewDialog
+        review={selectedReview}
+        open={isDialogOpen}
+        onOpenChange={handleDialogOpenChange}
+        currentIndex={currentPendingIndex >= 0 ? currentPendingIndex : 0}
+        totalCount={pending.length}
+        onPrev={handlePrev}
+        onNext={handleNext}
+        onApplyFile={applyFileReview}
+        onRejectFile={rejectFileReview}
+      />
     </>
   );
 };

@@ -1,6 +1,6 @@
 import React from "react";
 import DiffMatchPatch from "diff-match-patch";
-import { Check, FilePenLine, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, FilePenLine, X } from "lucide-react";
 import { useAgentLogic } from "@/hooks/use-agent";
 import { FileReviewEntry } from "@/types";
 import { Button } from "@/ui/elements/button";
@@ -221,9 +221,6 @@ function buildDerivedBlocks(review: FileReviewEntry, rows: UnifiedDiffRow[]): De
     baselineEnd = lastBaselineEnd !== -1 ? lastBaselineEnd : baselineStart;
     headEnd = lastHeadEnd !== -1 ? lastHeadEnd : headStart;
 
-    const oldText = oldLines.join("\n") + (oldLines.length > 0 ? "\n" : "");
-    const newText = newLines.join("\n") + (newLines.length > 0 ? "\n" : "");
-
     // Re-derive baseline start if only adds (no deletes)
     if (baselineStart === -1) {
       // Find the nearest baseline offset from context rows before rowStartIndex
@@ -250,8 +247,16 @@ function buildDerivedBlocks(review: FileReviewEntry, rows: UnifiedDiffRow[]): De
       headEnd = headStart;
     }
 
-    // Build patchText directly from old/new text at offset
+    // Use content slices instead of reconstructing from lines.
+    // This correctly handles files where the last line has no trailing newline —
+    // slice() caps at string length, avoiding a spurious +1 that would cause
+    // a residual diff after block accept.
     const baselineNorm = review.baselineContent.replace(/\r/g, "");
+    const headNorm = review.headContent.replace(/\r/g, "");
+    const oldText = oldLines.length > 0 ? baselineNorm.slice(baselineStart, baselineEnd) : "";
+    const newText = newLines.length > 0 ? headNorm.slice(headStart, headEnd) : "";
+
+    // Build patchText directly from old/new text at offset
     const patchArr = dmp.patch_make(baselineNorm, [
       [0 /* EQUAL */, baselineNorm.slice(0, baselineStart)],
       [-1 /* DELETE */, oldText],
@@ -412,47 +417,62 @@ export function FileReviewDialog({
   review,
   open,
   onOpenChange,
+  currentIndex,
+  totalCount,
+  onPrev,
+  onNext,
+  onApplyFile,
+  onRejectFile,
 }: {
   review: FileReviewEntry | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  currentIndex: number;
+  totalCount: number;
+  onPrev: () => void;
+  onNext: () => void;
+  onApplyFile: (filePath: string) => void;
+  onRejectFile: (filePath: string) => Promise<void>;
 }) {
   const {
-    applyFileReview,
-    rejectFileReview,
     applyDerivedBlock,
     rejectDerivedBlock,
   } = useAgentLogic();
 
+  // Keep the last non-null review to avoid Dialog unmount flicker during auto-advance transitions.
+  const lastReviewRef = React.useRef<FileReviewEntry | null>(review);
+  if (review !== null) lastReviewRef.current = review;
+  const displayReview = review ?? lastReviewRef.current;
+
   const unifiedDiffRows = React.useMemo(
-    () => review ? buildUnifiedDiffRows(review) : [],
-    [review]
+    () => displayReview ? buildUnifiedDiffRows(displayReview) : [],
+    [displayReview]
   );
   const derivedBlocks = React.useMemo(
-    () => review ? buildDerivedBlocks(review, unifiedDiffRows) : [],
-    [review, unifiedDiffRows]
+    () => displayReview ? buildDerivedBlocks(displayReview, unifiedDiffRows) : [],
+    [displayReview, unifiedDiffRows]
   );
   const lineNumberWidth = React.useMemo(() => {
-    const largestLineNumber = Math.max(getLineCount(review?.headContent ?? ""), 1);
+    const largestLineNumber = Math.max(getLineCount(displayReview?.headContent ?? ""), 1);
     return `${String(largestLineNumber).length + 2}ch`;
-  }, [review]);
+  }, [displayReview]);
   const rowActionAnchors = React.useMemo(
     () => buildRowActionAnchors(derivedBlocks),
     [derivedBlocks]
   );
 
   const handleAccept = React.useCallback((block: DerivedBlock) => {
-    if (!review) return;
-    void applyDerivedBlock(review.filePath, block);
-  }, [review, applyDerivedBlock]);
+    if (!displayReview) return;
+    void applyDerivedBlock(displayReview.filePath, block);
+  }, [displayReview, applyDerivedBlock]);
 
   const handleReject = React.useCallback((block: DerivedBlock) => {
-    if (!review) return;
-    void rejectDerivedBlock(review.filePath, block);
-  }, [review, rejectDerivedBlock]);
+    if (!displayReview) return;
+    void rejectDerivedBlock(displayReview.filePath, block);
+  }, [displayReview, rejectDerivedBlock]);
   const dialogSize = "76vh";
 
-  if (!review) {
+  if (!displayReview) {
     return null;
   }
 
@@ -471,21 +491,32 @@ export function FileReviewDialog({
         <DialogHeader className="tw-pr-8">
           <DialogTitle className="tw-flex tw-items-center tw-gap-2 tw-text-base tw-mb-0">
             <FilePenLine className="tw-size-4 tw-flex-shrink-0" />
-            <span className="tw-truncate tw-font-mono tw-text-sm">{review.filePath}</span>
+            <span>Review Files</span>
           </DialogTitle>
         </DialogHeader>
+        <div className="tw-flex tw-items-center tw-justify-center tw-gap-2">
+          <Button variant="ghost" size="sm" onClick={onPrev} disabled={currentIndex === 0}>
+            <ChevronLeft className="tw-size-4" />
+            Prev
+          </Button>
+          <span className="tw-text-xs tw-text-muted-foreground tw-min-w-[4ch] tw-text-center">{currentIndex + 1} / {totalCount}</span>
+          <Button variant="ghost" size="sm" onClick={onNext} disabled={currentIndex === totalCount - 1}>
+            Next
+            <ChevronRight className="tw-size-4" />
+          </Button>
+        </div>
 
         <div className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col tw-overflow-hidden tw-rounded-md tw-border tw-border-border tw-bg-[#f6f8fa] dark:tw-bg-[#0d1117]">
           <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2 tw-border-b tw-border-border tw-bg-primary/60 tw-px-3 tw-py-2 tw-text-xs tw-text-muted-foreground">
-            <span>Full unified diff</span>
+            <span className="tw-font-mono tw-truncate tw-max-w-[40ch]">{displayReview.filePath}</span>
             <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-1">
-              {review.status === "reviewing" ? (
+              {displayReview.status === "reviewing" ? (
               <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-1">
-                <Button variant="ghost" size="sm" className="tw-text-green-600 dark:tw-text-green-400" onClick={() => applyFileReview(review.filePath)}>
+                <Button variant="ghost" size="sm" className="tw-text-green-600 dark:tw-text-green-400" onClick={() => onApplyFile(displayReview.filePath)}>
                   <Check className="tw-size-4" />
                   Apply File
                 </Button>
-                <Button variant="ghost" size="sm" className="tw-text-red-600 dark:tw-text-red-400" onClick={() => { void rejectFileReview(review.filePath); }}>
+                <Button variant="ghost" size="sm" className="tw-text-red-600 dark:tw-text-red-400" onClick={() => { void onRejectFile(displayReview.filePath); }}>
                   <X className="tw-size-4" />
                   Reject File
                 </Button>
@@ -499,7 +530,7 @@ export function FileReviewDialog({
                 key={`row-${row.kind}-${index}`}
                 row={row}
                 lineNumberWidth={lineNumberWidth}
-                review={review}
+                review={displayReview}
                 actionAnchors={rowActionAnchors.get(index)}
                 onAccept={handleAccept}
                 onReject={handleReject}

@@ -34,3 +34,4 @@ AGENTS.md
 dist/manifest.json
 .github/instructions/*
 .github/skills/*
+.github/agents/*
