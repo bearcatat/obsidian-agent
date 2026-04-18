@@ -1,14 +1,13 @@
-import { TFile, Vault } from "obsidian";
+import { TFile } from "obsidian";
 import { tool } from "ai";
 import { DESCRIPTION } from "./prompts";
 import { z } from 'zod';
 import { ToolMessage } from "@/messages/tool-message";
 import { getGlobalApp } from "@/utils";
 import { FileEditToolMessageCard } from "@/ui/components/agent-view/messages/message/file-edit-tool-message-card";
-import { FileEdit, MessageV2 } from "@/types";
+import { FileEdit, FileReviewStatus, MessageV2 } from "@/types";
 import { diff_match_patch } from "diff-match-patch";
-
-import { SnapshotLogic } from "@/logic/snapshot-logic";
+import { FileReviewLogic } from "@/logic/file-review-logic";
 import { fileMutex } from "./mutex";
 
 export const toolName = "editFile"
@@ -144,8 +143,6 @@ export const FileEditTool = tool({
 				throw new Error("Tool execution was cancelled.")
 			}
 
-			const toolMessage = ToolMessage.from(toolName, toolCallId)
-
 			const file = vault.getAbstractFileByPath(relativePath) as TFile | null
 
 			if (!file) {
@@ -173,23 +170,8 @@ export const FileEditTool = tool({
 			newContent = matchResult.content
 
 			const diff = createDiff(oldContent, newContent)
-
-			let resolver: (value: "apply" | "reject") => void
-			let rejecter: (reason?: any) => void
-			const waitForDecision = () => new Promise<"apply" | "reject">((resolve, reject) => { 
-				resolver = resolve
-				rejecter = reject
-				
-				if (abortSignal) {
-					if (abortSignal.aborted) {
-						reject(new Error("Tool execution was cancelled."))
-					} else {
-						abortSignal.addEventListener('abort', () => reject(new Error("Tool execution was cancelled.")))
-					}
-				}
-			})
-			const handleApply = () => { resolver("apply") }
-			const handleReject = () => { resolver("reject") }
+			const toolMessage = ToolMessage.from(toolName, toolCallId ?? "")
+			const reviewBase = await FileReviewLogic.getInstance().prepareReviewBase(relativePath, oldContent, false)
 
 			const fileEdit: FileEdit = {
 				id: toolCallId ?? "",
@@ -200,54 +182,35 @@ export const FileEditTool = tool({
 				new_content: newContent,
 			}
 
-			toolMessage.setChildren(render(fileEdit, false, null, handleApply, handleReject))
-			context.addMessage(toolMessage)
+			await vault.process(file!, () => newContent)
 
-			const decision = await waitForDecision()
+			const reviewEntry = FileReviewLogic.getInstance().registerAutoAppliedChange({
+				...reviewBase,
+				filePath: relativePath,
+				headContent: newContent,
+				toolCallId: toolCallId ?? "",
+				messageId: toolMessage.id,
+				toolName,
+			})
 
-			let payloadError: any = null;
-			let isCancelled = false;
-			let snapshotId = "";
-
-			if (decision === "apply") {
-				try {
-					if (file) {
-						snapshotId = await SnapshotLogic.getInstance().createSnapshot(relativePath);
-					}
-					await vault.process(file!, () => newContent)
-				} catch (error) {
-					payloadError = {
-						error: "File operation failed",
-						details: error instanceof Error ? error.message : "unknown error",
-					};
-				}
-			} else {
-				isCancelled = true;
-				payloadError = {
-					cancelled: true,
-					message: "User rejected the file edit",
-				};
-			}
-
-			// Save the complete state for historical rendering
 			const payload = {
 				toolName,
-				decision,
 				fileEdit,
-				error: payloadError,
-				isCancelled,
-				snapshotId,
+				snapshotId: reviewBase.baselineSnapshotId,
+				reviewStatus: reviewEntry.status,
+				isReverted: reviewEntry.isReverted,
 			};
 			toolMessage.setContent(JSON.stringify(payload));
 
-			toolMessage.setChildren(render(fileEdit, true, decision, handleApply, handleReject))
+			toolMessage.setChildren(render(fileEdit, false, reviewEntry.status, reviewEntry.isReverted))
 			toolMessage.close()
 			context.addMessage(toolMessage)
 
 			return JSON.stringify({
-				success: decision === "apply" ? "Edit successful" : "User rejected",
+				success: "Edit successful",
 				file_path: relativePath,
 				diff,
+				review_status: reviewEntry.status,
 			})
 		} catch (error) {
 			if (!abortSignal?.aborted && !(error instanceof Error && error.message === "Tool execution was cancelled.")) {
@@ -264,17 +227,15 @@ export const FileEditTool = tool({
 function render(
 	fileEdit: FileEdit,
 	origin_answered_state: boolean,
-	decision: "apply" | "reject" | null,
-	onApply: () => void,
-	onReject: () => void
+	reviewStatus?: FileReviewStatus,
+	isReverted?: boolean
 ): React.ReactNode {
 	return (
 		<FileEditToolMessageCard
 			fileEdit={fileEdit}
 			origin_answered_state={origin_answered_state}
-			decision={decision}
-			onApply={onApply}
-			onReject={onReject}
+			reviewStatus={reviewStatus}
+			isReverted={isReverted}
 		/>
 	)
 }

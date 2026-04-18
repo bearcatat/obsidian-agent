@@ -4,6 +4,7 @@ Usage:
 - Use the ReadNoteByPath/ReadNoteByLink tool before editing to understand the note's content
 - Provide file_path, old_string, new_string, and optional replaceAll (default false)
 - This tool cannot create new notes. Use the write tool to create notes
+- Successful edits are written immediately and then appear in the review UI for later accept/reject actions
 
 Important:
 - The edit will FAIL if old_string is not found in the note

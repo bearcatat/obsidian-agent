@@ -3,6 +3,7 @@ export const DESCRIPTION = `This is a tool for creating or overwriting notes.
 Use cases:
 - Create a new note
 - Overwrite all content of an existing note
+- Successful writes are applied immediately and then appear in the review UI for later accept/reject actions
 
 Usage requirements:
 1. file_path: Note path (relative to vault root)

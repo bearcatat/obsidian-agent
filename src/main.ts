@@ -4,6 +4,8 @@ import { UIManager } from './ui/ui-manager';
 import { settingsStore } from './state/settings-state-impl';
 import { SettingsLogic } from './logic/settings-logic';
 import { AgentViewLogic } from './logic/agent-view-logic';
+import { FileReviewDriftMonitor } from './logic/file-review-drift-monitor';
+import { FileReviewLogic } from './logic/file-review-logic';
 import { setGlobalApp, clearGlobalApp } from './utils';
 import { agentStore } from './state/agent-state-impl';
 import { EditHistoryManager } from './state/edit-history-state';
@@ -41,6 +43,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 			// 初始化UI，让用户看到界面
 			this.initializeUI();
+			FileReviewDriftMonitor.getInstance().register(this);
 
 			// 加载命令
 			await CommandLogic.getInstance().loadCommands();
@@ -88,6 +91,8 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 				agentState.abortController.abort();
 			}
 
+			await AgentViewLogic.getInstance().finalizePendingReviews();
+
 			// 2. 清理 UI 管理器
 			if (this.uiManager) {
 				this.uiManager.cleanup();
@@ -95,6 +100,8 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 			// 3. 重置单例实例
 			AgentViewLogic.resetInstance();
+			FileReviewDriftMonitor.resetInstance();
+			FileReviewLogic.resetInstance();
 			SettingsLogic.resetInstance();
 			AIModelManager.resetInstance();
 			await AIToolManager.resetInstance();

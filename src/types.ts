@@ -1,5 +1,12 @@
+import type { EditorView } from '@codemirror/view';
 import { Plugin, TFile } from 'obsidian';
 import { ToolLoopAgentSettings } from 'ai';
+
+declare module 'obsidian' {
+  interface Editor {
+    cm?: EditorView;
+  }
+}
 
 
 /**
@@ -142,6 +149,40 @@ export interface FileEdit {
   new_string: string;
   old_content?: string;  // 完整旧文件内容（用于 diff 显示）
   new_content?: string;  // 完整新文件内容（用于 diff 显示）
+}
+
+export type FileReviewStatus = "reviewing" | "reviewed";
+
+export type FileReviewBlockStatus = "reviewing" | "applied" | "rejected";
+
+export interface FileReviewBlock {
+  id: string;
+  signature: string;
+  status: FileReviewBlockStatus;
+  baselineStart: number;
+  baselineEnd: number;
+  headStart: number;
+  headEnd: number;
+  oldText: string;
+  newText: string;
+  patchText: string;
+}
+
+export interface FileReviewEntry {
+  filePath: string;
+  baselineContent: string;
+  baselineSnapshotId: string;
+  headContent: string;
+  headHash: string;
+  isNewFile: boolean;
+  status: FileReviewStatus;
+  hasActiveDiff: boolean;
+  isReverted: boolean;
+  blocks: FileReviewBlock[];
+  toolCallIds: string[];
+  messageIds: string[];
+  toolNames: string[];
+  updatedAt: number;
 }
 
 export interface BashCommand {

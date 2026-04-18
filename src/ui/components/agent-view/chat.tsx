@@ -2,6 +2,7 @@ import React from 'react';
 import { Title } from './title';
 import { Input } from './input/input';
 import { Messages } from './messages/messages';
+import { FileReviewPanel } from './file-review-panel';
 
 export interface ChatProps {
 }
@@ -14,6 +15,7 @@ export const Chat: React.FC<ChatProps> = () => {
         <div className="tw-flex tw-size-full tw-flex-col tw-overflow-hidden">
           <Title />
           <Messages />
+          <FileReviewPanel />
           <Input />
         </div>
       </div>

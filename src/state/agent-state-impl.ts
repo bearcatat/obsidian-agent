@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { ModelConfig } from '../types';
-import { MessageV2 } from '@/types';
+import { FileReviewEntry, MessageV2 } from '@/types';
 import { AgentStateData } from './agent-state';
 import { ModelMessage } from 'ai';
 import { SnapshotLogic } from '@/logic/snapshot-logic';
@@ -17,6 +17,9 @@ interface AgentStore extends AgentStateData {
   setTitle: (title: string) => void;
   setModel: (model: ModelConfig) => void;
   setAbortController: (abortController: AbortController) => void;
+  setFileReviews: (fileReviews: FileReviewEntry[]) => void;
+  upsertFileReview: (fileReview: FileReviewEntry) => void;
+  removeFileReview: (filePath: string) => void;
   resetForNewChat: () => void;
   cleanupOldMessages: (keepCount?: number) => void;
   cleanupStreamingMessages: () => void;
@@ -30,6 +33,7 @@ const initialState: AgentStateData = {
   title: 'New Chat',
   model: null,
   abortController: null,
+  fileReviews: [],
 };
 
 export const useAgentStore = create<AgentStore>()(
@@ -126,6 +130,7 @@ export const useAgentStore = create<AgentStore>()(
         
         state.modelMessages = state.modelMessages.slice(0, truncateIndex) as any;
         state.isLoading = false;
+        state.fileReviews = [];
         if (state.abortController) {
           state.abortController.abort();
           state.abortController = null;
@@ -148,6 +153,26 @@ export const useAgentStore = create<AgentStore>()(
         state.abortController = abortController;
       }),
 
+    setFileReviews: (fileReviews: FileReviewEntry[]) =>
+      set((state) => {
+        state.fileReviews = fileReviews;
+      }),
+
+    upsertFileReview: (fileReview: FileReviewEntry) =>
+      set((state) => {
+        const existingIndex = state.fileReviews.findIndex((review) => review.filePath === fileReview.filePath);
+        if (existingIndex >= 0) {
+          state.fileReviews[existingIndex] = fileReview;
+        } else {
+          state.fileReviews.push(fileReview);
+        }
+      }),
+
+    removeFileReview: (filePath: string) =>
+      set((state) => {
+        state.fileReviews = state.fileReviews.filter((review) => review.filePath !== filePath);
+      }),
+
     resetForNewChat: () =>
       set((state) => {
         state.sessionId = null;
@@ -156,6 +181,7 @@ export const useAgentStore = create<AgentStore>()(
         state.isLoading = false;
         state.title = 'New Chat';
         state.abortController = null;
+        state.fileReviews = [];
       }),
 
     cleanupOldMessages: (keepCount: number = 50) =>

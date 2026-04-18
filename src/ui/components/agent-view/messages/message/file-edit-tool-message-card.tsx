@@ -1,33 +1,61 @@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui/elements/collapsible";
 import { Button } from "@/ui/elements/button";
 import React from "react";
-import { FileEdit } from "@/types";
-import { ChevronsUpDown, Check, X } from "lucide-react";
+import { FileEdit, FileReviewStatus } from "@/types";
+import { useAgentStore } from "@/state/agent-state-impl";
+import { ChevronsUpDown } from "lucide-react";
 import DiffMatchPatch from "diff-match-patch";
 
 type Props = {
     origin_answered_state: boolean;
     fileEdit: FileEdit;
-    decision: "apply" | "reject" | null;
-    onApply: () => void;
-    onReject: () => void;
+    decision?: "apply" | "reject" | null;
+    reviewStatus?: FileReviewStatus;
+    isReverted?: boolean;
 }
 
-export const FileEditToolMessageCard = ({ origin_answered_state, fileEdit, decision, onApply, onReject }: Props) => {
+function getStatusText(
+    reviewStatus?: string,
+    isReverted?: boolean,
+    decision?: "apply" | "reject" | null,
+    origin_answered_state?: boolean,
+): string {
+    if (isReverted) {
+        return "Rejected";
+    }
+    if (reviewStatus === "reviewing") {
+        return "Reviewing";
+    }
+    if (reviewStatus === "reviewed") {
+        return "Reviewed";
+    }
+    if (reviewStatus) {
+        return "Needs sync";
+    }
+    if (decision === "reject") {
+        return "Rejected";
+    }
+    if (decision === "apply") {
+        return "Reviewed";
+    }
+    return origin_answered_state ? "Reviewed" : "Reviewing";
+}
+
+export const FileEditToolMessageCard = ({ origin_answered_state, fileEdit, decision, reviewStatus, isReverted }: Props) => {
     const [isOpen, setIsOpen] = React.useState(!origin_answered_state);
-    const [isAnswered, setIsAnswered] = React.useState(origin_answered_state);
+    const liveReview = useAgentStore((state) => state.fileReviews.find((review) => review.filePath === fileEdit.file_path));
+    const effectiveStatusText = getStatusText(
+        liveReview?.status ?? reviewStatus,
+        liveReview?.isReverted ?? isReverted,
+        decision,
+        origin_answered_state,
+    );
 
-    const handleApply = () => {
-        setIsOpen(false);
-        onApply();
-        setIsAnswered(true);
-    };
-
-    const handleReject = () => {
-        setIsOpen(false);
-        onReject();
-        setIsAnswered(true);
-    };
+    React.useEffect(() => {
+        if (effectiveStatusText === "Reviewing") {
+            setIsOpen(true);
+        }
+    }, [effectiveStatusText]);
 
     // 计算 diff
     const diffLines = React.useMemo(() => {
@@ -76,10 +104,6 @@ export const FileEditToolMessageCard = ({ origin_answered_state, fileEdit, decis
         }
     }, [fileEdit]);
 
-    const statusText = isAnswered
-        ? (decision === "apply" ? "Applied" : decision === "reject" ? "Rejected" : "Processed")
-        : "Pending confirmation";
-
     return (
         <Collapsible
             open={isOpen}
@@ -88,16 +112,14 @@ export const FileEditToolMessageCard = ({ origin_answered_state, fileEdit, decis
         >
             <div className="tw-flex tw-items-center tw-justify-between tw-px-2 tw-py-0">
                 <div className="tw-flex tw-items-center tw-gap-2">
-                    <span>{statusText}:</span>
+                    <span>{effectiveStatusText}:</span>
                     <span className="tw-font-mono tw-text-sm">{fileEdit.file_path}</span>
                 </div>
-                {isAnswered && (
-                    <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="icon" className="size-8">
-                            <ChevronsUpDown className="tw-size-4" />
-                        </Button>
-                    </CollapsibleTrigger>
-                )}
+                <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="icon" className="size-8">
+                        <ChevronsUpDown className="tw-size-4" />
+                    </Button>
+                </CollapsibleTrigger>
             </div>
             <CollapsibleContent className="tw-flex tw-flex-col tw-w-full tw-px-1">
                 {/* Diff 可视化 - GitHub 风格 */}
@@ -195,28 +217,6 @@ export const FileEditToolMessageCard = ({ origin_answered_state, fileEdit, decis
                         })}
                     </div>
                 </div>
-                {!isAnswered && (
-                    <div className="tw-flex tw-justify-start tw-gap-2 tw-mt-2 tw-px-2">
-                        <Button
-                            variant="ghost"
-                            size="fit"
-                            className="tw-text-green-600 dark:tw-text-green-400 hover:tw-bg-green-50 dark:hover:tw-bg-green-900/20"
-                            onClick={handleApply}
-                        >
-                            <Check className="tw-size-4 tw-mr-1" />
-                            Apply
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="fit"
-                            className="tw-text-red-600 dark:tw-text-red-400 hover:tw-bg-red-50 dark:hover:tw-bg-red-900/20"
-                            onClick={handleReject}
-                        >
-                            <X className="tw-size-4 tw-mr-1" />
-                            Deny
-                        </Button>
-                    </div>
-                )}
             </CollapsibleContent>
         </Collapsible>
     );

@@ -5,6 +5,7 @@ import { AppContextProvider } from '../../../hooks/app-context';
 import { IconManager } from '../../icons';
 import { TooltipProvider } from '../../elements/tooltip';
 import React from 'react';
+import { AgentViewLogic } from '@/logic/agent-view-logic';
 
 export const AGENT_VIEW_TYPE = 'agent-view';
 
@@ -50,6 +51,7 @@ export class AgentView extends ItemView {
 	}
 
 	async onClose(): Promise<void> {
+		await AgentViewLogic.getInstance().finalizePendingReviews();
 		// 清理React组件
 		if (this.root) {
 			this.root.unmount();

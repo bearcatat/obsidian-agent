@@ -1,4 +1,4 @@
-import { MessageV2, ModelConfig } from '../types';
+import { FileReviewEntry, MessageV2, ModelConfig } from '../types';
 import { ModelMessage } from 'ai';
 
 export interface IAgentState {
@@ -10,6 +10,7 @@ export interface IAgentState {
   readonly title: string;
   readonly model: ModelConfig | null;
   readonly abortController: AbortController | null;
+  readonly fileReviews: FileReviewEntry[];
 }
 
 export function clone(agentState: IAgentState): IAgentState {
@@ -21,6 +22,7 @@ export function clone(agentState: IAgentState): IAgentState {
     title: agentState.title,
     model: agentState.model,
     abortController: agentState.abortController,
+    fileReviews: agentState.fileReviews,
   };
 }
 
@@ -33,5 +35,6 @@ export interface AgentStateData {
   title: string;
   model: ModelConfig | null;
   abortController: AbortController | null;
+  fileReviews: FileReviewEntry[];
   activeSkills?: string[];
 }

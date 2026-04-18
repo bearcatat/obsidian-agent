@@ -65,8 +65,8 @@ export function renderHistoricalToolMessage(toolName: string, contentJson: strin
             fileEdit={data.fileEdit}
             decision={data.decision}
             origin_answered_state={true}
-            onApply={() => {}}
-            onReject={() => {}}
+            reviewStatus={data.reviewStatus}
+            isReverted={data.isReverted}
           />
         );
       case 'write':
@@ -75,8 +75,8 @@ export function renderHistoricalToolMessage(toolName: string, contentJson: strin
             writeResult={data.writeResult}
             decision={data.decision}
             origin_answered_state={true}
-            onApply={() => {}}
-            onReject={() => {}}
+            reviewStatus={data.reviewStatus}
+            isReverted={data.isReverted}
           />
         );
       case 'askQuestion':

@@ -13,7 +13,7 @@ export interface TitleProps { }
 
 export const Title: React.FC<TitleProps> = () => {
 	const { title } = useAgentState();
-	const { resetForNewChat, stopLoading } = useAgentLogic();
+	const { resetForNewChat, stopLoading, finalizePendingReviews } = useAgentLogic();
 	const app = useApp();
 	
 	const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -27,6 +27,7 @@ export const Title: React.FC<TitleProps> = () => {
 
 	const handleLoadSession = async (sessionId: string) => {
 		stopLoading();
+		await finalizePendingReviews();
 		
 		const currentModel = agentStore.getState().model;
 		const state = await SessionLogic.getInstance().loadSession(sessionId);
@@ -101,7 +102,7 @@ export const Title: React.FC<TitleProps> = () => {
 
 				<Tooltip>
 					<TooltipTrigger asChild>
-						<Button variant="ghost2" size="icon" onClick={() => resetForNewChat(app)}>
+							<Button variant="ghost2" size="icon" onClick={() => { void resetForNewChat(app); }}>
 							<Plus className="tw-w-4 tw-h-4" />
 						</Button>
 					</TooltipTrigger>

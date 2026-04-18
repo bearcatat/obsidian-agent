@@ -5,13 +5,18 @@ import { UserMessage } from "@/messages/user-message";
 import AIAgent from "@/llm-ai/Agent";
 import AIModelManager from "@/llm-ai/ModelManager";
 import { SessionLogic } from "./session-logic";
+import { FileReviewLogic } from "./file-review-logic";
 
 export class AgentViewLogic {
   private static instance: AgentViewLogic;
 
   private constructor() {
     agentStore.subscribe((state, prevState) => {
-      if (state.sessionId && !state.isLoading && state.messages !== prevState.messages) {
+      if (
+        state.sessionId &&
+        !state.isLoading &&
+        (state.messages !== prevState.messages || state.fileReviews !== prevState.fileReviews)
+      ) {
         SessionLogic.getInstance().saveSession(state);
       }
     });
@@ -96,9 +101,19 @@ export class AgentViewLogic {
     agentStore.getState().setTitle(title);
   }
 
-  resetForNewChat(app: App | undefined): void {
+  async finalizePendingReviews(): Promise<void> {
+    const store = agentStore.getState();
+    if (!store.sessionId) {
+      return;
+    }
+
+    FileReviewLogic.getInstance().flushPendingAsApplied();
+    await SessionLogic.getInstance().saveSessionNow(agentStore.getState());
+  }
+
+  async resetForNewChat(app: App | undefined): Promise<void> {
     this.stopLoading();
-    const activeNote = app?.workspace.getActiveFile();
+    await this.finalizePendingReviews();
     agentStore.getState().resetForNewChat();
     AIAgent.getInstance().clearMemory();
   }

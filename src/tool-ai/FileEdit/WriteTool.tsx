@@ -1,14 +1,13 @@
-import { TFile, Vault } from "obsidian";
+import { TFile } from "obsidian";
 import { tool } from "ai";
 import { DESCRIPTION } from "./write";
 import { z } from 'zod';
 import { ToolMessage } from "@/messages/tool-message";
 import { getGlobalApp } from "@/utils";
 import { WriteToolMessageCard } from "@/ui/components/agent-view/messages/message/write-tool-message-card";
-import { MessageV2 } from "@/types";
+import { FileReviewStatus, MessageV2 } from "@/types";
 import { diff_match_patch } from "diff-match-patch";
-
-import { SnapshotLogic } from "@/logic/snapshot-logic";
+import { FileReviewLogic } from "@/logic/file-review-logic";
 import { fileMutex } from "./mutex";
 
 export const toolName = "write"
@@ -81,8 +80,6 @@ export const WriteTool = tool({
         throw new Error("Tool execution was cancelled.")
       }
 
-      const toolMessage = ToolMessage.from(toolName, toolCallId)
-
       const file = vault.getAbstractFileByPath(relativePath) as TFile | null
       const exists = !!file
 
@@ -96,23 +93,8 @@ export const WriteTool = tool({
       }
 
       const diff = exists ? createDiff(oldContent, content) : ''
-
-      let resolver: (value: "apply" | "reject") => void
-      let rejecter: (reason?: any) => void
-      const waitForDecision = () => new Promise<"apply" | "reject">((resolve, reject) => { 
-        resolver = resolve
-        rejecter = reject
-        
-        if (abortSignal) {
-          if (abortSignal.aborted) {
-            reject(new Error("Tool execution was cancelled."))
-          } else {
-            abortSignal.addEventListener('abort', () => reject(new Error("Tool execution was cancelled.")))
-          }
-        }
-      })
-      const handleApply = () => { resolver("apply") }
-      const handleReject = () => { resolver("reject") }
+      const toolMessage = ToolMessage.from(toolName, toolCallId ?? "")
+      const reviewBase = await FileReviewLogic.getInstance().prepareReviewBase(relativePath, oldContent, !exists)
 
       const writeResult: WriteResult = {
         file_path: relativePath,
@@ -122,64 +104,47 @@ export const WriteTool = tool({
         diff,
       }
 
-      toolMessage.setChildren(render(writeResult, false, null, handleApply, handleReject))
-      context.addMessage(toolMessage)
-
-      const decision = await waitForDecision()
-
-      let payloadError: any = null;
-      let isCancelled = false;
-      let snapshotId = "";
-
-      if (decision === "apply") {
-        try {
-          snapshotId = await SnapshotLogic.getInstance().createSnapshot(relativePath);
-          if (exists) {
-            await vault.modify(file!, content)
-          } else {
-            const dirPath = relativePath.substring(0, relativePath.lastIndexOf('/'))
-            if (dirPath && dirPath !== '.' && dirPath !== '') {
-              const dirExists = await vault.adapter.exists(dirPath)
-              if (!dirExists) {
-                await vault.adapter.mkdir(dirPath)
-              }
-            }
-            await vault.create(relativePath, content)
+      if (exists) {
+        await vault.modify(file!, content)
+      } else {
+        const dirPath = relativePath.substring(0, relativePath.lastIndexOf('/'))
+        if (dirPath && dirPath !== '.' && dirPath !== '') {
+          const dirExists = await vault.adapter.exists(dirPath)
+          if (!dirExists) {
+            await vault.adapter.mkdir(dirPath)
           }
-        } catch (error) {
-					payloadError = {
-  					error: "File write failed",
-  					details: error instanceof Error ? error.message : "unknown error",
-  				};
         }
-  		} else {
-          isCancelled = true;
-  				payloadError = {
-  					cancelled: true,
-  					message: "User rejected the file write",
-  				};
-  		}
+        await vault.create(relativePath, content)
+      }
 
-      // Save the complete state for historical rendering
-			const payload = {
-				toolName,
-				decision,
-				writeResult,
-				error: payloadError,
-				isCancelled,
-				snapshotId,
-			};
-			toolMessage.setContent(JSON.stringify(payload));
+      const reviewEntry = FileReviewLogic.getInstance().registerAutoAppliedChange({
+        ...reviewBase,
+        filePath: relativePath,
+        headContent: content,
+        toolCallId: toolCallId ?? "",
+        messageId: toolMessage.id,
+        toolName,
+      })
 
-      toolMessage.setChildren(render(writeResult, true, decision, handleApply, handleReject))
+      const payload = {
+        toolName,
+        writeResult,
+        snapshotId: reviewBase.baselineSnapshotId,
+        reviewStatus: reviewEntry.status,
+        isReverted: reviewEntry.isReverted,
+      };
+      toolMessage.setContent(JSON.stringify(payload));
+
+      toolMessage.setChildren(render(writeResult, false, reviewEntry.status, reviewEntry.isReverted))
       toolMessage.close()
       context.addMessage(toolMessage)
 
   			return JSON.stringify({
-  				success: decision === "apply" ? "Write successful" : "User rejected",
+				success: "Write successful",
   				file_path: relativePath,
   				is_new_file: !exists,
   				diff,
+				review_status: reviewEntry.status,
   			})
     } catch (error) {
       if (!abortSignal?.aborted && !(error instanceof Error && error.message === "Tool execution was cancelled.")) {
@@ -196,17 +161,15 @@ export const WriteTool = tool({
 function render(
   writeResult: WriteResult,
   origin_answered_state: boolean,
-  decision: "apply" | "reject" | null,
-  onApply: () => void,
-  onReject: () => void
+  reviewStatus?: FileReviewStatus,
+  isReverted?: boolean
 ): React.ReactNode {
   return (
     <WriteToolMessageCard
       writeResult={writeResult}
       origin_answered_state={origin_answered_state}
-      decision={decision}
-      onApply={onApply}
-      onReject={onReject}
+      reviewStatus={reviewStatus}
+      isReverted={isReverted}
     />
   )
 }

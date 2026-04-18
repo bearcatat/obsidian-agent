@@ -1,7 +1,7 @@
 import { App } from "obsidian";
 import { AgentStateData } from "@/state/agent-state";
 import { getGlobalApp } from "@/utils";
-import { MessageV2 } from "@/types";
+import { FileReviewEntry, MessageV2 } from "@/types";
 import { ModelMessage } from "ai";
 import { UserMessage } from "@/messages/user-message";
 import { ToolMessage } from "@/messages/tool-message";
@@ -42,6 +42,7 @@ export interface SessionData {
   updatedAt: number;
   turns: TurnData[];
   activeSkills: string[];
+  fileReviews: FileReviewEntry[];
 }
 
 export interface SessionMetadata {
@@ -118,6 +119,11 @@ export class SessionLogic {
     this.debouncedSave(state.sessionId, state);
   }
 
+  async saveSessionNow(state: AgentStateData): Promise<void> {
+    if (!state.sessionId) return;
+    await this.saveSessionInternal(state.sessionId, state);
+  }
+
   private async saveSessionInternal(sessionId: string, state: AgentStateData): Promise<void> {
     try {
       await this.ensureSessionsDir();
@@ -133,7 +139,8 @@ export class SessionLogic {
         createdAt: Date.now(),
         updatedAt: Date.now(),
         turns,
-        activeSkills
+        activeSkills,
+        fileReviews: state.fileReviews || []
       };
 
       const filePath = `${this.SESSIONS_DIR}/${sessionId}.json`;
@@ -207,6 +214,7 @@ export class SessionLogic {
           isLoading: false,
           model: null,
           abortController: null,
+          fileReviews: sessionData.fileReviews || [],
           activeSkills: sessionData.activeSkills || []
       };
 
@@ -224,15 +232,26 @@ export class SessionLogic {
             const content = await adapter.read(filePath);
             const sessionData = JSON.parse(content) as SessionData;
             const snapshotLogic = SnapshotLogic.getInstance();
+            const snapshotIds = new Set<string>();
             
             // Delete all snapshots associated with this session
             for (const turn of sessionData.turns) {
                 for (const snapKey in turn.snapshots) {
                     const snapshotId = turn.snapshots[snapKey].snapshotId;
                     if (snapshotId) {
-                        await snapshotLogic.deleteSnapshot(snapshotId);
+                  snapshotIds.add(snapshotId);
                     }
                 }
+            }
+
+            for (const review of sessionData.fileReviews || []) {
+              if (review.baselineSnapshotId) {
+                snapshotIds.add(review.baselineSnapshotId);
+              }
+            }
+
+            for (const snapshotId of snapshotIds) {
+              await snapshotLogic.deleteSnapshot(snapshotId);
             }
         } catch (e) {
             console.error("Failed to parse session for snapshot cleanup", e);
