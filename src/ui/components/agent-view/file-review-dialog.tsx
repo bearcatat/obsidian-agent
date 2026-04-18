@@ -1,6 +1,6 @@
 import React from "react";
 import DiffMatchPatch from "diff-match-patch";
-import { Check, ChevronLeft, ChevronRight, FilePenLine, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, FilePenLine, Undo2, X } from "lucide-react";
 import { useAgentLogic } from "@/hooks/use-agent";
 import { FileReviewEntry } from "@/types";
 import { Button } from "@/ui/elements/button";
@@ -315,7 +315,7 @@ function UnifiedDiffRowActions({
           <Button
             variant="ghost"
             size="fit"
-            className="tw-text-green-600 dark:tw-text-green-400"
+            className="tw-text-accent"
             onClick={() => onAccept(block)}
           >
             <Check className="tw-size-4" />
@@ -324,10 +324,10 @@ function UnifiedDiffRowActions({
           <Button
             variant="ghost"
             size="fit"
-            className="tw-text-red-600 dark:tw-text-red-400"
+            className="tw-text-[#82071e] dark:tw-text-[#ffa198]"
             onClick={() => onReject(block)}
           >
-            <X className="tw-size-4" />
+            <Undo2 className="tw-size-4" />
             Reject
           </Button>
         </div>
@@ -512,12 +512,12 @@ export function FileReviewDialog({
             <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-1">
               {displayReview.status === "reviewing" ? (
               <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-1">
-                <Button variant="ghost" size="sm" className="tw-text-green-600 dark:tw-text-green-400" onClick={() => onApplyFile(displayReview.filePath)}>
+                <Button variant="ghost" size="sm" className="tw-text-accent" onClick={() => onApplyFile(displayReview.filePath)}>
                   <Check className="tw-size-4" />
                   Apply File
                 </Button>
-                <Button variant="ghost" size="sm" className="tw-text-red-600 dark:tw-text-red-400" onClick={() => { void onRejectFile(displayReview.filePath); }}>
-                  <X className="tw-size-4" />
+                <Button variant="ghost" size="sm" className="tw-text-[#82071e] dark:tw-text-[#ffa198]" onClick={() => { void onRejectFile(displayReview.filePath); }}>
+                  <Undo2 className="tw-size-4" />
                   Reject File
                 </Button>
               </div>

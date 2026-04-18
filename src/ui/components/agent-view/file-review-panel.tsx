@@ -1,63 +1,45 @@
 import React from "react";
 import { useAgentLogic, useAgentState } from "@/hooks/use-agent";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui/elements/collapsible";
+import { Collapsible, CollapsibleContent } from "@/ui/elements/collapsible";
 import { Button } from "@/ui/elements/button";
-import { ChevronsUpDown, Check, FilePenLine, X } from "lucide-react";
+import { Check, Undo2, X } from "lucide-react";
 import { FileReviewEntry } from "@/types";
 import { FileReviewDialog } from "./file-review-dialog";
+import { Table, TableBody, TableCell, TableRow } from "@/ui/elements/tables";
 
-function ReviewSection({
-  title,
-  items,
-  showActions,
-  renderTrailing,
-  onApply,
-  onReject,
-  onFocus,
-}: {
-  title: string;
-  items: FileReviewEntry[];
-  showActions?: boolean;
-  renderTrailing?: (item: FileReviewEntry) => React.ReactNode;
-  onApply: (filePath: string) => void;
-  onReject: (filePath: string) => void;
-  onFocus: (item: FileReviewEntry) => void;
-}) {
-  if (items.length === 0) {
-    return null;
+function splitLines(text: string): string[] {
+  if (!text) return [];
+  const lines = text.split('\n');
+  if (lines[lines.length - 1] === '') lines.pop();
+  return lines;
+}
+
+function computeLineDiffStats(entry: FileReviewEntry): { added: number; removed: number } {
+  if (entry.isNewFile) {
+    return { added: splitLines(entry.headContent).length, removed: 0 };
   }
-
-  return (
-    <div className="tw-flex tw-flex-col tw-gap-1">
-      <div className="tw-px-1 tw-text-xs tw-font-medium tw-text-muted-foreground">{title}</div>
-      {items.map((item) => (
-        <div key={item.filePath} className="tw-flex tw-items-center tw-gap-2 tw-rounded-md tw-border tw-border-border tw-px-2 tw-py-1.5">
-          <button
-            type="button"
-            className="tw-flex tw-min-w-0 tw-flex-1 tw-items-center tw-gap-2 tw-text-left hover:tw-text-accent"
-            onClick={() => onFocus(item)}
-          >
-            <FilePenLine className="tw-size-4 tw-flex-shrink-0" />
-            <span className="tw-truncate tw-font-mono tw-text-xs">{item.filePath}</span>
-          </button>
-          {renderTrailing ? renderTrailing(item) : showActions ? (
-            <div className="tw-flex tw-items-center tw-gap-1">
-              <Button variant="ghost" size="fit" className="tw-text-green-600 dark:tw-text-green-400" onClick={() => onApply(item.filePath)}>
-                <Check className="tw-size-4" />
-                Apply
-              </Button>
-              <Button variant="ghost" size="fit" className="tw-text-red-600 dark:tw-text-red-400" onClick={() => onReject(item.filePath)}>
-                <X className="tw-size-4" />
-                Reject
-              </Button>
-            </div>
-          ) : (
-            <span className="tw-text-xs tw-text-muted-foreground">Reviewed</span>
-          )}
-        </div>
-      ))}
-    </div>
-  );
+  const baseLines = splitLines(entry.baselineContent);
+  const headLines = splitLines(entry.headContent);
+  // Multiset difference: count lines unique to each side
+  const baseMap = new Map<string, number>();
+  for (const line of baseLines) {
+    baseMap.set(line, (baseMap.get(line) ?? 0) + 1);
+  }
+  let added = 0;
+  const remaining = new Map(baseMap);
+  for (const line of headLines) {
+    const count = remaining.get(line) ?? 0;
+    if (count > 0) {
+      remaining.set(line, count - 1);
+    } else {
+      added++;
+    }
+  }
+  let removed = 0;
+  for (const count of remaining.values()) {
+    removed += count;
+  }
+  return { added, removed };
 }
 
 export const FileReviewPanel = () => {
@@ -93,10 +75,31 @@ export const FileReviewPanel = () => {
     () => activeReviews.filter((review) => review.status !== "reviewed"),
     [activeReviews]
   );
-  const reviewed = React.useMemo(
-    () => activeReviews.filter((review) => review.status === "reviewed"),
-    [activeReviews]
+
+  const diffStats = React.useMemo(
+    () => {
+      const map = new Map<string, { added: number; removed: number }>();
+      for (const entry of pending) {
+        map.set(entry.filePath, computeLineDiffStats(entry));
+      }
+      return map;
+    },
+    [pending]
   );
+
+  const totalDiffStats = React.useMemo(
+    () => {
+      let added = 0;
+      let removed = 0;
+      for (const stats of diffStats.values()) {
+        added += stats.added;
+        removed += stats.removed;
+      }
+      return { added, removed };
+    },
+    [diffStats]
+  );
+
   const selectedReview = React.useMemo(
     () => activeReviews.find((review) => review.filePath === selectedFilePath) ?? null,
     [activeReviews, selectedFilePath]
@@ -174,62 +177,100 @@ export const FileReviewPanel = () => {
     setIsDialogOpen(true);
   }, [adoptFileReviewHead, focusFileReview]);
 
-  if (activeReviews.length === 0) {
+  if (pending.length === 0) {
     return null;
   }
 
   return (
     <>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="tw-mt-1 tw-flex tw-flex-col tw-gap-1 tw-rounded-md tw-border tw-border-border tw-px-2 tw-py-1">
-        <div className="tw-flex tw-items-center tw-justify-between">
-          <div className="tw-text-xs tw-font-medium tw-text-muted-foreground">Changed files {activeReviews.length}</div>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-7">
-              <ChevronsUpDown className="tw-size-4" />
-            </Button>
-          </CollapsibleTrigger>
-        </div>
-        <CollapsibleContent className="tw-flex tw-flex-col tw-gap-2 tw-pb-1">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="tw-mt-1 tw-rounded-md tw-border tw-border-border">
+        <div
+          className="tw-flex tw-cursor-pointer tw-items-center tw-justify-between tw-px-2 tw-py-1 tw-select-none hover:tw-bg-primary-alt/30"
+          onClick={() => setIsOpen((prev) => !prev)}
+        >
+          <div className="tw-flex tw-items-center tw-gap-1.5 tw-text-xs tw-font-medium tw-text-muted-foreground">
+            <span>{pending.length} file(s) changed</span>
+            <span className="tw-text-[#116329] dark:tw-text-[#3fb950]">+{totalDiffStats.added}</span>
+            <span className="tw-text-[#82071e] dark:tw-text-[#ffa198]">-{totalDiffStats.removed}</span>
+          </div>
           {reviewing.length > 0 && (
-            <div className="tw-flex tw-items-center tw-justify-end tw-gap-1">
-              <Button variant="ghost" size="fit" className="tw-text-green-600 dark:tw-text-green-400" onClick={() => applyAllFileReviews()}>
+            <div
+              className="tw-flex tw-items-center tw-gap-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button
+                variant="ghost"
+                size="fit"
+                className="tw-text-accent"
+                onClick={() => applyAllFileReviews()}
+              >
                 <Check className="tw-size-4" />
                 Apply All
               </Button>
-              <Button variant="ghost" size="fit" className="tw-text-red-600 dark:tw-text-red-400" onClick={() => void rejectAllFileReviews()}>
-                <X className="tw-size-4" />
+              <Button
+                variant="ghost"
+                size="fit"
+                className="tw-text-[#82071e] dark:tw-text-[#ffa198]"
+                onClick={() => void rejectAllFileReviews()}
+              >
+                <Undo2 className="tw-size-4" />
                 Reject All
               </Button>
             </div>
           )}
-          <ReviewSection
-            title="Reviewing"
-            items={pending}
-            renderTrailing={(item) => item.status === "reviewing" ? (
-              <div className="tw-flex tw-items-center tw-gap-1">
-                <Button variant="ghost" size="fit" className="tw-text-green-600 dark:tw-text-green-400" onClick={() => applyFileReview(item.filePath)}>
-                  <Check className="tw-size-4" />
-                  Apply
-                </Button>
-                <Button variant="ghost" size="fit" className="tw-text-red-600 dark:tw-text-red-400" onClick={() => { void rejectFileReview(item.filePath); }}>
-                  <X className="tw-size-4" />
-                  Reject
-                </Button>
-              </div>
-            ) : (
-              <span className="tw-text-xs tw-text-muted-foreground">Open to sync</span>
-            )}
-            onApply={applyFileReview}
-            onReject={(filePath) => { void rejectFileReview(filePath); }}
-            onFocus={handleFocusReview}
-          />
-          <ReviewSection
-            title="Reviewed"
-            items={reviewed}
-            onApply={applyFileReview}
-            onReject={(filePath) => { void rejectFileReview(filePath); }}
-            onFocus={handleFocusReview}
-          />
+        </div>
+        <CollapsibleContent>
+          <Table>
+            <TableBody>
+              {pending.map((item) => (
+                <TableRow
+                  key={item.filePath}
+                  className="tw-cursor-pointer"
+                  onClick={() => void handleFocusReview(item)}
+                >
+                  <TableCell className="tw-py-0.5 tw-pl-2">
+                    <span className="tw-truncate tw-font-mono tw-text-xs">{item.filePath}</span>
+                  </TableCell>
+                  <TableCell
+                    className="tw-py-0.5 tw-pr-2 tw-text-right tw-whitespace-nowrap"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {item.status === "reviewing" ? (
+                      <div className="tw-flex tw-items-center tw-justify-end tw-gap-1">
+                        {(() => {
+                          const stats = diffStats.get(item.filePath);
+                          return stats ? (
+                            <div className="tw-flex tw-items-center tw-gap-0.5 tw-text-xs">
+                              <span className="tw-text-[#116329] dark:tw-text-[#3fb950]">+{stats.added}</span>
+                              <span className="tw-text-[#82071e] dark:tw-text-[#ffa198]">-{stats.removed}</span>
+                            </div>
+                          ) : null;
+                        })()}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="tw-size-6 tw-text-accent"
+                          onClick={() => applyFileReview(item.filePath)}
+                        >
+                          <Check className="tw-size-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="tw-size-6 tw-text-[#82071e] dark:tw-text-[#ffa198]"
+                          onClick={() => { void rejectFileReview(item.filePath); }}
+                        >
+                          <Undo2 className="tw-size-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="tw-text-xs tw-text-muted-foreground">Open to sync</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CollapsibleContent>
       </Collapsible>
       <FileReviewDialog
