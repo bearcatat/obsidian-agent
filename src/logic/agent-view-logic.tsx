@@ -1,9 +1,10 @@
 import { Context, MessageV2, ModelConfig } from "../types";
-import { useAgentStore, agentStore } from "../state/agent-state-impl";
+import { agentStore } from "../state/agent-state-impl";
 import { App, Notice, TFile } from "obsidian";
 import { UserMessage } from "@/messages/user-message";
 import AIAgent from "@/llm-ai/Agent";
 import AIModelManager from "@/llm-ai/ModelManager";
+import { CHAT_TITLE_MAX_LENGTH } from "@/llm-ai/title-constants";
 import { SessionLogic } from "./session-logic";
 import { FileReviewLogic } from "./file-review-logic";
 
@@ -77,14 +78,15 @@ export class AgentViewLogic {
   async setTitleIfNewChat(userMessage: string): Promise<void> {
     const store = agentStore.getState();
     if (store.title === "New Chat") {
+      const fallbackTitle = userMessage.substring(0, CHAT_TITLE_MAX_LENGTH).trim() || "New Chat";
       // 使用 Agent 的 generateTitle 方法生成标题
       try {
         const title = await AIAgent.getInstance().generateTitle(userMessage);
-        store.setTitle(title);
+        store.setTitle(title.trim() || fallbackTitle);
       } catch (error) {
         console.error('Failed to generate title:', error);
-        // 如果标题生成失败，使用用户消息的前20个字符作为标题
-        store.setTitle(userMessage.substring(0, 20) || "New Chat");
+        // 如果标题生成失败，使用用户消息的前 CHAT_TITLE_MAX_LENGTH 个字符作为标题
+        store.setTitle(fallbackTitle);
       }
     }
   }

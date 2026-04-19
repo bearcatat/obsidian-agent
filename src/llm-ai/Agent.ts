@@ -6,6 +6,7 @@ import AIToolManager from "@/tool-ai/ToolManager";
 import { MessageV2 } from "@/types";
 import AIModelManager from "./ModelManager";
 import SkillLogic from "@/logic/skill-logic";
+import { CHAT_TITLE_MAX_LENGTH } from "./title-constants";
 
 export default class AIAgent {
     private static instance: AIAgent
@@ -97,7 +98,7 @@ export default class AIAgent {
                 ],
                 maxRetries: 3,
             })
-            return text.substring(0, 20)
+            return text.substring(0, CHAT_TITLE_MAX_LENGTH)
         } catch (error) {
             return ""
         }

@@ -2,7 +2,7 @@ import React from "react";
 import { useAgentLogic, useAgentState } from "@/hooks/use-agent";
 import { Collapsible, CollapsibleContent } from "@/ui/elements/collapsible";
 import { Button } from "@/ui/elements/button";
-import { Check, Undo2, X } from "lucide-react";
+import { Check, FilePenLine, Undo2 } from "lucide-react";
 import { FileReviewEntry } from "@/types";
 import { FileReviewDialog } from "./file-review-dialog";
 import { Table, TableBody, TableCell, TableRow } from "@/ui/elements/tables";
@@ -42,12 +42,16 @@ function computeLineDiffStats(entry: FileReviewEntry): { added: number; removed:
   return { added, removed };
 }
 
+type ReviewingEntry = FileReviewEntry & { status: "reviewing" };
+function isReviewing(r: FileReviewEntry): r is ReviewingEntry {
+  return r.status === "reviewing";
+}
+
 export const FileReviewPanel = () => {
   const { fileReviews } = useAgentState();
   const {
     applyFileReview,
     rejectFileReview,
-    adoptFileReviewHead,
     applyAllFileReviews,
     rejectAllFileReviews,
     focusFileReview,
@@ -67,12 +71,8 @@ export const FileReviewPanel = () => {
     [fileReviews]
   );
 
-  const reviewing = React.useMemo(
-    () => activeReviews.filter((review) => review.status === "reviewing"),
-    [activeReviews]
-  );
   const pending = React.useMemo(
-    () => activeReviews.filter((review) => review.status !== "reviewed"),
+    () => activeReviews.filter(isReviewing),
     [activeReviews]
   );
 
@@ -146,13 +146,9 @@ export const FileReviewPanel = () => {
     }
   }, []);
 
-  const navigateToReview = React.useCallback(async (item: FileReviewEntry) => {
-    const itemStatus = item.status as string;
-    if (itemStatus !== "reviewing" && itemStatus !== "reviewed") {
-      await adoptFileReviewHead(item.filePath);
-    }
+  const navigateToReview = React.useCallback((item: FileReviewEntry) => {
     setSelectedFilePath(item.filePath);
-  }, [adoptFileReviewHead]);
+  }, []);
 
   const handlePrev = React.useCallback(() => {
     if (currentPendingIndex > 0) void navigateToReview(pending[currentPendingIndex - 1]);
@@ -162,20 +158,15 @@ export const FileReviewPanel = () => {
     if (currentPendingIndex < pending.length - 1) void navigateToReview(pending[currentPendingIndex + 1]);
   }, [currentPendingIndex, pending, navigateToReview]);
 
-  const handleFocusReview = React.useCallback(async (item: FileReviewEntry) => {
-    if (item.status === "reviewed") {
-      void focusFileReview(item.filePath);
-      return;
-    }
-
-    const itemStatus = item.status as string;
-    if (itemStatus !== "reviewing" && itemStatus !== "reviewed") {
-      await adoptFileReviewHead(item.filePath);
-    }
-
+  const handleFocusReview = React.useCallback((item: FileReviewEntry) => {
     setSelectedFilePath(item.filePath);
     setIsDialogOpen(true);
-  }, [adoptFileReviewHead, focusFileReview]);
+  }, []);
+
+  const handleOpenInEditor = React.useCallback((event: React.MouseEvent, item: FileReviewEntry) => {
+    event.stopPropagation();
+    void focusFileReview(item.filePath);
+  }, [focusFileReview]);
 
   if (pending.length === 0) {
     return null;
@@ -193,16 +184,15 @@ export const FileReviewPanel = () => {
             <span className="tw-text-[#116329] dark:tw-text-[#3fb950]">+{totalDiffStats.added}</span>
             <span className="tw-text-[#82071e] dark:tw-text-[#ffa198]">-{totalDiffStats.removed}</span>
           </div>
-          {reviewing.length > 0 && (
-            <div
-              className="tw-flex tw-items-center tw-gap-1"
-              onClick={(e) => e.stopPropagation()}
-            >
+          <div
+            className="tw-flex tw-items-center tw-gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
               <Button
                 variant="ghost"
                 size="fit"
                 className="tw-text-accent"
-                onClick={() => applyAllFileReviews()}
+                onClick={() => void applyAllFileReviews()}
               >
                 <Check className="tw-size-4" />
                 Apply All
@@ -216,8 +206,7 @@ export const FileReviewPanel = () => {
                 <Undo2 className="tw-size-4" />
                 Reject All
               </Button>
-            </div>
-          )}
+          </div>
         </div>
         <CollapsibleContent>
           <Table>
@@ -235,37 +224,41 @@ export const FileReviewPanel = () => {
                     className="tw-py-0.5 tw-pr-2 tw-text-right tw-whitespace-nowrap"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {item.status === "reviewing" ? (
-                      <div className="tw-flex tw-items-center tw-justify-end tw-gap-1">
-                        {(() => {
-                          const stats = diffStats.get(item.filePath);
-                          return stats ? (
-                            <div className="tw-flex tw-items-center tw-gap-0.5 tw-text-xs">
-                              <span className="tw-text-[#116329] dark:tw-text-[#3fb950]">+{stats.added}</span>
-                              <span className="tw-text-[#82071e] dark:tw-text-[#ffa198]">-{stats.removed}</span>
-                            </div>
-                          ) : null;
-                        })()}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="tw-size-6 tw-text-accent"
-                          onClick={() => applyFileReview(item.filePath)}
-                        >
-                          <Check className="tw-size-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="tw-size-6 tw-text-[#82071e] dark:tw-text-[#ffa198]"
-                          onClick={() => { void rejectFileReview(item.filePath); }}
-                        >
-                          <Undo2 className="tw-size-3.5" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="tw-text-xs tw-text-muted-foreground">Open to sync</span>
-                    )}
+                    <div className="tw-flex tw-items-center tw-justify-end tw-gap-0">
+                      {(() => {
+                        const stats = diffStats.get(item.filePath);
+                        return stats ? (
+                          <div className="tw-flex tw-items-center tw-gap-0.5 tw-text-xs tw-px-1">
+                            <span className="tw-text-[#116329] dark:tw-text-[#3fb950]">+{stats.added}</span>
+                            <span className="tw-text-[#82071e] dark:tw-text-[#ffa198]">-{stats.removed}</span>
+                          </div>
+                        ) : null;
+                      })()}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="tw-size-6"
+                        onClick={(event) => handleOpenInEditor(event, item)}
+                      >
+                        <FilePenLine className="tw-size-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="tw-size-6 tw-text-accent"
+                        onClick={() => applyFileReview(item.filePath)}
+                      >
+                        <Check className="tw-size-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="tw-size-6 tw-text-[#82071e] dark:tw-text-[#ffa198]"
+                        onClick={() => { void rejectFileReview(item.filePath); }}
+                      >
+                        <Undo2 className="tw-size-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

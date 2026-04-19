@@ -6,7 +6,7 @@ export type DiffPreviewLine = {
 };
 
 export type DiffPreviewRow =
-    | { type: "line"; line: DiffPreviewLine }
+    | { type: "line"; line: DiffPreviewLine; oldLineNum?: number; newLineNum?: number }
     | { type: "ellipsis" };
 
 export function buildLineDiff(oldText: string, newText: string): DiffPreviewLine[] {
@@ -75,10 +75,24 @@ export function buildHunkPreviewRows(lines: DiffPreviewLine[], contextLines = 2)
         mergedRanges.push(range);
     });
 
+    // Precompute old/new line numbers for each line index
+    const lineNums: { oldLineNum?: number; newLineNum?: number }[] = [];
+    let oldNum = 1;
+    let newNum = 1;
+    for (const line of lines) {
+        if (line.type === "delete") {
+            lineNums.push({ oldLineNum: oldNum++, newLineNum: undefined });
+        } else if (line.type === "add") {
+            lineNums.push({ oldLineNum: undefined, newLineNum: newNum++ });
+        } else {
+            lineNums.push({ oldLineNum: oldNum++, newLineNum: newNum++ });
+        }
+    }
+
     const rows: DiffPreviewRow[] = [];
     mergedRanges.forEach((range, rangeIndex) => {
         for (let i = range.start; i <= range.end; i += 1) {
-            rows.push({ type: "line", line: lines[i] });
+            rows.push({ type: "line", line: lines[i], ...lineNums[i] });
         }
 
         if (rangeIndex < mergedRanges.length - 1) {
@@ -87,4 +101,8 @@ export function buildHunkPreviewRows(lines: DiffPreviewLine[], contextLines = 2)
     });
 
     return rows;
+}
+
+export function computeLineNumWidth(maxLine: number): string {
+    return `${String(Math.max(maxLine, 1)).length + 2}ch`;
 }

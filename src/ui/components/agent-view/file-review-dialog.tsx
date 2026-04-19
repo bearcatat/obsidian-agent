@@ -1,5 +1,6 @@
 import React from "react";
 import DiffMatchPatch from "diff-match-patch";
+import { computeLineNumWidth } from "./messages/message/diff-preview-utils";
 import { Check, ChevronLeft, ChevronRight, FilePenLine, Undo2, X } from "lucide-react";
 import { useAgentLogic } from "@/hooks/use-agent";
 import { FileReviewEntry } from "@/types";
@@ -63,8 +64,24 @@ function toDisplayLines(text: string): string[] {
   return lines;
 }
 
-function getLineCount(text: string): number {
-  return toDisplayLines(text).length;
+function getUnifiedDiffLineNumberWidth(rows: UnifiedDiffRow[]): string {
+  const maxVisibleLineNumber = rows.reduce((max, row) => {
+    if (row.kind !== "line") {
+      return max;
+    }
+
+    return Math.max(max, row.oldLineNumber ?? 0, row.newLineNumber ?? 0);
+  }, 1);
+
+  return computeLineNumWidth(maxVisibleLineNumber);
+}
+
+function getVisibleLineNumber(row: Extract<UnifiedDiffRow, { kind: "line" }>): number | null {
+  if (row.type === "delete") {
+    return null;
+  }
+
+  return row.newLineNumber ?? row.oldLineNumber;
 }
 
 function buildDiffLines(before: string, after: string): DiffLine[] {
@@ -339,14 +356,12 @@ function UnifiedDiffRowActions({
 function UnifiedDiffRowView({
   row,
   lineNumberWidth,
-  review,
   actionAnchors,
   onAccept,
   onReject,
 }: {
   row: UnifiedDiffRow;
   lineNumberWidth: string;
-  review: FileReviewEntry;
   actionAnchors?: RowActionAnchor[];
   onAccept: (block: DerivedBlock) => void;
   onReject: (block: DerivedBlock) => void;
@@ -368,6 +383,7 @@ function UnifiedDiffRowView({
   }
 
   const lineRow = row as Extract<UnifiedDiffRow, { kind: "line" }>;
+  const visibleLineNumber = getVisibleLineNumber(lineRow);
   const isDelete = lineRow.type === "delete";
   const isAdd = lineRow.type === "add";
   const bgColor = isDelete
@@ -400,7 +416,7 @@ function UnifiedDiffRowView({
   return (
     <div className={cn("tw-relative tw-flex tw-items-start tw-select-text tw-font-mono tw-text-xs", bgColor, borderColor, actionAnchors?.length ? "tw-pr-[19rem]" : undefined)}>
       <span className={cn("tw-select-none tw-border-r tw-border-border/60 tw-px-2 tw-py-0.5 tw-text-right", lineNumberColor)} style={{ width: lineNumberWidth }}>
-        {lineRow.newLineNumber ?? ""}
+        {visibleLineNumber ?? ""}
       </span>
       <span className={cn("tw-min-w-[2rem] tw-select-none tw-px-2 tw-py-0.5 tw-text-center", prefixColor)}>
         {prefix}
@@ -453,9 +469,8 @@ export function FileReviewDialog({
     [displayReview, unifiedDiffRows]
   );
   const lineNumberWidth = React.useMemo(() => {
-    const largestLineNumber = Math.max(getLineCount(displayReview?.headContent ?? ""), 1);
-    return `${String(largestLineNumber).length + 2}ch`;
-  }, [displayReview]);
+    return getUnifiedDiffLineNumberWidth(unifiedDiffRows);
+  }, [unifiedDiffRows]);
   const rowActionAnchors = React.useMemo(
     () => buildRowActionAnchors(derivedBlocks),
     [derivedBlocks]
@@ -530,7 +545,6 @@ export function FileReviewDialog({
                 key={`row-${row.kind}-${index}`}
                 row={row}
                 lineNumberWidth={lineNumberWidth}
-                review={displayReview}
                 actionAnchors={rowActionAnchors.get(index)}
                 onAccept={handleAccept}
                 onReject={handleReject}

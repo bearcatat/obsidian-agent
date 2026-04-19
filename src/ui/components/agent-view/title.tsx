@@ -49,9 +49,9 @@ export const Title: React.FC<TitleProps> = () => {
 	};
 
 	return (
-		<div className="tw-flex tw-w-full tw-px-1 tw-items-center tw-justify-between">
-			<div className="tw-flex tw-items-center tw-truncate tw-flex-1 tw-min-w-0">
-				<span className="tx-text-normal tx-text-small tw-truncate tw-pr-2">{title}</span>
+		<div className="tw-flex tw-w-full tw-px-1 tw-items-start tw-justify-between">
+			<div className="tw-flex tw-items-start tw-flex-1 tw-min-w-0">
+				<span className="tx-text-normal tx-text-small tw-whitespace-normal tw-break-words tw-pr-2">{title}</span>
 			</div>
 			<div className="tw-flex tw-items-center tw-gap-1 tw-flex-shrink-0">
 				<Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>

@@ -1,7 +1,7 @@
 import { MarkdownView, TFile, WorkspaceLeaf, normalizePath } from "obsidian";
 import { agentStore } from "@/state/agent-state-impl";
 import { FileReviewEntry } from "@/types";
-import { buildFileReviewBlocks, deriveFileReviewStatus, hashReviewContent, rebuildContentFromReviewBlocks } from "./file-review-utils";
+import { hashReviewContent } from "./file-review-utils";
 import { SnapshotLogic } from "./snapshot-logic";
 import { getGlobalApp } from "@/utils";
 import { fileMutex } from "@/tool-ai/FileEdit/mutex";
@@ -253,43 +253,6 @@ export class FileReviewLogic {
     }
   }
 
-  private async persistReviewFromKeptBlocks(review: FileReviewEntry, normalizedPath: string, keptBlocks: FileReviewEntry["blocks"]): Promise<void> {
-    if (keptBlocks.length === 0) {
-      await SnapshotLogic.getInstance().restoreSnapshot(review.baselineSnapshotId, normalizedPath);
-      agentStore.getState().upsertFileReview({
-        ...review,
-        headContent: review.baselineContent,
-        headHash: hashReviewContent(review.baselineContent),
-        status: "reviewed",
-        hasActiveDiff: false,
-        isReverted: true,
-        blocks: [],
-        updatedAt: Date.now(),
-      });
-      return;
-    }
-
-    const rebuilt = rebuildContentFromReviewBlocks(review.baselineContent, keptBlocks);
-    if (!rebuilt.success) {
-      await this.adoptCurrentAsHead(normalizedPath);
-      return;
-    }
-
-    await this.writeFileContent(normalizedPath, rebuilt.content);
-
-	    const blocks = buildFileReviewBlocks(review.baselineContent, rebuilt.content, keptBlocks);
-	    agentStore.getState().upsertFileReview({
-	      ...review,
-	      headContent: rebuilt.content,
-	      headHash: hashReviewContent(rebuilt.content),
-	      blocks,
-        status: deriveFileReviewStatus(blocks),
-	      hasActiveDiff: blocks.length > 0 || rebuilt.content !== review.baselineContent,
-	      isReverted: blocks.length === 0 && rebuilt.content === review.baselineContent,
-	      updatedAt: Date.now(),
-	    });
-  }
-
   async rejectAll(): Promise<void> {
     for (const review of this.getActiveFileReviews()) {
       if (review.status === "reviewing") {
@@ -315,7 +278,6 @@ export class FileReviewLogic {
     }
 
     await leaf.openFile(file);
-    await this.ensureSourceMode(leaf);
     await app.workspace.revealLeaf(leaf);
 
     if (isMarkdownLeaf(leaf)) {
@@ -336,26 +298,6 @@ export class FileReviewLogic {
     return markdownLeaves.find((leaf) => leaf.view.editor.cm)
       ?? markdownLeaves[0]
       ?? null;
-  }
-
-  private async ensureSourceMode(leaf: WorkspaceLeaf): Promise<void> {
-    if (!isMarkdownLeaf(leaf)) {
-      return;
-    }
-
-    const currentState = leaf.getViewState();
-    const viewState = currentState.state ?? {};
-    if ((viewState as { source?: boolean }).source === true) {
-      return;
-    }
-
-    await leaf.setViewState({
-      ...currentState,
-      state: {
-        ...viewState,
-        source: true,
-      },
-    });
   }
 
   private async readCurrentFileContent(filePath: string): Promise<string> {
