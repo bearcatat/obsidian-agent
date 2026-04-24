@@ -1,8 +1,8 @@
 # Obsidian Agent
 
-[![版本](https://img.shields.io/badge/version-0.15.1-blue.svg)](https://github.com/bearcatat/obsidian-agent/releases)
+[![版本](https://img.shields.io/badge/version-0.16.0-blue.svg)](https://github.com/bearcatat/obsidian-agent/releases)
 [![许可证](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
-[![Obsidian](https://img.shields.io/badge/Obsidian-0.15.1+-purple.svg)](https://obsidian.md)
+[![Obsidian](https://img.shields.io/badge/Obsidian-0.16.0+-purple.svg)](https://obsidian.md)
 
 一个强大的 Obsidian 插件，将 AI 助手功能直接集成到您的笔记工作流中。无需离开 Obsidian 即可与 AI 对话、管理工具并提升工作效率。
 

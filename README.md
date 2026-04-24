@@ -1,8 +1,8 @@
 # Obsidian Agent
 
-[![Version](https://img.shields.io/badge/version-0.15.1-blue.svg)](https://github.com/bearcatat/obsidian-agent/releases)
+[![Version](https://img.shields.io/badge/version-0.16.0-blue.svg)](https://github.com/bearcatat/obsidian-agent/releases)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
-[![Obsidian](https://img.shields.io/badge/Obsidian-0.15.1+-purple.svg)](https://obsidian.md)
+[![Obsidian](https://img.shields.io/badge/Obsidian-0.16.0+-purple.svg)](https://obsidian.md)
 
 A powerful Obsidian plugin that brings AI assistant capabilities directly into your note-taking workflow. Chat with AI, manage tools, and enhance your productivity without leaving Obsidian.
 
