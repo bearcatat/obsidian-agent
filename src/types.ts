@@ -241,7 +241,7 @@ export interface TelegramFeedbackRequest {
   question: string;
   submitButtonText: string;
   createdAt: number;
-  expiresAt: number;
+  expiresAt?: number;
   status: "pending" | "submitted" | "cancelled" | "timed-out";
   replyCount: number;
 }
@@ -272,7 +272,6 @@ export interface TelegramFeedbackConfig {
   boundFirstName: string;
   boundAt: number | null;
   pollingTimeoutSeconds: number;
-  feedbackTimeoutMs: number;
   imageAnalysisSubagentName: string;
 }
 
@@ -290,7 +289,6 @@ export function createDefaultTelegramFeedbackConfig(): TelegramFeedbackConfig {
     boundFirstName: "",
     boundAt: null,
     pollingTimeoutSeconds: 15,
-    feedbackTimeoutMs: 5 * 60 * 1000,
     imageAnalysisSubagentName: "telegram-image-feedback",
   };
 }

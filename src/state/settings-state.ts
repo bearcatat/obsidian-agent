@@ -5,6 +5,7 @@ export interface ISettingsState {
   readonly models: ModelConfig[];
   readonly defaultAgentModel: ModelConfig | null;
   readonly titleModel: ModelConfig | null;
+  readonly imageModel: ModelConfig | null;
   readonly mcpServers: MCPServerConfig[];
   readonly builtinTools: BuiltinToolConfig[];
   readonly exaSearchConfig: ExaSearchConfig;
@@ -18,6 +19,7 @@ export function clone(settingsState: ISettingsState): ISettingsState {
     models: settingsState.models || [],
     defaultAgentModel: settingsState.defaultAgentModel,
     titleModel: settingsState.titleModel,
+    imageModel: settingsState.imageModel ?? null,
     mcpServers: settingsState.mcpServers || [],
     builtinTools: settingsState.builtinTools,
     exaSearchConfig: settingsState.exaSearchConfig || { apiKey: "", enabled: false },
@@ -31,6 +33,7 @@ export interface SettingsStateData {
   models: ModelConfig[];
   defaultAgentModel: ModelConfig | null;
   titleModel: ModelConfig | null;
+  imageModel: ModelConfig | null;
   mcpServers: MCPServerConfig[];
   builtinTools: BuiltinToolConfig[];
   exaSearchConfig: ExaSearchConfig;

@@ -115,6 +115,19 @@ export class SettingsLogic {
         await this.saveSettings();
     }
 
+    async setImageModel(model: ModelConfig | null): Promise<void> {
+        const state = settingsStore.getState();
+        if (model) {
+            const existingModel = state.models.find((m: ModelConfig) => m.id === model.id);
+            if (!existingModel) {
+                throw new Error(`Model with ID "${model.id}" not found`);
+            }
+        }
+
+        state.setImageModel(model);
+        await this.saveSettings();
+    }
+
     // MCP服务器配置管理业务逻辑
     async addOrUpdateMCPServer(server: MCPServerConfig, originalName?: string): Promise<void> {
         const state = settingsStore.getState();
@@ -204,7 +217,10 @@ export class SettingsLogic {
             if (savedData) {
                 settingsStore.getState().setAllData(savedData);
             }
-            await TelegramFeedbackRuntime.getInstance().configure(settingsStore.getState().telegramFeedbackConfig);
+            // 异步初始化，不阻塞插件加载
+            TelegramFeedbackRuntime.getInstance().configure(settingsStore.getState().telegramFeedbackConfig).catch(error => {
+                console.error('[TelegramFeedbackRuntime] Background configure failed:', error);
+            });
         } catch (error) {
             console.error('Failed to load settings:', error);
         }
@@ -217,6 +233,7 @@ export class SettingsLogic {
                 models: state.models,
                 defaultAgentModel: state.defaultAgentModel,
                 titleModel: state.titleModel,
+                imageModel: state.imageModel,
                 mcpServers: state.mcpServers,
                 builtinTools: state.builtinTools,
                 exaSearchConfig: state.exaSearchConfig,

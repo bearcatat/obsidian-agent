@@ -21,8 +21,8 @@ export const ModelSetting: React.FC = () => {
   const [initialModel, setInitialModel] = useState<ModelConfig>(_initialModel);
   const [isUpdate, setIsUpdate] = useState(false);
   
-  const { models, defaultAgentModel, titleModel } = useSettingsState();
-  const { setDefaultAgentModel, setTitleModel } = useSettingsLogic();
+  const { models, defaultAgentModel, titleModel, imageModel } = useSettingsState();
+  const { setDefaultAgentModel, setTitleModel, setImageModel } = useSettingsLogic();
   
   return (
     <div className="tw-space-y-6">
@@ -85,6 +85,29 @@ export const ModelSetting: React.FC = () => {
             >
               <SelectTrigger className="tw-w-48">
                 <SelectValue placeholder="Select title generation model" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Use default agent model</SelectItem>
+                {models.map((model) => (
+                  <SelectItem key={model.id} value={model.id}>
+                    {model.id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="tw-flex tw-items-center tw-gap-4">
+            <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-w-64">Image Analysis Model</label>
+            <Select
+              value={imageModel?.id || "default"}
+              onValueChange={(value) => {
+                const model = value === "default" ? null : models.find(m => m.id === value) || null;
+                setImageModel(model);
+              }}
+            >
+              <SelectTrigger className="tw-w-48">
+                <SelectValue placeholder="Select image analysis model" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="default">Use default agent model</SelectItem>

@@ -11,7 +11,7 @@ interface SettingsStore extends SettingsStateData {
   reorderModels: (newModels: ModelConfig[]) => void;
   setDefaultAgentModel: (model: ModelConfig | null) => void;
   setTitleModel: (model: ModelConfig | null) => void;
-
+  setImageModel: (model: ModelConfig | null) => void;
   addOrUpdateMCPServer: (server: MCPServerConfig, originalName?: string) => void;
   removeMCPServer: (serverName: string) => void;
   reorderMCPServers: (newServers: MCPServerConfig[]) => void;
@@ -36,6 +36,7 @@ const initialState: SettingsStateData = {
   models: [],
   defaultAgentModel: null,
   titleModel: null,
+  imageModel: null,
   mcpServers: [],
   builtinTools: getDefaultBuiltinTools(),
   exaSearchConfig: {
@@ -102,6 +103,11 @@ export const useSettingsStore = create<SettingsStore>()(
           state.titleModel = model;
           modelManager.setTitle(model);
         }
+
+        // Check if this model is the image model
+        if (state.imageModel?.id === targetId) {
+          state.imageModel = model;
+        }
       }),
 
     removeModel: (modelId: string) =>
@@ -114,6 +120,9 @@ export const useSettingsStore = create<SettingsStore>()(
         }
         if (state.titleModel?.id === modelId) {
           state.titleModel = null;
+        }
+        if (state.imageModel?.id === modelId) {
+          state.imageModel = null;
         }
       }),
 
@@ -132,6 +141,10 @@ export const useSettingsStore = create<SettingsStore>()(
         state.titleModel = model;
       }),
 
+    setImageModel: (model: ModelConfig | null) =>
+      set((state) => {
+        state.imageModel = model;
+      }),
     addOrUpdateMCPServer: (server: MCPServerConfig, originalName?: string) =>
       set((state) => {
         const existingIndex = state.mcpServers.findIndex(
@@ -213,6 +226,7 @@ export const useSettingsStore = create<SettingsStore>()(
         state.models = data.models || [];
         state.defaultAgentModel = data.defaultAgentModel || null;
         state.titleModel = data.titleModel || null;
+        state.imageModel = data.imageModel || null;
         state.mcpServers = data.mcpServers || [];
         state.builtinTools = builtinTools;
         state.exaSearchConfig = data.exaSearchConfig || {

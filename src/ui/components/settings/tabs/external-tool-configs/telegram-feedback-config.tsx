@@ -159,41 +159,21 @@ export const TelegramFeedbackConfig: React.FC<TelegramFeedbackConfigProps> = ({ 
         />
       </div>
 
-      <div className="tw-grid tw-grid-cols-2 tw-gap-4">
-        <div className="tw-space-y-2">
-          <Label htmlFor="telegram-polling-timeout">Polling Timeout (seconds)</Label>
-          <Input
-            id="telegram-polling-timeout"
-            type="number"
-            min={5}
-            max={60}
-            value={localConfig.pollingTimeoutSeconds}
-            onChange={(event) =>
-              setLocalConfig((prev) => ({
-                ...prev,
-                pollingTimeoutSeconds: Math.min(60, Math.max(5, parseInt(event.target.value, 10) || 15)),
-              }))
-            }
-          />
-        </div>
-
-        <div className="tw-space-y-2">
-          <Label htmlFor="telegram-feedback-timeout">Feedback Timeout (ms)</Label>
-          <Input
-            id="telegram-feedback-timeout"
-            type="number"
-            min={10000}
-            max={3600000}
-            step={1000}
-            value={localConfig.feedbackTimeoutMs}
-            onChange={(event) =>
-              setLocalConfig((prev) => ({
-                ...prev,
-                feedbackTimeoutMs: Math.min(3600000, Math.max(10000, parseInt(event.target.value, 10) || 300000)),
-              }))
-            }
-          />
-        </div>
+      <div className="tw-space-y-2">
+        <Label htmlFor="telegram-polling-timeout">Polling Timeout (seconds)</Label>
+        <Input
+          id="telegram-polling-timeout"
+          type="number"
+          min={5}
+          max={60}
+          value={localConfig.pollingTimeoutSeconds}
+          onChange={(event) =>
+            setLocalConfig((prev) => ({
+              ...prev,
+              pollingTimeoutSeconds: Math.min(60, Math.max(5, parseInt(event.target.value, 10) || 15)),
+            }))
+          }
+        />
       </div>
 
       <div className="tw-space-y-3 tw-rounded-lg tw-border tw-p-4">

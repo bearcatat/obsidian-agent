@@ -11,6 +11,7 @@ export function useSettingsState() {
       models: state.models,
       defaultAgentModel: state.defaultAgentModel,
       titleModel: state.titleModel,
+      imageModel: state.imageModel,
       mcpServers: state.mcpServers,
       builtinTools: state.builtinTools,
       exaSearchConfig: state.exaSearchConfig,
@@ -33,7 +34,7 @@ export function useSettingsLogic() {
     setDefaultAgentModel: async (model: ModelConfig | null) =>
       await settingsLogic.setDefaultAgentModel(model),
     setTitleModel: async (model: ModelConfig | null) => await settingsLogic.setTitleModel(model),
-
+    setImageModel: async (model: ModelConfig | null) => await settingsLogic.setImageModel(model),
     addOrUpdateMCPServer: async (server: MCPServerConfig, originalName?: string) =>
       await settingsLogic.addOrUpdateMCPServer(server, originalName),
     removeMCPServer: async (serverName: string) => await settingsLogic.removeMCPServer(serverName),

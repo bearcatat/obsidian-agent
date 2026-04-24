@@ -11,7 +11,6 @@ import { UserMessage } from "@/messages/user-message";
 
 interface BeginFeedbackRequestParams {
   question: string;
-  timeoutMs: number;
   submitButtonText: string;
   sessionId?: string | null;
   toolCallId?: string;
@@ -22,7 +21,6 @@ interface PendingFeedbackRequest {
   request: TelegramFeedbackRequest;
   sourceMessageId?: number;
   replies: TelegramFeedbackReply[];
-  timer: ReturnType<typeof setTimeout>;
   resolve: (result: TelegramFeedbackResult) => void;
   reject: (error: Error) => void;
   notifyUpdate?: (update: TelegramFeedbackProgress) => void | Promise<void>;
@@ -149,7 +147,6 @@ export default class TelegramFeedbackRuntime {
       question: params.question,
       submitButtonText: params.submitButtonText,
       createdAt: now,
-      expiresAt: now + params.timeoutMs,
       status: "pending",
       replyCount: 0,
     };
@@ -169,23 +166,10 @@ export default class TelegramFeedbackRuntime {
     });
 
     const promise = new Promise<TelegramFeedbackResult>((resolve, reject) => {
-      const timer = setTimeout(async () => {
-        try {
-          await this.client?.sendMessage({
-            chat_id: this.config.boundChatId,
-            text: "The pending feedback request timed out. Please start a new request from Obsidian if you still need to respond.",
-          });
-        } catch (error) {
-          console.error("[TelegramFeedbackRuntime] Failed to send timeout notification:", error);
-        }
-        this.rejectPendingRequest(new Error("Telegram feedback timed out."), "timed-out");
-      }, params.timeoutMs);
-
       this.pendingRequest = {
         request,
         sourceMessageId: sentMessage?.message_id,
         replies: [],
-        timer,
         resolve,
         reject,
         notifyUpdate: params.onUpdate,
@@ -422,7 +406,6 @@ export default class TelegramFeedbackRuntime {
     }
 
     const active = this.pendingRequest;
-    clearTimeout(active.timer);
     active.request.status = "submitted";
 
     const replies = [...active.replies];
@@ -493,7 +476,6 @@ export default class TelegramFeedbackRuntime {
     }
 
     const active = this.pendingRequest;
-    clearTimeout(active.timer);
     active.request.status = status;
     this.pendingRequest = null;
     active.reject(error);
@@ -504,7 +486,10 @@ export default class TelegramFeedbackRuntime {
       return undefined;
     }
 
-    const modelConfig = agentStore.getState().model ?? AIModelManager.getInstance().agentModelConfig;
+    const modelConfig =
+      settingsStore.getState().imageModel ??
+      agentStore.getState().model ??
+      AIModelManager.getInstance().agentModelConfig;
     if (!modelConfig) {
       return "Image analysis skipped because no agent model is configured.";
     }
