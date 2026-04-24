@@ -77,7 +77,8 @@ export default class AIAgent {
             maxRetries: 3,
             stopWhen: []
         })
-        const newHistory = [...history, message.toModelMessage()];
+        const rawHistory = [...history, message.toModelMessage()];
+        const newHistory = modelManager.normalizeMessages(rawHistory);
         const streamer = new Streamer(agent, addMessage)
         const result = await streamer.stream(newHistory, abortController.signal)
         const messages = (await result.response).messages

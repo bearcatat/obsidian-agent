@@ -1,5 +1,5 @@
 import { ModelConfig, ModelProviders, ModelVariant } from "@/types";
-import { createDeepSeek, } from '@ai-sdk/deepseek';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { LanguageModelV3 } from "@ai-sdk/provider";
 import { ToolLoopAgentSettings } from "ai";
 
@@ -18,12 +18,11 @@ export default class DeepSeekGenerator {
     }
 
     createModel(modelConfig: ModelConfig): LanguageModelV3 {
-        return createDeepSeek(
-            {
-                baseURL: modelConfig.baseUrl || "https://api.deepseek.com/v1",
-                apiKey: modelConfig.apiKey
-            }
-        ).chat(modelConfig.name)
+        return createOpenAICompatible({
+            name: 'deepseek',
+            baseURL: modelConfig.baseUrl || "https://api.deepseek.com/v1",
+            apiKey: modelConfig.apiKey,
+        }).chatModel(modelConfig.name)
     }
 
     newAgent(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings {
@@ -32,11 +31,11 @@ export default class DeepSeekGenerator {
         let providerOptions: Record<string, any> | undefined;
         if (isThinkingModel && variant) {
             if (variant === 'off') {
-                providerOptions = { deepseek: { thinking: { type: 'disabled' } } };
+                providerOptions = { openaiCompatible: { thinking: { type: 'disabled' } } };
             } else if (variant === 'high') {
-                providerOptions = { deepseek: { thinking: { type: 'enabled' } } };
+                providerOptions = { openaiCompatible: { thinking: { type: 'enabled' } } };
             } else if (variant === 'max') {
-                providerOptions = { deepseek: { thinking: { type: 'enabled' }, reasoning_effort: 'max' } };
+                providerOptions = { openaiCompatible: { thinking: { type: 'enabled' }, reasoning_effort: 'max' } };
             }
         }
 
