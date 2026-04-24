@@ -1,4 +1,4 @@
-import { AIModelGenerator, ModelConfig, ModelProviders } from "@/types";
+import { AIModelGenerator, ModelConfig, ModelProviders, ModelVariant } from "@/types";
 import { ToolLoopAgentSettings } from "ai";
 import DeepSeekGenerator from "./models/deepseek";
 import AnthropicGenerator from "./models/anthropic";
@@ -12,6 +12,7 @@ export default class AIModelManager {
 
     public agentConfig: ToolLoopAgentSettings;
     public agentModelConfig: ModelConfig;
+    public currentVariant: ModelVariant | null = null;
     public titleConfig: ToolLoopAgentSettings;
     private modelGenerators: Record<string, AIModelGenerator> = {
         [ModelProviders.DEEPSEEK]: DeepSeekGenerator.getInstance(),
@@ -33,11 +34,22 @@ export default class AIModelManager {
         AIModelManager.instance = undefined as any;
     }
 
-    setAgent(modelConfig: ModelConfig) {
+    setAgent(modelConfig: ModelConfig, variant?: ModelVariant | null) {
         this.agentModelConfig = modelConfig
+        this.currentVariant = variant ?? null
         const generator = this.modelGenerators[modelConfig.provider]
         if (generator) {
-            this.agentConfig = generator.newAgent(modelConfig)
+            this.agentConfig = generator.newAgent(modelConfig, variant ?? undefined)
+        }
+    }
+
+    setVariant(variant: ModelVariant | null) {
+        this.currentVariant = variant
+        if (this.agentModelConfig) {
+            const generator = this.modelGenerators[this.agentModelConfig.provider]
+            if (generator) {
+                this.agentConfig = generator.newAgent(this.agentModelConfig, variant ?? undefined)
+            }
         }
     }
 
@@ -48,10 +60,10 @@ export default class AIModelManager {
         }
     }
 
-    getAgent(modelConfig: ModelConfig): ToolLoopAgentSettings {
+    getAgent(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings {
         const generator = this.modelGenerators[modelConfig.provider]
         if (generator) {
-            return generator.newAgent(modelConfig)
+            return generator.newAgent(modelConfig, variant)
         }
         throw new Error("provider not found")
     }

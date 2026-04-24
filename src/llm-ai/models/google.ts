@@ -1,4 +1,4 @@
-import { ModelConfig, ModelProviders } from "@/types";
+import { ModelConfig, ModelProviders, ModelVariant } from "@/types";
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { LanguageModelV3 } from "@ai-sdk/provider";
 import { ToolLoopAgentSettings } from "ai";
@@ -25,8 +25,30 @@ export default class GoogleGenerator {
         return google.chat(modelConfig.name);
     }
 
-    newAgent(modelConfig: ModelConfig): ToolLoopAgentSettings {
+    newAgent(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings {
         const isGemini3Series = modelConfig.name.startsWith("gemini-3");
+        const isGemini25Series = modelConfig.name.includes("gemini-2.5");
+
+        let providerOptions: Record<string, any> | undefined;
+        if (variant && variant !== 'off') {
+            if (isGemini3Series) {
+                const levelMap: Record<string, string> = {
+                    low: 'low',
+                    medium: 'medium',
+                    high: 'high',
+                };
+                const thinkingLevel = levelMap[variant] ?? 'medium';
+                providerOptions = { google: { thinkingConfig: { thinkingLevel, includeThoughts: true } } };
+            } else if (isGemini25Series) {
+                const budgetMap: Record<string, number> = {
+                    low: 1024,
+                    medium: 8192,
+                    high: 16384,
+                };
+                const thinkingBudget = budgetMap[variant] ?? 1024;
+                providerOptions = { google: { thinkingConfig: { thinkingBudget, includeThoughts: true } } };
+            }
+        }
 
         return {
             model: this.createModel(modelConfig),
@@ -39,6 +61,7 @@ export default class GoogleGenerator {
                     frequencyPenalty: modelConfig.frequencyPenalty,
                     presencePenalty: modelConfig.presencePenalty,
                 }),
+            ...(providerOptions ? { providerOptions } : {}),
         }
     }
 }

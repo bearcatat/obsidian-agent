@@ -64,8 +64,97 @@ export enum ModelProviders {
   MOONSHOT = "moonshot",
   GOOGLE = "google",
 }
+// Model Variant for thinking mode
+export type ModelVariant = 'off' | 'low' | 'medium' | 'high' | 'max';
+
+export interface ModelVariantOption {
+  label: string;
+  value: ModelVariant;
+}
+
+export function getAvailableVariants(modelConfig: ModelConfig): ModelVariantOption[] | null {
+  const { provider, name } = modelConfig;
+
+  switch (provider) {
+    case ModelProviders.DEEPSEEK: {
+      if (name.includes('v4-pro') || name.includes('v4-flash')) {
+        return [
+          { label: 'Off', value: 'off' },
+          { label: 'High', value: 'high' },
+          { label: 'Max', value: 'max' },
+        ];
+      }
+      return null;
+    }
+    case ModelProviders.MOONSHOT: {
+      if (name.includes('kimi-k2.5') || name.includes('kimi-k2.6')) {
+        return [
+          { label: 'Off', value: 'off' },
+          { label: 'Think', value: 'high' },
+        ];
+      }
+      return null;
+    }
+    case ModelProviders.ANTHROPIC: {
+      // Only show variants for models that support thinking (claude-3-7+, claude-opus-4+, claude-sonnet-4-5+)
+      const supportsThinking =
+        name.includes('claude-3-7') ||
+        name.includes('claude-3.7') ||
+        name.includes('claude-opus-4') ||
+        name.includes('claude-sonnet-4') ||
+        name.includes('claude-haiku-4');
+      if (!supportsThinking) return null;
+      return [
+        { label: 'Off', value: 'off' as ModelVariant },
+        { label: 'Low', value: 'low' as ModelVariant },
+        { label: 'Medium', value: 'medium' as ModelVariant },
+        { label: 'High', value: 'high' as ModelVariant },
+        { label: 'Max', value: 'max' as ModelVariant },
+      ];
+    }
+    case ModelProviders.GOOGLE: {
+      if (name.includes('gemini-2.5') || name.includes('gemini-3')) {
+        return [
+          { label: 'Off', value: 'off' },
+          { label: 'Low', value: 'low' },
+          { label: 'Medium', value: 'medium' },
+          { label: 'High', value: 'high' },
+        ];
+      }
+      return null;
+    }
+    case ModelProviders.OPENAI: {
+      if (name.startsWith('o') || name.startsWith('gpt-5')) {
+        return [
+          { label: 'Low', value: 'low' },
+          { label: 'Medium', value: 'medium' },
+          { label: 'High', value: 'high' },
+        ];
+      }
+      return null;
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * Returns the default variant for a model (middle-to-lower thinking level).
+ * Returns null if the model doesn't support thinking variants.
+ */
+export function getDefaultVariant(modelConfig: ModelConfig): ModelVariant | null {
+    const variants = getAvailableVariants(modelConfig);
+    if (!variants) return null;
+    const nonOffVariants = variants.filter(v => v.value !== 'off');
+    if (nonOffVariants.length === 0) return null;
+    // Return middle-to-lower non-off variant ("中间偏下")
+    // 1 option → index 0; 2 options → index 0; 3 options → index 0 (low); 4 options → index 1 (medium)
+    const idx = Math.max(0, Math.floor((nonOffVariants.length - 2) / 2));
+    return nonOffVariants[idx].value;
+}
+
 export interface AIModelGenerator {
-  newAgent(modelConfig: ModelConfig): ToolLoopAgentSettings;
+  newAgent(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings;
 }
 
 // MCP Tool Configuration

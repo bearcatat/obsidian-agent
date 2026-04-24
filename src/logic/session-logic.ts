@@ -213,6 +213,7 @@ export class SessionLogic {
           modelMessages: restoredModelMessages,
           isLoading: false,
           model: null,
+          variant: null,
           abortController: null,
           fileReviews: sessionData.fileReviews || [],
           activeSkills: sessionData.activeSkills || []

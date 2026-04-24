@@ -8,6 +8,7 @@ import { useSettingsState } from "../../../../hooks/use-settings";
 import { useApp } from "@/hooks/app-context";
 import { Notice } from "obsidian";
 import { MAX_IMAGE_SIZE } from "./cm-config/utils";
+import { getAvailableVariants, ModelVariant } from "@/types";
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico'];
 const IMAGE_MIME_TYPES = 'image/png,image/jpeg,image/gif,image/webp,image/bmp,image/svg+xml,image/x-icon';
@@ -68,8 +69,9 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
   onAddImages,
 }) => {
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
-  const { model, messages } = useAgentState();
-  const { setModel } = useAgentLogic();
+  const [isVariantDropdownOpen, setIsVariantDropdownOpen] = useState(false);
+  const { model, messages, variant } = useAgentState();
+  const { setModel, setVariant } = useAgentLogic();
   const { models } = useSettingsState();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const app = useApp();
@@ -127,21 +129,44 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
         onChange={handleImageSelect}
         className="tw-hidden"
       />
-      <DropdownMenu open={isModelDropdownOpen} onOpenChange={setIsModelDropdownOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost2" size="fit">
-            {model?.id || "Select Model"}
-            <ChevronDown className="tw-mt-0.5 tw-size-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          {models.map((model) => (
-            <DropdownMenuItem key={model.id} onSelect={() => setModel(model)}>
-              {model.id}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="tw-flex tw-items-center">
+        <DropdownMenu open={isModelDropdownOpen} onOpenChange={setIsModelDropdownOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost2" size="fit">
+              {model?.id || "Select Model"}
+              <ChevronDown className="tw-mt-0.5 tw-size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            {models.map((model) => (
+              <DropdownMenuItem key={model.id} onSelect={() => setModel(model)}>
+                {model.id}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {(() => {
+          const variants = model ? getAvailableVariants(model) : null;
+          if (!variants) return null;
+          return (
+            <DropdownMenu open={isVariantDropdownOpen} onOpenChange={setIsVariantDropdownOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost2" size="fit">
+                  {variant ? variants.find(v => v.value === variant)?.label ?? 'Thinking' : 'Thinking'}
+                  <ChevronDown className="tw-mt-0.5 tw-size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {variants.map((v) => (
+                  <DropdownMenuItem key={v.value} onSelect={() => setVariant(v.value)}>
+                    {v.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        })()}
+      </div>
       <div className="tw-flex tw-items-center">
         {lastUsage && lastUsage.totalTokens && (
           <TooltipProvider delayDuration={200}>

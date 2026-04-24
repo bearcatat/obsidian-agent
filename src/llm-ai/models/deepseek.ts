@@ -1,7 +1,7 @@
-import { ModelConfig, ModelProviders } from "@/types";
+import { ModelConfig, ModelProviders, ModelVariant } from "@/types";
 import { createDeepSeek, } from '@ai-sdk/deepseek';
 import { LanguageModelV3 } from "@ai-sdk/provider";
-import { generateText, GenerateTextOnFinishCallback, ModelMessage, ToolSet, AssistantModelMessage, ToolModelMessage, ToolLoopAgent, ToolLoopAgentSettings } from "ai";
+import { ToolLoopAgentSettings } from "ai";
 
 
 
@@ -26,7 +26,20 @@ export default class DeepSeekGenerator {
         ).chat(modelConfig.name)
     }
 
-    newAgent(modelConfig: ModelConfig): ToolLoopAgentSettings {
+    newAgent(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings {
+        const isThinkingModel = modelConfig.name.includes('v4-pro') || modelConfig.name.includes('v4-flash');
+
+        let providerOptions: Record<string, any> | undefined;
+        if (isThinkingModel && variant) {
+            if (variant === 'off') {
+                providerOptions = { deepseek: { thinking: { type: 'disabled' } } };
+            } else if (variant === 'high') {
+                providerOptions = { deepseek: { thinking: { type: 'enabled' } } };
+            } else if (variant === 'max') {
+                providerOptions = { deepseek: { thinking: { type: 'enabled' }, reasoning_effort: 'max' } };
+            }
+        }
+
         return {
             model: this.createModel(modelConfig),
             temperature: modelConfig.temperature,
@@ -34,6 +47,7 @@ export default class DeepSeekGenerator {
             topP: modelConfig.topP,
             frequencyPenalty: modelConfig.frequencyPenalty,
             presencePenalty: modelConfig.presencePenalty,
+            ...(providerOptions ? { providerOptions } : {}),
         }
     }
 }

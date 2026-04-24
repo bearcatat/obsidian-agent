@@ -1,5 +1,5 @@
-import { ModelConfig, ModelProviders } from "@/types";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { ModelConfig, ModelProviders, ModelVariant } from "@/types";
+import { createMoonshotAI } from "@ai-sdk/moonshotai";
 import { LanguageModelV3 } from "@ai-sdk/provider";
 import { ToolLoopAgentSettings } from "ai";
 import { createOpenAICORSPseudoStreamFetchAdapter } from "../utils/cors-fetch";
@@ -21,22 +21,42 @@ export default class MoonshotGenerator {
         // 根据配置决定是否使用 CORS 代理，使用伪流式适配器
         const customFetch = modelConfig.useCORS ? createOpenAICORSPseudoStreamFetchAdapter() : undefined;
 
-        const openai = createOpenAICompatible({
+        const moonshotai = createMoonshotAI({
             baseURL: modelConfig.baseUrl || "https://api.moonshot.cn/v1",
             apiKey: modelConfig.apiKey,
-            name: "moonshot",
             fetch: customFetch,
         });
 
-        return openai.chatModel(modelConfig.name);
+        return moonshotai.chatModel(modelConfig.name);
     }
 
-    newAgent(modelConfig: ModelConfig): ToolLoopAgentSettings {
-        // Force topP to 0.95 and frequencyPenalty to 0 for kimi-k2.5 model
-        const isKimiK25 = modelConfig.name === 'kimi-k2.5';
-        const topP = isKimiK25 ? 0.95 : modelConfig.topP;
-        const frequencyPenalty = isKimiK25 ? 0 : modelConfig.frequencyPenalty;
-        const temperature = isKimiK25 ? 1 : modelConfig.temperature;
+    newAgent(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings {
+        // Force parameters for kimi-k2.5/kimi-k2.6
+        const isKimiK25OrK26 = modelConfig.name.includes('kimi-k2.5') || modelConfig.name.includes('kimi-k2.6');
+        const topP = isKimiK25OrK26 ? 0.95 : modelConfig.topP;
+        const frequencyPenalty = isKimiK25OrK26 ? 0 : modelConfig.frequencyPenalty;
+        // API requires temperature=1.0 for thinking mode, temperature=0.6 for non-thinking mode
+        const temperature = isKimiK25OrK26
+            ? (variant === 'off' ? 0.6 : 1)
+            : modelConfig.temperature;
+
+        let providerOptions: Record<string, any> | undefined;
+        if (isKimiK25OrK26) {
+            if (variant && variant !== 'off') {
+                providerOptions = {
+                    moonshotai: {
+                        thinking: { type: 'enabled' },
+                        reasoningHistory: 'interleaved',
+                    }
+                };
+            } else if (variant === 'off') {
+                providerOptions = {
+                    moonshotai: {
+                        thinking: { type: 'disabled' },
+                    }
+                };
+            }
+        }
 
         return {
             model: this.createModel(modelConfig),
@@ -44,6 +64,7 @@ export default class MoonshotGenerator {
             maxOutputTokens: modelConfig.maxTokens,
             topP: topP,
             frequencyPenalty: frequencyPenalty,
+            ...(providerOptions ? { providerOptions } : {}),
         }
     }
 }

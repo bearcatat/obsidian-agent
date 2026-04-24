@@ -1,4 +1,4 @@
-import { ModelConfig, ModelProviders } from "@/types";
+import { ModelConfig, ModelProviders, ModelVariant } from "@/types";
 import { createOpenAI } from '@ai-sdk/openai';
 import { LanguageModelV3 } from "@ai-sdk/provider";
 import { ToolLoopAgentSettings } from "ai";
@@ -25,9 +25,23 @@ export default class OpenAIGenerator {
         return openai.chat(modelConfig.name);
     }
 
-    newAgent(modelConfig: ModelConfig): ToolLoopAgentSettings {
+    newAgent(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings {
         const isOSeries = modelConfig.name.startsWith("o");
         const isGPT5Series = modelConfig.name.startsWith("gpt-5");
+        const isReasoningModel = isOSeries || isGPT5Series;
+
+        let providerOptions: Record<string, any> | undefined;
+        if (isReasoningModel && variant) {
+            const effortMap: Record<string, string> = {
+                low: 'low',
+                medium: 'medium',
+                high: 'high',
+            };
+            const reasoningEffort = effortMap[variant];
+            if (reasoningEffort) {
+                providerOptions = { openai: { reasoningEffort } };
+            }
+        }
 
         return {
             model: this.createModel(modelConfig),
@@ -39,6 +53,7 @@ export default class OpenAIGenerator {
                     topP: modelConfig.topP,
                     frequencyPenalty: modelConfig.frequencyPenalty,
                 }),
+            ...(providerOptions ? { providerOptions } : {}),
         }
     }
 }

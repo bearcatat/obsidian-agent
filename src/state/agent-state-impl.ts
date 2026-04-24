@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { ModelConfig } from '../types';
+import { ModelConfig, ModelVariant } from '../types';
 import { FileReviewEntry, MessageV2 } from '@/types';
 import { AgentStateData } from './agent-state';
 import { ModelMessage } from 'ai';
@@ -16,6 +16,7 @@ interface AgentStore extends AgentStateData {
   undoToMessage: (messageId: string) => Promise<void>;
   setTitle: (title: string) => void;
   setModel: (model: ModelConfig) => void;
+  setVariant: (variant: ModelVariant | null) => void;
   setAbortController: (abortController: AbortController) => void;
   setFileReviews: (fileReviews: FileReviewEntry[]) => void;
   upsertFileReview: (fileReview: FileReviewEntry) => void;
@@ -34,6 +35,7 @@ const initialState: AgentStateData = {
   model: null,
   abortController: null,
   fileReviews: [],
+  variant: null,
 };
 
 export const useAgentStore = create<AgentStore>()(
@@ -147,7 +149,10 @@ export const useAgentStore = create<AgentStore>()(
       set((state) => {
         state.model = model;
       }),
-
+    setVariant: (variant: ModelVariant | null) =>
+      set((state) => {
+        state.variant = variant;
+      }),
     setAbortController: (abortController: AbortController) =>
       set((state) => {
         state.abortController = abortController;
@@ -182,6 +187,7 @@ export const useAgentStore = create<AgentStore>()(
         state.title = 'New Chat';
         state.abortController = null;
         state.fileReviews = [];
+        // variant is intentionally preserved across new chats
       }),
 
     cleanupOldMessages: (keepCount: number = 50) =>

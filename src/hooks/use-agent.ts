@@ -2,7 +2,7 @@ import { useAgentStore } from '../state/agent-state-impl';
 import { AgentViewLogic } from '../logic/agent-view-logic';
 import { FileReviewLogic } from '../logic/file-review-logic';
 import { App } from 'obsidian';
-import { Context, ModelConfig } from '../types';
+import { Context, ModelConfig, ModelVariant } from '../types';
 import { useShallow } from 'zustand/react/shallow';
 
 // 导出 store hook，组件可以直接使用
@@ -18,6 +18,7 @@ export function useAgentState() {
       model: state.model,
       abortController: state.abortController,
       fileReviews: state.fileReviews,
+      variant: state.variant,
     }))
   );
 }
@@ -32,6 +33,7 @@ export function useAgentLogic() {
     resetForNewChat: (app: App | undefined) => agentLogic.resetForNewChat(app),
     finalizePendingReviews: () => agentLogic.finalizePendingReviews(),
     setModel: (model: ModelConfig) => agentLogic.setModel(model),
+    setVariant: (variant: ModelVariant | null) => agentLogic.setVariant(variant),
     applyFileReview: (filePath: string) => fileReviewLogic.applyFile(filePath),
     rejectFileReview: (filePath: string) => fileReviewLogic.rejectFile(filePath),
     applyDerivedBlock: (filePath: string, block: { baselineStart: number; baselineEnd: number; patchText: string }) => fileReviewLogic.applyDerivedBlock(filePath, block),

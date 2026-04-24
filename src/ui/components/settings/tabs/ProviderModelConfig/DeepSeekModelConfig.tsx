@@ -20,7 +20,7 @@ export const DeepSeekModelConfig = ({ model, debouncedSetModel }: {
     const isModelDeepSeekChat = isDeepSeekChat(model.name);
     const isModelDeepSeekReasoner = isDeepSeekReasoner(model.name);
 
-    const maxTokens = isModelDeepSeekChat ? 8192 : isModelDeepSeekReasoner ? 65535 : 65000;
+    const maxTokens = isModelDeepSeekChat ? 8192 : isModelDeepSeekReasoner ? 65535 : 393216;
 
     return (
         <div className="tw-space-y-3">

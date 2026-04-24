@@ -1,4 +1,4 @@
-import { Context, MessageV2, ModelConfig } from "../types";
+import { Context, MessageV2, ModelConfig, ModelVariant, getDefaultVariant } from "../types";
 import { agentStore } from "../state/agent-state-impl";
 import { App, Notice, TFile } from "obsidian";
 import { UserMessage } from "@/messages/user-message";
@@ -118,11 +118,21 @@ export class AgentViewLogic {
     await this.finalizePendingReviews();
     agentStore.getState().resetForNewChat();
     AIAgent.getInstance().clearMemory();
+    // Re-apply current variant to ModelManager after reset
+    const currentVariant = agentStore.getState().variant;
+    AIModelManager.getInstance().setVariant(currentVariant);
   }
 
   setModel(model: ModelConfig): void {
+    const defaultVariant = getDefaultVariant(model);
     agentStore.getState().setModel(model);
-    AIModelManager.getInstance().setAgent(model);
+    agentStore.getState().setVariant(defaultVariant);
+    AIModelManager.getInstance().setAgent(model, defaultVariant);
+  }
+
+  setVariant(variant: ModelVariant | null): void {
+    agentStore.getState().setVariant(variant);
+    AIModelManager.getInstance().setVariant(variant);
   }
 
   setTitleModel(model: ModelConfig): void {
