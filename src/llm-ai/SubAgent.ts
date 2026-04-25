@@ -1,8 +1,9 @@
 import { MessageV2, ModelConfig, ModelVariant } from "@/types";
-import { ModelMessage, ToolLoopAgent, ToolLoopAgentSettings, ToolSet } from "ai";
+import { ModelMessage, ToolLoopAgentSettings, ToolSet } from "ai";
 import AIModelManager from "./ModelManager";
 import { UserMessage } from "@/messages/user-message";
-import Streamer from "./Streamer";
+import { runStreamingTurn } from "./AgentRuntime";
+import { mergeTools } from "./agent-utils";
 
 export default class SubAgent {
     private toolset: ToolSet = {};
@@ -24,48 +25,25 @@ export default class SubAgent {
         this.agentConfig = AIModelManager.getInstance().buildAgentConfig(modelConfig, this.variant ?? undefined)
     }
 
-    private mergeTools(userTools: ToolSet, builtinTools: ToolSet | undefined): ToolSet {
-        if (!builtinTools) {
-            return userTools;
-        }
-
-        const mergedTools = { ...userTools };
-
-        for (const [toolName, tool] of Object.entries(builtinTools)) {
-            if (mergedTools[toolName]) {
-                console.warn(`[SubAgent: ${this.name}] 内置工具 "${toolName}" 已覆盖用户自定义工具`);
-            }
-            mergedTools[toolName] = tool;
-        }
-
-        return mergedTools;
-    }
-
     async query(message: UserMessage,
         abortSignal: AbortSignal,
         addMessage: (message: MessageV2) => void
     ) {
         const builtinTools = this.agentConfig.tools;
-        const mergedTools = this.mergeTools(this.toolset, builtinTools);
-
-        const agent = new ToolLoopAgent({
-            ...this.agentConfig,
-            instructions: this.systemPrompt,
-            tools: mergedTools,
-            toolChoice: 'auto',
-            experimental_context: {
-                addMessage: addMessage
-            },
-            stopWhen: []
-        })
+        const mergedTools = mergeTools(this.toolset, builtinTools, `[SubAgent: ${this.name}]`);
 
         const rawMessages = [...this.messages, message.toModelMessage()]
-        const normalizedMessages = AIModelManager.getInstance().normalizeMessages(rawMessages, this.modelConfig, this.variant)
-        const streamer = new Streamer(agent, addMessage)
-        const result = await streamer.stream(normalizedMessages, abortSignal)
-        const messages = (await result.response).messages
-        this.messages = [...normalizedMessages, ...messages]
-        return result.text
+        const { normalizedMessages, responseMessages, text } = await runStreamingTurn({
+            agentConfig: this.agentConfig,
+            instructions: this.systemPrompt,
+            tools: mergedTools,
+            addMessage,
+            rawMessages,
+            abortSignal,
+            normalizeMessages: messages => AIModelManager.getInstance().normalizeMessages(messages, this.modelConfig, this.variant),
+        })
+        this.messages = [...normalizedMessages, ...responseMessages]
+        return text
     }
 
     async clearMemory(): Promise<void> {
