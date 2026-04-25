@@ -4,7 +4,6 @@ import { FileEditToolMessageCard } from './file-edit-tool-message-card';
 import { WriteToolMessageCard } from './write-tool-message-card';
 import { QuestionToolMessageCard } from './question-tool-message-card';
 import { renderBochaWebSearchMessage } from '@/tool-ai/BochaSearch/BochaSearchTool';
-import { renderCreateArtifactMessage } from '@/tool-ai/CreateArtifact/CreateArtifactTool';
 import { renderExaWebSearchMessage } from '@/tool-ai/ExaSearch/ExaSearchTool';
 import { renderListMessage } from '@/tool-ai/List/ListTool';
 import { renderReadNoteByLinkMessage } from '@/tool-ai/ReadNote/ReadNoteByLink/ReadNoteByLinkTool';
@@ -14,15 +13,6 @@ import { renderSkillMessage } from '@/tool-ai/Skill/SkillTool';
 import { renderTelegramFeedbackMessage } from './telegram-feedback-message-card';
 import { renderGetCurrentTimeMessage } from '@/tool-ai/Time/GetCurrentTime/GetCurrentTimeTool';
 import { renderWebFetchMessage } from '@/tool-ai/WebFetch/WebFetchTool';
-
-interface CreateArtifactResult {
-  type: "command" | "skill" | "subagent";
-  name: string;
-  description: string;
-  file_path: string;
-  is_new_file: boolean;
-  content: string;
-}
 
 interface CreateCommandResult {
   name: string;
@@ -103,8 +93,6 @@ export function renderHistoricalToolMessage(toolName: string, contentJson: strin
         return renderSearchMessage(data.params.query, data.metadata);
       case 'skill':
         return renderSkillMessage(data);
-      case 'createArtifact':
-        return renderCreateArtifactMessage(data as CreateArtifactResult, true, "apply", () => {}, () => {});
       case 'createCommand': {
         // Fallback renderer for older histories that still have 'createCommand' tool messages
         return (

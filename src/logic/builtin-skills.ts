@@ -74,14 +74,12 @@ Writing notes:
 - If content grows large, move details into \`reference.md\` / \`examples.md\` and keep SKILL.md concise (ideally < 500 lines).
 
 ## Step 4: Generate Files (Persist)
-Use \`createArtifact\` to create the skill (fill in description + content in one go):
+Use \`write\` to create the skill file at the canonical path:
 
 \`\`\`
-createArtifact({
-  type: "skill",
-  name: "<skill-name>",
-  description: "<Third-person description; include triggers and scenarios>",
-  content: "<Full SKILL.md content>"
+write({
+  file_path: "obsidian-agent/skills/<skill-name>/SKILL.md",
+  content: "---\nname: <skill-name>\ndescription: <Third-person description; include triggers and scenarios>\n---\n\n<Full SKILL.md content>"
 })
 \`\`\`
 
@@ -167,7 +165,7 @@ When the user wants to create a command:
    - Use \`$ARGUMENTS\` for all user input
    - Use \`$1\`, \`$2\`, etc. for specific arguments
 
-5. **Use createArtifact tool**: Type="command"
+5. **Use write tool**: Save the complete command file to the exact command path
 
 ## Template Examples
 
@@ -224,14 +222,12 @@ Usage: \`/summarize_note my-note.md\`
 
 ## Creating Commands
 
-Use the \`createArtifact\` tool with type="command":
+Use the \`write\` tool with the exact command file path:
 
 \`\`\`
-createArtifact({
-  type: "command",
-  name: "summarize",
-  description: "Summarize text concisely",
-  content: "Summarize the following:\\n\\n$ARGUMENTS"
+write({
+  file_path: "obsidian-agent/commands/summarize.md",
+  content: "---\nname: summarize\ndescription: Summarize text concisely\n---\n\nSummarize the following:\n\n$ARGUMENTS"
 })
 \`\`\`
 
@@ -332,16 +328,15 @@ You are a specialized <role>.
 \`\`\`
 
 ## Step 4: Create File
-Use \`createArtifact\` with type="subagent":
+Use \`write\` to save the full agent definition:
 \`\`\`
-createArtifact({
-  type: "subagent",
-  name: "<agent-name>",
-  description: "<description including when to use>",
-  content: "<full system prompt>",
-  tools: ["tool1", "tool2"]
+write({
+  file_path: "obsidian-agent/subagents/<agent-name>/AGENT.md",
+  content: "---\nname: <agent-name>\ndescription: <description including when to use>\ntools:\n  - tool1\n  - tool2\n---\n\n<full system prompt>"
 })
 \`\`\`
+
+If the agent does not need tool restrictions, omit the \`tools:\` block instead of leaving it empty.
 
 ## Step 5: Deliver and Verify
 Tell the user:
@@ -441,15 +436,12 @@ Writing notes:
 - Keep rules focused on one concern per file (split complex rules into multiple files).
 
 ## Step 4: Generate File (Persist)
-Use \`createArtifact\` to create the rule:
+Use \`write\` to create the rule file:
 
 \`\`\`
-createArtifact({
-  type: "rule",
-  name: "<rule-name>",
-  description: "<one-sentence description>",
-  scope: "<all|main|sub>",
-  content: "<Full RULE.md content>"
+write({
+  file_path: "obsidian-agent/rules/<rule-name>/RULE.md",
+  content: "---\nname: <rule-name>\ndescription: <one-sentence description>\nscope: <all|main|sub>\nenabled: true\n---\n\n<Full RULE.md content>"
 })
 \`\`\`
 

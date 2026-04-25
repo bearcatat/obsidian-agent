@@ -11,7 +11,6 @@ import { SearchTool, toolName as SearchToolName } from "./Search/SearchTool";
 import { ExaWebSearchTool, toolName as ExaWebSearchToolName, updateExaConfig } from "./ExaSearch/ExaSearchTool";
 import { BochaWebSearchTool, toolName as BochaWebSearchToolName, updateBochaConfig } from "./BochaSearch/BochaSearchTool";
 import { ListTool, toolName as ListToolName } from "./List/ListTool";
-import { CreateArtifactTool, toolName as CreateArtifactToolName } from "./CreateArtifact/CreateArtifactTool";
 import { SkillTool, toolName as SkillToolName } from "./Skill/SkillTool";
 import { BashTool, toolName as BashToolName } from "./Bash/BashTool";
 import { TelegramFeedbackTool, toolName as TelegramFeedbackToolName } from "./TelegramFeedback/TelegramFeedbackTool";
@@ -32,7 +31,6 @@ export default class AIToolManager {
     [WebFetchToolName]: WebFetchTool,
     [SearchToolName]: SearchTool,
     [ListToolName]: ListTool,
-    [CreateArtifactToolName]: CreateArtifactTool,
     [SkillToolName]: SkillTool,
     [BashToolName]: BashTool,
     [TelegramFeedbackToolName]: TelegramFeedbackTool,
