@@ -5,6 +5,7 @@ import AIToolManager from "@/tool-ai/ToolManager";
 import { MessageV2 } from "@/types";
 import AIModelManager from "./ModelManager";
 import SkillLogic from "@/logic/skill-logic";
+import RuleLogic from "@/logic/rule-logic";
 import { CHAT_TITLE_MAX_LENGTH } from "./title-constants";
 import { mergeTools } from "./agent-utils";
 import { runStreamingTurn } from "./AgentRuntime";
@@ -28,16 +29,24 @@ export default class AIAgent {
         const skillLogic = SkillLogic.getInstance();
         const activeSkills = skillLogic.getActiveSkillsForSession();
         
-        if (activeSkills.length === 0) {
-            return basePrompt;
+        let prompt = basePrompt;
+        
+        if (activeSkills.length > 0) {
+            const skillsContent = activeSkills.map(skill => {
+                return `## Skill: ${skill.name}\n${skill.description}\n\n${skill.body}`;
+            }).join('\n\n---\n\n');
+            prompt += `\n\n# Active Skills\n\nThe following skills are active for this conversation:\n\n${skillsContent}`;
         }
         
-        // 构建 skills 部分
-        const skillsContent = activeSkills.map(skill => {
-            return `## Skill: ${skill.name}\n${skill.description}\n\n${skill.body}`;
-        }).join('\n\n---\n\n');
+        const mainAgentRules = RuleLogic.getInstance().getRulesForMainAgent();
+        if (mainAgentRules.length > 0) {
+            const rulesContent = mainAgentRules.map(rule => {
+                return `## Rule: ${rule.name}\n${rule.body}`;
+            }).join('\n\n---\n\n');
+            prompt += `\n\n# Rules\n\nThe following rules must be followed at all times:\n\n${rulesContent}`;
+        }
         
-        return `${basePrompt}\n\n# Active Skills\n\nThe following skills are active for this conversation:\n\n${skillsContent}`;
+        return prompt;
     }
 
     async query(message: UserMessage,

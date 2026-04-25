@@ -17,8 +17,10 @@ import AIModelManager from './llm-ai/ModelManager';
 import CommandLogic from './logic/command-logic';
 import SkillLogic from './logic/skill-logic';
 import SubAgentLogic from './logic/subagent-logic';
+import RuleLogic from './logic/rule-logic';
 import { skillStore } from './state/skill-state';
 import { subAgentStore } from './state/subagent-state';
+import { ruleStore } from './state/rule-state';
 import TelegramFeedbackRuntime from './tool-ai/TelegramFeedback/TelegramFeedbackRuntime';
 
 export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgentPlugin {
@@ -37,6 +39,9 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 		// 初始化SubAgentLogic
 		SubAgentLogic.getInstance().setApp(this.app);
 
+		// 初始化RuleLogic
+		RuleLogic.getInstance().setApp(this.app);
+
 		try {
 			// 优先初始化设置，确保模型配置可用
 			await this.initializeSettings();
@@ -54,8 +59,14 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			// 加载subagents
 			await SubAgentLogic.getInstance().loadSubAgents();
 
+			// 加载rules
+			await RuleLogic.getInstance().loadRules();
+
 			// 注册skill文件自动刷新监听
 			this.registerSkillFileWatcher();
+
+			// 注册rule文件自动刷新监听
+			this.registerRuleFileWatcher();
 
 			// 注册command文件自动刷新监听
 			this.registerCommandFileWatcher();
@@ -112,6 +123,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			CommandLogic.resetInstance();
 			SkillLogic.resetInstance();
 			SubAgentLogic.resetInstance();
+			RuleLogic.resetInstance();
 
 			// 4. 清理全局引用
 			clearGlobalApp();
@@ -121,6 +133,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			settingsStore.reset();
 			skillStore.reset();
 			subAgentStore.reset();
+			ruleStore.reset();
 		} catch (error) {
 			console.error('Error during plugin cleanup:', error);
 		}
@@ -277,6 +290,46 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 						return AIToolManager.getInstance().updateSubAgents();
 					}).catch(error => {
 						console.error('Failed to reload subagents:', error);
+					});
+				}
+			})
+		);
+	}
+
+	private registerRuleFileWatcher(): void {
+		const RULE_FOLDER = 'obsidian-agent/rules';
+
+		this.registerEvent(
+			this.app.vault.on('modify', (file: TAbstractFile) => {
+				if (file instanceof TFile &&
+				    file.path.startsWith(RULE_FOLDER) &&
+				    file.name === 'RULE.md') {
+					RuleLogic.getInstance().loadRules().catch(error => {
+						console.error('Failed to reload rules:', error);
+					});
+				}
+			})
+		);
+
+		this.registerEvent(
+			this.app.vault.on('create', (file: TAbstractFile) => {
+				if (file instanceof TFile &&
+				    file.path.startsWith(RULE_FOLDER) &&
+				    file.name === 'RULE.md') {
+					RuleLogic.getInstance().loadRules().catch(error => {
+						console.error('Failed to reload rules:', error);
+					});
+				}
+			})
+		);
+
+		this.registerEvent(
+			this.app.vault.on('delete', (file: TAbstractFile) => {
+				if (file instanceof TFile &&
+				    file.path.startsWith(RULE_FOLDER) &&
+				    file.name === 'RULE.md') {
+					RuleLogic.getInstance().loadRules().catch(error => {
+						console.error('Failed to reload rules:', error);
 					});
 				}
 			})

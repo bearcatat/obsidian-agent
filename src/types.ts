@@ -419,3 +419,16 @@ export interface SkillConfig {
   filePath: string;       // Source file path
   enabled: boolean;       // Whether skill is globally enabled
 }
+
+// Rule Scope - controls which agents receive this rule
+export type RuleScope = 'all' | 'main' | 'sub';
+
+// Rule Configuration
+export interface RuleConfig {
+  name: string;           // Rule name (kebab-case, e.g., "no-delete-files")
+  description: string;    // Brief description of the rule
+  scope: RuleScope;       // Which agents this rule applies to
+  body: string;           // Rule content (markdown body)
+  filePath: string;       // Source file path
+  enabled: boolean;       // Whether rule is enabled
+}

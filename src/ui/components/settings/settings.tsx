@@ -1,13 +1,14 @@
 import { TabContent, TabItem, type TabItem as TabItemType } from "../../elements/tab";
-import { Bot, Wrench, Terminal, Target, Users } from "lucide-react";
+import { Bot, Wrench, Terminal, Target, Users, ShieldCheck } from "lucide-react";
 import { ModelSetting } from "./tabs/model-setting";
 import { useTab } from "../../../hooks/TabContext";
 import { ToolSetting } from "./tabs/tool-setting";
 import { CommandSetting } from "./tabs/command-setting";
 import { SkillSetting } from "./tabs/skill-setting";
 import { SubAgentSetting } from "./tabs/subagent-setting";
+import { RuleSetting } from "./tabs/rule-setting";
 
-const TAB_IDS = ["model","tool","command","skill","subagent"] as const;
+const TAB_IDS = ["model","tool","command","skill","subagent","rule"] as const;
 type TabId = (typeof TAB_IDS)[number];
 
 const icons: Record<TabId, React.ReactNode> = {
@@ -16,6 +17,7 @@ const icons: Record<TabId, React.ReactNode> = {
   command: <Terminal className="tw-size-5" />,
   skill: <Target className="tw-size-5" />,
   subagent: <Users className="tw-size-5" />,
+  rule: <ShieldCheck className="tw-size-5" />,
 };
 
 const components: Record<TabId, React.FC> = {
@@ -24,6 +26,7 @@ const components: Record<TabId, React.FC> = {
   command: () => <CommandSetting />,
   skill: () => <SkillSetting />,
   subagent: () => <SubAgentSetting />,
+  rule: () => <RuleSetting />,
 };
 
 // tabs

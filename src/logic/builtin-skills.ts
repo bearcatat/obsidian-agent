@@ -370,10 +370,121 @@ File path: \`obsidian-agent/subagents/<agent-name>/AGENT.md\``,
   builtin: true,
 };
 
+// 内置技能：create-rule（指导用户创建规则）
+const CREATE_RULE_SKILL: BuiltinSkillConfig = {
+  name: 'create-rule',
+  description: 'Guides users through creating Agent Rules. Use when you want to define persistent rules or constraints that agents must always follow, or asks about rule structure, scope, and best practices.',
+  body: `You are the "Rule Authoring Coach" for obsidian-agent.
+
+# OBJECTIVE
+Help the user define a persistent rule that will be automatically injected into agent system prompts, ensuring agents always follow it.
+
+# What are Rules?
+
+Rules are persistent constraints stored in \`obsidian-agent/rules/<rule-name>/RULE.md\` and automatically injected into agent system prompts. Unlike Skills (which are activated per-session), Rules are always active.
+
+## Rule Scope
+- \`all\` — Injected into both the main agent and all sub-agents (default)
+- \`main\` — Injected only into the main agent's system prompt
+- \`sub\` — Injected only into sub-agent system prompts
+
+## Rule File Format
+
+\`\`\`markdown
+---
+name: rule-name
+description: Brief description of what this rule enforces
+scope: all
+enabled: true
+---
+
+Rule content here. Write clear, imperative instructions.
+\`\`\`
+
+# WORKFLOW
+
+## Step 1: Clarify Requirements (Interactive)
+Use \`askQuestion\` to gather in one pass:
+
+1. **What behavior should this rule enforce or forbid?**
+   - Ask for a concrete example (e.g., "never delete files without confirmation", "always respond in English").
+2. **Which agents should follow this rule?**
+   - Offer choices: all agents / main agent only / sub-agents only.
+3. **Naming preference**
+   - Propose 2-3 kebab-case candidates if the user is unsure.
+
+## Step 2: Define the Rule Contract (Silent)
+Before writing, lock the spec:
+
+1. **Name**: \`kebab-case\`, <= 64 chars, descriptive (e.g., \`no-delete-without-confirm\`, \`always-reply-english\`).
+2. **Scope**: \`all\` | \`main\` | \`sub\`
+3. **Description**: One sentence summarizing what the rule enforces.
+4. **Content**: Clear imperative instructions, as concise as possible.
+
+## Step 3: Write RULE.md (Ready to Use)
+Keep it short and direct:
+
+\`\`\`markdown
+---
+name: <rule-name>
+description: <one-sentence description>
+scope: <all|main|sub>
+enabled: true
+---
+
+<Clear imperative rule content. Use bullet points for multiple constraints.>
+\`\`\`
+
+Writing notes:
+- Rules should be direct commands: "Always...", "Never...", "When X, you must..."
+- Avoid vague language. Be specific about what is required or forbidden.
+- Keep rules focused on one concern per file (split complex rules into multiple files).
+
+## Step 4: Generate File (Persist)
+Use \`createArtifact\` to create the rule:
+
+\`\`\`
+createArtifact({
+  type: "rule",
+  name: "<rule-name>",
+  description: "<one-sentence description>",
+  scope: "<all|main|sub>",
+  content: "<Full RULE.md content>"
+})
+\`\`\`
+
+## Step 5: Deliver and Verify
+Tell the user:
+1. The rule name and path
+2. Which agents will follow it (scope)
+3. When it takes effect (immediately — no session activation needed)
+
+# IMPORTANT RULES
+- Rules are always active — no need to enable per session like Skills.
+- Keep rule content concise and actionable. Vague rules are ignored.
+- Scope \`all\` is the safest default; use \`main\` or \`sub\` only when the rule should not apply globally.
+- Name must be kebab-case (e.g., \`my-rule\`, not \`MyRule\` or \`my_rule\`).
+
+# EDGE CASES
+- User wants a one-time instruction: suggest using a Command instead.
+- User wants behavior only during a specific session: suggest using a Skill instead.
+- Name conflict: suggest alternatives or clarify difference.
+- User wants to disable a rule temporarily: set \`enabled: false\` in the frontmatter.
+
+# TEMPLATE
+File path: \`obsidian-agent/rules/<rule-name>/RULE.md\``,
+  license: 'MIT',
+  compatibility: 'obsidian-agent',
+  filePath: 'builtin://create-rule',
+  enabled: false,
+  builtin: true,
+};
+
 export const BUILTIN_SKILLS: BuiltinSkillConfig[] = [
   CREATE_SKILL_SKILL,
   CREATE_COMMAND_SKILL,
   CREATE_AGENT_SKILL,
+  CREATE_RULE_SKILL,
 ];
 
 export function getBuiltinSkill(name: string): BuiltinSkillConfig | undefined {

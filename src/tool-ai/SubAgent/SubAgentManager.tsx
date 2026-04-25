@@ -6,6 +6,7 @@ import { SubAgentMessagesCard } from "@/ui/components/agent-view/messages/messag
 import { tool, ToolSet } from "ai";
 import { z } from 'zod';
 import SubAgentLogic from "@/logic/subagent-logic";
+import RuleLogic from "@/logic/rule-logic";
 import AIModelManager from "@/llm-ai/ModelManager";
 import { agentStore } from "@/state/agent-state-impl";
 
@@ -54,7 +55,17 @@ export default class SubAgentManager {
           toolMessage.setChildren(render(config.name, messages, true));
           context.addMessage(toolMessage)
 
-          const agent = new SubAgent(config.name, config.systemPrompt, config.description, agentModelConfig, agentVariant)
+          // Build system prompt with injected rules
+          const subAgentRules = RuleLogic.getInstance().getRulesForSubAgent();
+          let systemPrompt = config.systemPrompt;
+          if (subAgentRules.length > 0) {
+            const rulesContent = subAgentRules.map(rule => {
+              return `## Rule: ${rule.name}\n${rule.body}`;
+            }).join('\n\n---\n\n');
+            systemPrompt += `\n\n# Rules\n\nThe following rules must be followed at all times:\n\n${rulesContent}`;
+          }
+
+          const agent = new SubAgent(config.name, systemPrompt, config.description, agentModelConfig, agentVariant)
           agent.setTools(getToolSetForSubAgent(config, allToolSet))
 
           const text = await agent.query(userMessage, abortSignal ?? new AbortController().signal, (message: MessageV2) => {
