@@ -1,10 +1,10 @@
-import { ModelConfig, ModelProviders, ModelVariant } from "@/types";
+import { AIModelGenerator, ModelConfig, ModelProviders, ModelVariant } from "@/types";
 import { createOpenAI } from '@ai-sdk/openai';
 import { LanguageModelV3 } from "@ai-sdk/provider";
 import { ToolLoopAgentSettings } from "ai";
 
 
-export default class OpenAIGenerator {
+export default class OpenAIGenerator implements AIModelGenerator {
     private static instance: OpenAIGenerator;
 
     public provider: string = ModelProviders.OPENAI;
@@ -16,7 +16,7 @@ export default class OpenAIGenerator {
         return OpenAIGenerator.instance;
     }
 
-    createModel(modelConfig: ModelConfig): LanguageModelV3 {
+    private createModel(modelConfig: ModelConfig): LanguageModelV3 {
         const openai = createOpenAI({
             baseURL: modelConfig.baseUrl || "https://api.openai.com/v1",
             apiKey: modelConfig.apiKey
@@ -25,23 +25,30 @@ export default class OpenAIGenerator {
         return openai.chat(modelConfig.name);
     }
 
-    newAgent(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings {
+    private buildProviderOptions(variant: ModelVariant | undefined, isReasoningModel: boolean): Record<string, any> | undefined {
+        if (!isReasoningModel || !variant) {
+            return undefined;
+        }
+
+        const effortMap: Record<string, string> = {
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+        };
+        const reasoningEffort = effortMap[variant];
+
+        if (!reasoningEffort) {
+            return undefined;
+        }
+
+        return { openai: { reasoningEffort } };
+    }
+
+    buildAgentConfig(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings {
         const isOSeries = modelConfig.name.startsWith("o");
         const isGPT5Series = modelConfig.name.startsWith("gpt-5");
         const isReasoningModel = isOSeries || isGPT5Series;
-
-        let providerOptions: Record<string, any> | undefined;
-        if (isReasoningModel && variant) {
-            const effortMap: Record<string, string> = {
-                low: 'low',
-                medium: 'medium',
-                high: 'high',
-            };
-            const reasoningEffort = effortMap[variant];
-            if (reasoningEffort) {
-                providerOptions = { openai: { reasoningEffort } };
-            }
-        }
+        const providerOptions = this.buildProviderOptions(variant, isReasoningModel);
 
         return {
             model: this.createModel(modelConfig),

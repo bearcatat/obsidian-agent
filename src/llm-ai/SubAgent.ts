@@ -1,4 +1,4 @@
-import { MessageV2, ModelConfig } from "@/types";
+import { MessageV2, ModelConfig, ModelVariant } from "@/types";
 import { ModelMessage, ToolLoopAgent, ToolLoopAgentSettings, ToolSet } from "ai";
 import AIModelManager from "./ModelManager";
 import { UserMessage } from "@/messages/user-message";
@@ -8,16 +8,20 @@ export default class SubAgent {
     private toolset: ToolSet = {};
     private messages: Array<ModelMessage> = new Array<ModelMessage>();
     private agentConfig: ToolLoopAgentSettings;
+    private modelConfig: ModelConfig;
+    private variant: ModelVariant | null;
 
     public name: string;
     public systemPrompt: string;
     public description: string;
 
-    constructor(name: string, systemPrompt: string, description: string, modelConfig: ModelConfig) {
+    constructor(name: string, systemPrompt: string, description: string, modelConfig: ModelConfig, variant?: ModelVariant | null) {
         this.systemPrompt = systemPrompt;
         this.description = description;
         this.name = name;
-        this.agentConfig = AIModelManager.getInstance().getAgent(modelConfig)
+        this.modelConfig = modelConfig;
+        this.variant = variant ?? null;
+        this.agentConfig = AIModelManager.getInstance().buildAgentConfig(modelConfig, this.variant ?? undefined)
     }
 
     private mergeTools(userTools: ToolSet, builtinTools: ToolSet | undefined): ToolSet {
@@ -55,11 +59,12 @@ export default class SubAgent {
             stopWhen: []
         })
 
-        this.messages.push(message.toModelMessage())
+        const rawMessages = [...this.messages, message.toModelMessage()]
+        const normalizedMessages = AIModelManager.getInstance().normalizeMessages(rawMessages, this.modelConfig, this.variant)
         const streamer = new Streamer(agent, addMessage)
-        const result = await streamer.stream(this.messages, abortSignal)
+        const result = await streamer.stream(normalizedMessages, abortSignal)
         const messages = (await result.response).messages
-        this.messages.push(...messages)
+        this.messages = [...normalizedMessages, ...messages]
         return result.text
     }
 

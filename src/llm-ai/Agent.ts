@@ -62,12 +62,13 @@ export default class AIAgent {
         addMessage: (message: MessageV2) => void
     ): Promise<ModelMessage[]> {
         const modelManager = AIModelManager.getInstance();
+        const agentConfig = modelManager.getAgentConfig();
         const userTools = AIToolManager.getInstance().getMainAgentEnabledTools();
-        const builtinTools = modelManager.agentConfig.tools;
+        const builtinTools = agentConfig.tools;
         const mergedTools = this.mergeTools(userTools, builtinTools);
 
         const agent = new ToolLoopAgent({
-            ...modelManager.agentConfig,
+            ...agentConfig,
             instructions: this.buildSystemPrompt(),
             tools: mergedTools,
             toolChoice: 'auto',
@@ -88,9 +89,10 @@ export default class AIAgent {
 
     async generateTitle(userMessage: string): Promise<string> {
         try {
+            const titleConfig = AIModelManager.getInstance().getTitleConfig();
             const { text } = await generateText({
                 system: getTitleGenerationPrompt(),
-                ...AIModelManager.getInstance().titleConfig,
+                ...titleConfig,
                 messages: [
                     {
                         role: "user",

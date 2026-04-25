@@ -38,7 +38,9 @@ export default class SubAgentManager {
         execute: async ({ message }, { toolCallId, experimental_context, abortSignal }) => {
           // Dynamically get current model configuration
           const currentModel = agentStore.getState().model;
+          const currentVariant = agentStore.getState().variant;
           const agentModelConfig = currentModel ?? modelManager.agentModelConfig;
+          const agentVariant = currentVariant ?? modelManager.currentVariant ?? null;
           
           if (!agentModelConfig) {
             throw new Error('No model configured for SubAgent');
@@ -52,7 +54,7 @@ export default class SubAgentManager {
           toolMessage.setChildren(render(config.name, messages, true));
           context.addMessage(toolMessage)
 
-          const agent = new SubAgent(config.name, config.systemPrompt, config.description, agentModelConfig)
+          const agent = new SubAgent(config.name, config.systemPrompt, config.description, agentModelConfig, agentVariant)
           agent.setTools(getToolSetForSubAgent(config, allToolSet))
 
           const text = await agent.query(userMessage, abortSignal ?? new AbortController().signal, (message: MessageV2) => {

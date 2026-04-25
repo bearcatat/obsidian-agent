@@ -1,6 +1,6 @@
 import type { EditorView } from '@codemirror/view';
 import { Plugin, TFile } from 'obsidian';
-import { ToolLoopAgentSettings } from 'ai';
+import { ModelMessage, ToolLoopAgentSettings } from 'ai';
 
 declare module 'obsidian' {
   interface Editor {
@@ -154,7 +154,8 @@ export function getDefaultVariant(modelConfig: ModelConfig): ModelVariant | null
 }
 
 export interface AIModelGenerator {
-  newAgent(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings;
+  buildAgentConfig(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings;
+  normalizeMessages?(messages: ModelMessage[], modelConfig: ModelConfig, variant?: ModelVariant | null): ModelMessage[];
 }
 
 // MCP Tool Configuration

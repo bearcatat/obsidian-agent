@@ -1,10 +1,10 @@
-import { ModelConfig, ModelProviders } from "@/types";
+import { AIModelGenerator, ModelConfig, ModelProviders } from "@/types";
 import { createOpenAI } from '@ai-sdk/openai';
 import { LanguageModelV3 } from "@ai-sdk/provider";
 import { ToolLoopAgentSettings } from "ai";
 
 
-export default class OpenAIFormatGenerator {
+export default class OpenAIFormatGenerator implements AIModelGenerator {
     private static instance: OpenAIFormatGenerator;
 
     public provider: string = ModelProviders.OPENAI_FORMAT;
@@ -16,7 +16,7 @@ export default class OpenAIFormatGenerator {
         return OpenAIFormatGenerator.instance;
     }
 
-    createModel(modelConfig: ModelConfig): LanguageModelV3 {
+    private createModel(modelConfig: ModelConfig): LanguageModelV3 {
         const openai = createOpenAI({
             baseURL: modelConfig.baseUrl || "https://api.openai.com/v1",
             apiKey: modelConfig.apiKey
@@ -25,7 +25,7 @@ export default class OpenAIFormatGenerator {
         return openai.chat(modelConfig.name);
     }
 
-    newAgent(modelConfig: ModelConfig): ToolLoopAgentSettings {
+    buildAgentConfig(modelConfig: ModelConfig): ToolLoopAgentSettings {
         const isOSeries = modelConfig.name.startsWith("o");
 
         return {
