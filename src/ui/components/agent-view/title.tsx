@@ -8,6 +8,7 @@ import React, { useState, useEffect } from "react";
 import { SessionLogic, SessionMetadata } from "@/logic/session-logic";
 import { agentStore } from "@/state/agent-state-impl";
 import { SkillLogic } from "@/logic/skill-logic";
+import AIModelManager from "@/llm-ai/ModelManager";
 
 export interface TitleProps { }
 
@@ -30,10 +31,15 @@ export const Title: React.FC<TitleProps> = () => {
 		await finalizePendingReviews();
 		
 		const currentModel = agentStore.getState().model;
+		const currentVariant = agentStore.getState().variant;
 		const state = await SessionLogic.getInstance().loadSession(sessionId);
 		if (state) {
 			state.model = currentModel;
+			state.variant = currentVariant;
 			agentStore.setState(state);
+			if (currentModel) {
+				AIModelManager.getInstance().setAgent(currentModel, currentVariant);
+			}
 			// Restore active skills from the loaded session
 			if (state.activeSkills && state.activeSkills.length > 0) {
 				SkillLogic.getInstance().restoreSessionSkills(state.activeSkills);
