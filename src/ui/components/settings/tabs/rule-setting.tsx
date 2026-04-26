@@ -24,7 +24,7 @@ export const RuleSetting: React.FC = () => {
   return (
     <div className="tw-space-y-6">
       <div className="tw-text-sm tw-text-muted-foreground">
-        Rules are stored as RULE.md files in <code className="tw-px-1 tw-py-0.5 tw-bg-muted tw-rounded">obsidian-agent/rules/{'{name}'}/RULE.md</code>
+        New rules are stored as markdown files in <code className="tw-px-1 tw-py-0.5 tw-bg-muted tw-rounded">obsidian-agent/rules/{'{name}'}.md</code>. Legacy folders like <code className="tw-px-1 tw-py-0.5 tw-bg-muted tw-rounded">obsidian-agent/rules/{'{name}'}/RULE.md</code> are still supported.
       </div>
 
       <section>
@@ -90,7 +90,7 @@ export const RuleSetting: React.FC = () => {
           <li><strong>Toggle:</strong> Enable/disable rules globally via the switch</li>
         </ul>
 
-        <p className="tw-font-medium tw-mt-4">Example RULE.md file:</p>
+        <p className="tw-font-medium tw-mt-4">Example rule file:</p>
         <pre className="tw-bg-muted tw-p-3 tw-rounded-lg tw-overflow-x-auto tw-text-xs">
 {`---
 name: no-delete-without-confirm
@@ -101,6 +101,7 @@ enabled: true
 
 Never delete, remove, or permanently destroy any file, note, or folder without first asking the user for explicit confirmation. Always describe what will be deleted and wait for the user to confirm before proceeding.`}
         </pre>
+        <p className="tw-text-xs">Suggested path: <code className="tw-px-1 tw-py-0.5 tw-bg-muted tw-rounded">obsidian-agent/rules/no-delete-without-confirm.md</code></p>
       </div>
     </div>
   );

@@ -4,6 +4,14 @@ import { ruleStore } from '../state/rule-state';
 
 const RULES_FOLDER = 'obsidian-agent/rules';
 
+type RuleFileFormat = 'flat' | 'legacy';
+
+interface RuleFileCandidate {
+  filePath: string;
+  format: RuleFileFormat;
+  storageName: string;
+}
+
 export class RuleLogic {
   private static instance: RuleLogic;
   private app: App | null = null;
@@ -25,6 +33,37 @@ export class RuleLogic {
     this.app = app;
   }
 
+  static getRuleFileCandidate(filePath: string): RuleFileCandidate | null {
+    if (!filePath.startsWith(`${RULES_FOLDER}/`)) {
+      return null;
+    }
+
+    const relativePath = filePath.slice(RULES_FOLDER.length + 1);
+    const pathParts = relativePath.split('/');
+
+    if (pathParts.length === 1 && filePath.endsWith('.md')) {
+      return {
+        filePath,
+        format: 'flat',
+        storageName: pathParts[0].slice(0, -3),
+      };
+    }
+
+    if (pathParts.length === 2 && pathParts[1] === 'RULE.md') {
+      return {
+        filePath,
+        format: 'legacy',
+        storageName: pathParts[0],
+      };
+    }
+
+    return null;
+  }
+
+  static isRuleFilePath(filePath: string): boolean {
+    return RuleLogic.getRuleFileCandidate(filePath) !== null;
+  }
+
   async loadRules(): Promise<RuleConfig[]> {
     if (!this.app) {
       console.warn('RuleLogic: App not set');
@@ -42,15 +81,40 @@ export class RuleLogic {
       }
 
       const entries = await adapter.list(RULES_FOLDER);
+      const candidatesByStorageName = new Map<string, RuleFileCandidate>();
+      const rulesByName = new Map<string, { rule: RuleConfig; format: RuleFileFormat }>();
+
+      for (const filePath of entries.files) {
+        const candidate = RuleLogic.getRuleFileCandidate(filePath);
+        if (candidate?.format === 'flat') {
+          candidatesByStorageName.set(candidate.storageName, candidate);
+        }
+      }
 
       for (const folderPath of entries.folders) {
         const ruleFilePath = `${folderPath}/RULE.md`;
         if (await adapter.exists(ruleFilePath)) {
-          const rule = await this.loadRuleFile(ruleFilePath);
-          if (rule) {
-            rules.push(rule);
+          const candidate = RuleLogic.getRuleFileCandidate(ruleFilePath);
+          if (candidate && !candidatesByStorageName.has(candidate.storageName)) {
+            candidatesByStorageName.set(candidate.storageName, candidate);
           }
         }
+      }
+
+      for (const candidate of candidatesByStorageName.values()) {
+        const rule = await this.loadRuleFile(candidate.filePath);
+        if (!rule) {
+          continue;
+        }
+
+        const existing = rulesByName.get(rule.name);
+        if (!existing || candidate.format === 'flat') {
+          rulesByName.set(rule.name, { rule, format: candidate.format });
+        }
+      }
+
+      for (const entry of rulesByName.values()) {
+        rules.push(entry.rule);
       }
 
       ruleStore.getState().setRules(rules);
@@ -156,6 +220,11 @@ export class RuleLogic {
     const rule = this.getRuleByName(name);
     if (!rule || !rule.filePath) return;
 
+    const ruleFileCandidate = RuleLogic.getRuleFileCandidate(rule.filePath);
+    const targetFilePath = ruleFileCandidate?.format === 'legacy'
+      ? `${RULES_FOLDER}/${name}.md`
+      : rule.filePath;
+
     try {
       const content = await this.app!.vault.adapter.read(rule.filePath);
       const { frontmatter, body } = this.parseFrontmatter(content);
@@ -170,7 +239,15 @@ export class RuleLogic {
       };
 
       const newContent = RuleLogic.formatRuleFile(updatedConfig);
-      await this.app!.vault.adapter.write(rule.filePath, newContent);
+      await this.app!.vault.adapter.write(targetFilePath, newContent);
+
+      if (targetFilePath !== rule.filePath) {
+        ruleStore.getState().updateRule({
+          ...rule,
+          enabled,
+          filePath: targetFilePath,
+        });
+      }
     } catch (error) {
       console.error(`Failed to update rule enabled status in file:`, error);
     }

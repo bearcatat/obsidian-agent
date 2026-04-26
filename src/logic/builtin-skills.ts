@@ -376,7 +376,9 @@ Help the user define a persistent rule that will be automatically injected into 
 
 # What are Rules?
 
-Rules are persistent constraints stored in \`obsidian-agent/rules/<rule-name>/RULE.md\` and automatically injected into agent system prompts. Unlike Skills (which are activated per-session), Rules are always active.
+Rules are persistent constraints stored in \`obsidian-agent/rules/<rule-name>.md\` and automatically injected into agent system prompts. Unlike Skills (which are activated per-session), Rules are always active.
+
+Legacy folders like \`obsidian-agent/rules/<rule-name>/RULE.md\` are still supported for reading, but new rules should be written to the flat path.
 
 ## Rule Scope
 - \`all\` — Injected into both the main agent and all sub-agents (default)
@@ -416,7 +418,7 @@ Before writing, lock the spec:
 3. **Description**: One sentence summarizing what the rule enforces.
 4. **Content**: Clear imperative instructions, as concise as possible.
 
-## Step 3: Write RULE.md (Ready to Use)
+## Step 3: Write the Rule File (Ready to Use)
 Keep it short and direct:
 
 \`\`\`markdown
@@ -440,8 +442,8 @@ Use \`write\` to create the rule file:
 
 \`\`\`
 write({
-  file_path: "obsidian-agent/rules/<rule-name>/RULE.md",
-  content: "---\nname: <rule-name>\ndescription: <one-sentence description>\nscope: <all|main|sub>\nenabled: true\n---\n\n<Full RULE.md content>"
+  file_path: "obsidian-agent/rules/<rule-name>.md",
+  content: "---\nname: <rule-name>\ndescription: <one-sentence description>\nscope: <all|main|sub>\nenabled: true\n---\n\n<Full rule file content>"
 })
 \`\`\`
 
@@ -464,7 +466,7 @@ Tell the user:
 - User wants to disable a rule temporarily: set \`enabled: false\` in the frontmatter.
 
 # TEMPLATE
-File path: \`obsidian-agent/rules/<rule-name>/RULE.md\``,
+File path: \`obsidian-agent/rules/<rule-name>.md\``,
   license: 'MIT',
   compatibility: 'obsidian-agent',
   filePath: 'builtin://create-rule',

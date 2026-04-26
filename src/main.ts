@@ -303,7 +303,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			this.app.vault.on('modify', (file: TAbstractFile) => {
 				if (file instanceof TFile &&
 				    file.path.startsWith(RULE_FOLDER) &&
-				    file.name === 'RULE.md') {
+				    RuleLogic.isRuleFilePath(file.path)) {
 					RuleLogic.getInstance().loadRules().catch(error => {
 						console.error('Failed to reload rules:', error);
 					});
@@ -315,7 +315,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			this.app.vault.on('create', (file: TAbstractFile) => {
 				if (file instanceof TFile &&
 				    file.path.startsWith(RULE_FOLDER) &&
-				    file.name === 'RULE.md') {
+				    RuleLogic.isRuleFilePath(file.path)) {
 					RuleLogic.getInstance().loadRules().catch(error => {
 						console.error('Failed to reload rules:', error);
 					});
@@ -327,7 +327,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			this.app.vault.on('delete', (file: TAbstractFile) => {
 				if (file instanceof TFile &&
 				    file.path.startsWith(RULE_FOLDER) &&
-				    file.name === 'RULE.md') {
+				    RuleLogic.isRuleFilePath(file.path)) {
 					RuleLogic.getInstance().loadRules().catch(error => {
 						console.error('Failed to reload rules:', error);
 					});
