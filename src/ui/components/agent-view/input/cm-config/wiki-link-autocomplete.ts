@@ -1,5 +1,5 @@
 import { CompletionContext, CompletionSource, CompletionResult, Completion } from '@codemirror/autocomplete';
-import { App, TFile, prepareFuzzySearch, SearchResult } from 'obsidian';
+import { App, TFile, prepareFuzzySearch } from 'obsidian';
 
 // Regex patterns for wiki link triggers
 const WIKI_LINK_PATTERN = /\[\[([^\]]*)/;  // English [[
@@ -23,9 +23,6 @@ export const createWikiLinkCompletionSource = (app: App): CompletionSource => {
     // Don't trigger on explicit completion (Ctrl+Space) unless there's [[ or 【【
     if (context.explicit && !match) return null;
 
-    // Determine if it's Chinese or English bracket
-    const isChinese = chineseMatch !== null;
-    
     // Extract query from match text (remove the "[[" or "【【" prefix)
     const query = match.text.slice(2) || '';
     const from = match.from + 2; // Position after [[ or 【【
@@ -35,39 +32,27 @@ export const createWikiLinkCompletionSource = (app: App): CompletionSource => {
       file.extension === 'md'
     );
     
-    // Use Obsidian's fuzzy search
-    const searchFn = prepareFuzzySearch(query);
-    
-    // Score and filter files
-    interface FileMatch {
-      file: TFile;
-      result: SearchResult;
-    }
-    
-    const matches: FileMatch[] = [];
-    for (const file of files) {
-      const result = searchFn(file.basename);
-      if (result) {
-        matches.push({ file, result });
-      }
-    }
-    
-    // Sort by score (higher is better match), then by modification time (newer first) for ties
+    // Match against both basename and vault-relative path, but always rank by mtime.
+    const searchFn = query ? prepareFuzzySearch(query) : null;
+    const matches = files.filter((file: TFile) => {
+      if (!searchFn) return true;
+      return !!searchFn(file.path) || !!searchFn(file.basename);
+    });
+
     matches.sort((a, b) => {
-      const scoreDiff = b.result.score - a.result.score;
-      if (scoreDiff !== 0) return scoreDiff;
-      // When scores are equal, sort by modification time (newest first)
-      return b.file.stat.mtime - a.file.stat.mtime;
+      const mtimeDiff = b.stat.mtime - a.stat.mtime;
+      if (mtimeDiff !== 0) return mtimeDiff;
+      return a.path.localeCompare(b.path);
     });
     
     // Limit results
     const limitedMatches = matches.slice(0, 20);
     
     // Create completions
-    const options: Completion[] = limitedMatches.map(({ file }) => ({
-      label: file.basename,
+    const options: Completion[] = limitedMatches.map((file) => ({
+      label: file.path,
       type: 'link',
-      detail: file.path,
+      detail: file.basename,
       apply: (view, completion, fromPos, toPos) => {
         // Insert the wiki link with proper format (always use English [[ for compatibility)
         const insertText = `[[${file.path}|${file.basename}]]`;
@@ -80,7 +65,8 @@ export const createWikiLinkCompletionSource = (app: App): CompletionSource => {
     return {
       from,
       options,
-      validFor: isChinese ? /^[^\u3011]*$/ : /^[^\]]*$/, // Continue completing until 】 or ] is typed
+      // Keep the mtime ordering we computed above instead of CodeMirror re-ranking by label.
+      filter: false,
     };
   };
 };
