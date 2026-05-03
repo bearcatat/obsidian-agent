@@ -326,13 +326,13 @@ function UnifiedDiffRowActions({
   onReject: (block: DerivedBlock) => void;
 }) {
   return (
-    <div className="tw-absolute tw-right-2 tw-top-1/2 tw-z-10 tw-flex -tw-translate-y-1/2 tw-flex-col tw-items-end tw-gap-1">
-      {anchors.map(({ block, blockIndex }) => (
-        <div key={`${block.baselineStart}-${block.headStart}`} className="tw-flex tw-items-center tw-gap-1 tw-rounded-full tw-border tw-border-border tw-bg-primary tw-px-2 tw-py-1 tw-shadow-md">
+    <div className="tw-sticky tw-right-2 tw-z-10 tw-ml-auto tw-flex tw-w-fit tw-shrink-0 tw-flex-col tw-items-end tw-gap-px tw-pl-2">
+      {anchors.map(({ block }) => (
+        <div key={`${block.baselineStart}-${block.headStart}`} className="tw-flex tw-h-5 tw-items-stretch tw-gap-0.5 tw-rounded-full tw-border tw-border-border tw-bg-primary tw-px-1 tw-shadow-md">
           <Button
             variant="ghost"
             size="fit"
-            className="tw-text-accent"
+            className="tw-h-full tw-rounded-full tw-px-1 tw-text-[11px] tw-leading-4 tw-text-accent"
             onClick={() => onAccept(block)}
           >
             <Check className="tw-size-4" />
@@ -341,7 +341,7 @@ function UnifiedDiffRowActions({
           <Button
             variant="ghost"
             size="fit"
-            className="tw-text-[#82071e] dark:tw-text-[#ffa198]"
+            className="tw-h-full tw-rounded-full tw-px-1 tw-text-[11px] tw-leading-4 tw-text-[#82071e] dark:tw-text-[#ffa198]"
             onClick={() => onReject(block)}
           >
             <Undo2 className="tw-size-4" />
@@ -353,18 +353,37 @@ function UnifiedDiffRowActions({
   );
 }
 
-function UnifiedDiffRowView({
-  row,
+function UnifiedDiffActionRow({
   lineNumberWidth,
-  actionAnchors,
+  anchors,
   onAccept,
   onReject,
 }: {
-  row: UnifiedDiffRow;
   lineNumberWidth: string;
-  actionAnchors?: RowActionAnchor[];
+  anchors: RowActionAnchor[];
   onAccept: (block: DerivedBlock) => void;
   onReject: (block: DerivedBlock) => void;
+}) {
+  return (
+    <div className="tw-flex tw-min-h-5 tw-items-center tw-py-0.5 tw-select-none tw-font-mono tw-text-xs">
+      <span
+        aria-hidden="true"
+        className="tw-shrink-0 tw-border-r tw-border-border/60 tw-px-2 tw-py-0.5"
+        style={{ width: lineNumberWidth }}
+      />
+      <span aria-hidden="true" className="tw-shrink-0 tw-min-w-[2rem] tw-px-2 tw-py-0.5" />
+      <span aria-hidden="true" className="tw-flex-1 tw-py-0.5 tw-pr-2" />
+      <UnifiedDiffRowActions anchors={anchors} onAccept={onAccept} onReject={onReject} />
+    </div>
+  );
+}
+
+function UnifiedDiffRowView({
+  row,
+  lineNumberWidth,
+}: {
+  row: UnifiedDiffRow;
+  lineNumberWidth: string;
 }) {
   if (row.kind === "meta") {
     return (
@@ -414,7 +433,7 @@ function UnifiedDiffRowView({
       : "tw-text-muted-foreground";
 
   return (
-    <div className={cn("tw-relative tw-flex tw-items-start tw-select-text tw-font-mono tw-text-xs", bgColor, borderColor, actionAnchors?.length ? "tw-pr-[19rem]" : undefined)}>
+    <div className={cn("tw-flex tw-items-start tw-select-text tw-font-mono tw-text-xs", bgColor, borderColor)}>
       <span className={cn("tw-shrink-0 tw-select-none tw-border-r tw-border-border/60 tw-px-2 tw-py-0.5 tw-text-right", lineNumberColor)} style={{ width: lineNumberWidth }}>
         {visibleLineNumber ?? ""}
       </span>
@@ -424,7 +443,6 @@ function UnifiedDiffRowView({
       <span className={cn("tw-flex-1 tw-whitespace-pre tw-py-0.5 tw-pr-2", textColor)}>
         {lineRow.text || " "}
       </span>
-      {actionAnchors?.length ? <UnifiedDiffRowActions anchors={actionAnchors} onAccept={onAccept} onReject={onReject} /> : null}
     </div>
   );
 }
@@ -539,17 +557,25 @@ export function FileReviewDialog({
               ) : null}
             </div>
           </div>
-          <div className="tw-min-h-0 tw-flex-1 tw-overflow-y-auto tw-select-text">
-            {unifiedDiffRows.map((row, index) => (
-              <UnifiedDiffRowView
-                key={`row-${row.kind}-${index}`}
-                row={row}
-                lineNumberWidth={lineNumberWidth}
-                actionAnchors={rowActionAnchors.get(index)}
-                onAccept={handleAccept}
-                onReject={handleReject}
-              />
-            ))}
+          <div className="tw-min-h-0 tw-flex-1 tw-overflow-auto tw-select-text">
+            <div className="tw-min-w-full tw-w-max">
+              {unifiedDiffRows.map((row, index) => (
+                <React.Fragment key={`row-${row.kind}-${index}`}>
+                  <UnifiedDiffRowView
+                    row={row}
+                    lineNumberWidth={lineNumberWidth}
+                  />
+                  {rowActionAnchors.get(index)?.length ? (
+                    <UnifiedDiffActionRow
+                      lineNumberWidth={lineNumberWidth}
+                      anchors={rowActionAnchors.get(index) ?? []}
+                      onAccept={handleAccept}
+                      onReject={handleReject}
+                    />
+                  ) : null}
+                </React.Fragment>
+              ))}
+            </div>
           </div>
         </div>
         </div>
