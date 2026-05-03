@@ -6,6 +6,7 @@ import { ReadNoteByLinkTool, toolName as ReadNoteByLinkToolName } from "./ReadNo
 import { QuestionTool, toolName as QuestionToolName } from "./Question/QuestionTool";
 import { FileEditTool, toolName as FileEditToolName } from "./FileEdit/FileEditTool";
 import { WriteTool, toolName as WriteToolName } from "./FileEdit/WriteTool";
+import { MoveNoteTool, toolName as MoveNoteToolName } from "./MoveNote/MoveNoteTool";
 import { WebFetchTool, toolName as WebFetchToolName } from "./WebFetch/WebFetchTool";
 import { SearchTool, toolName as SearchToolName } from "./Search/SearchTool";
 import { ExaWebSearchTool, toolName as ExaWebSearchToolName, updateExaConfig } from "./ExaSearch/ExaSearchTool";
@@ -28,6 +29,7 @@ export default class AIToolManager {
     [QuestionToolName]: QuestionTool,
     [FileEditToolName]: FileEditTool,
     [WriteToolName]: WriteTool,
+    [MoveNoteToolName]: MoveNoteTool,
     [WebFetchToolName]: WebFetchTool,
     [SearchToolName]: SearchTool,
     [ListToolName]: ListTool,

@@ -6,10 +6,10 @@
 	"scripts": {
 		"dev": "npm-run-all --parallel dev:*",
 		"dev:esbuild": "node esbuild.config.mjs",
-		"dev:css": "tailwindcss -i ./src/styles.css -o ./styles.css --watch",
+		"dev:css": "BROWSERSLIST_IGNORE_OLD_DATA=1 tailwindcss -i ./src/styles.css -o ./styles.css --watch",
 		"build": "npm-run-all --parallel build:*",
 		"build:esbuild": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"build:css": "tailwindcss -i ./src/styles.css -o ./styles.css --minify",
+		"build:css": "BROWSERSLIST_IGNORE_OLD_DATA=1 tailwindcss -i ./src/styles.css -o ./styles.css --minify",
 		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
 	"keywords": [],
@@ -65,7 +65,6 @@
 		"@radix-ui/react-slot": "^1.2.3",
 		"@radix-ui/react-tooltip": "^1.2.7",
 		"@types/diff-match-patch": "^1.0.36",
-		"@types/uuid": "^10.0.0",
 		"ai": "^6.0.67",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
@@ -76,13 +75,12 @@
 		"https-proxy-agent": "^9.0.0",
 		"immer": "^11.1.4",
 		"lucide-react": "^0.540.0",
-		"mcp-use": "^0.1.17",
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1",
 		"socks-proxy-agent": "^10.0.0",
 		"tailwind-merge": "^3.3.1",
 		"turndown": "^7.2.2",
-		"uuid": "^11.1.0",
+		"uuid": "^14.0.0",
 		"zustand": "^5.0.11"
 	},
 	"overrides": {

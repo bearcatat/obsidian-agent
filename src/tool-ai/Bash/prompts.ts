@@ -38,4 +38,6 @@ Blocked commands (cannot be overridden):
 - Commands that attempt to escape the vault directory
 - Commands that could harm the system
 
-Note: This tool only works within the Obsidian vault.`;
+Notes:
+- Do not use this tool to move or rename Obsidian Markdown notes. Use the note move tool instead so Obsidian can maintain internal links/backlinks.
+- This tool only works within the Obsidian vault.`;

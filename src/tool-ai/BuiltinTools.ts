@@ -52,6 +52,11 @@ export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
     enabled: true,
   },
   {
+    name: "moveNote",
+    description: "Move or rename a note using Obsidian link-safe APIs",
+    enabled: true,
+  },
+  {
     name: "webFetch",
     description: "Fetch content from a URL",
     enabled: true,

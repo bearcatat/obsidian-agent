@@ -6,6 +6,7 @@ import { QuestionToolMessageCard } from './question-tool-message-card';
 import { renderBochaWebSearchMessage } from '@/tool-ai/BochaSearch/BochaSearchTool';
 import { renderExaWebSearchMessage } from '@/tool-ai/ExaSearch/ExaSearchTool';
 import { renderListMessage } from '@/tool-ai/List/ListTool';
+import { renderMoveNoteMessage } from '@/tool-ai/MoveNote/MoveNoteTool';
 import { renderReadNoteByLinkMessage } from '@/tool-ai/ReadNote/ReadNoteByLink/ReadNoteByLinkTool';
 import { renderReadNoteByPathMessage } from '@/tool-ai/ReadNote/ReadNoteByPath/ReadNoteByPathTool';
 import { renderSearchMessage } from '@/tool-ai/Search/SearchTool';
@@ -69,6 +70,8 @@ export function renderHistoricalToolMessage(toolName: string, contentJson: strin
             isReverted={data.isReverted}
           />
         );
+      case 'moveNote':
+        return renderMoveNoteMessage(data.moveResult);
       case 'askQuestion':
         return (
           <div className="tw-flex tw-flex-col tw-gap-2">
