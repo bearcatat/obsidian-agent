@@ -395,7 +395,7 @@ function UnifiedDiffRowView({
     ? "tw-border-l-2 tw-border-l-[#fa4549] dark:tw-border-l-[#f85149]"
     : isAdd
       ? "tw-border-l-2 tw-border-l-[#3fb950] dark:tw-border-l-[#3fb950]"
-      : "";
+      : "tw-border-l-2 tw-border-l-transparent";
   const prefix = isDelete ? "-" : isAdd ? "+" : " ";
   const prefixColor = isDelete
     ? "tw-bg-[#ffd7d9] dark:tw-bg-[#67060c] tw-text-[#82071e] dark:tw-text-[#ffa198]"
@@ -415,10 +415,10 @@ function UnifiedDiffRowView({
 
   return (
     <div className={cn("tw-relative tw-flex tw-items-start tw-select-text tw-font-mono tw-text-xs", bgColor, borderColor, actionAnchors?.length ? "tw-pr-[19rem]" : undefined)}>
-      <span className={cn("tw-select-none tw-border-r tw-border-border/60 tw-px-2 tw-py-0.5 tw-text-right", lineNumberColor)} style={{ width: lineNumberWidth }}>
+      <span className={cn("tw-shrink-0 tw-select-none tw-border-r tw-border-border/60 tw-px-2 tw-py-0.5 tw-text-right", lineNumberColor)} style={{ width: lineNumberWidth }}>
         {visibleLineNumber ?? ""}
       </span>
-      <span className={cn("tw-min-w-[2rem] tw-select-none tw-px-2 tw-py-0.5 tw-text-center", prefixColor)}>
+      <span className={cn("tw-shrink-0 tw-min-w-[2rem] tw-select-none tw-px-2 tw-py-0.5 tw-text-center", prefixColor)}>
         {prefix}
       </span>
       <span className={cn("tw-flex-1 tw-whitespace-pre tw-py-0.5 tw-pr-2", textColor)}>

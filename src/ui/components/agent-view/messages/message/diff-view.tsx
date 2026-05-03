@@ -16,14 +16,14 @@ export const DiffView = ({ diffRows }: Props) => {
 
     return (
         <div className="tw-w-full tw-mt-2 tw-rounded tw-border tw-border-border tw-overflow-hidden tw-bg-[#f6f8fa] dark:tw-bg-[#0d1117]">
-            <div className="tw-font-mono tw-text-xs tw-leading-relaxed tw-max-h-48 tw-overflow-y-auto">
+            <div className="tw-font-mono tw-text-xs tw-leading-relaxed tw-max-h-48 tw-overflow-auto">
                 {diffRows.length === 0 ? (
                     <div className="tw-px-2 tw-py-1 tw-text-muted-foreground">No changes</div>
                 ) : diffRows.map((row, index) => {
                     if (row.type === "ellipsis") {
                         return (
-                            <div key={index} className="tw-flex tw-items-center tw-bg-transparent tw-text-muted-foreground">
-                                <span className="tw-select-none tw-px-1 tw-py-0.5 tw-text-right tw-border-r tw-border-border/60" style={{ width: lineNumWidth }} />
+                            <div key={index} className="tw-flex tw-items-center tw-bg-transparent tw-text-muted-foreground tw-border-l-2 tw-border-l-transparent">
+                                <span className="tw-shrink-0 tw-select-none tw-px-1 tw-py-0.5 tw-text-right tw-border-r tw-border-border/60" style={{ width: lineNumWidth }} />
                                 <span className="tw-px-2 tw-py-0.5 tw-font-mono tw-text-xs">...</span>
                             </div>
                         );
@@ -43,7 +43,7 @@ export const DiffView = ({ diffRows }: Props) => {
                         ? "tw-border-l-2 tw-border-l-[#fa4549] dark:tw-border-l-[#f85149]"
                         : isAdd
                             ? "tw-border-l-2 tw-border-l-[#3fb950] dark:tw-border-l-[#3fb950]"
-                            : "";
+                            : "tw-border-l-2 tw-border-l-transparent";
 
                     const prefix = isDelete ? "-" : isAdd ? "+" : " ";
                     const prefixBg = isDelete
@@ -66,10 +66,10 @@ export const DiffView = ({ diffRows }: Props) => {
 
                     return (
                         <div key={index} className={`tw-flex tw-items-start ${bgColor} ${borderColor}`}>
-                            <span className={`tw-select-none tw-px-1 tw-py-0.5 tw-text-right tw-border-r tw-border-border/60 ${lineNumColor}`} style={{ width: lineNumWidth }}>
+                            <span className={`tw-shrink-0 tw-select-none tw-px-1 tw-py-0.5 tw-text-right tw-border-r tw-border-border/60 ${lineNumColor}`} style={{ width: lineNumWidth }}>
                                 {row.newLineNum ?? ""}
                             </span>
-                            <span className={`tw-select-none tw-px-2 tw-py-0.5 tw-min-w-[1.5rem] tw-text-center ${prefixBg}`}>
+                            <span className={`tw-shrink-0 tw-select-none tw-px-2 tw-py-0.5 tw-min-w-[1.5rem] tw-text-center ${prefixBg}`}>
                                 {prefix}
                             </span>
                             <span className={`tw-flex-1 tw-py-0.5 tw-pr-2 tw-whitespace-pre ${textColor || "tw-text-foreground"}`}>
