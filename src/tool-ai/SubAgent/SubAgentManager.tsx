@@ -9,6 +9,12 @@ import SubAgentLogic from "@/logic/subagent-logic";
 import RuleLogic from "@/logic/rule-logic";
 import AIModelManager from "@/llm-ai/ModelManager";
 import { agentStore } from "@/state/agent-state-impl";
+import {
+  TASK_SUBAGENT_DESCRIPTION,
+  TASK_SUBAGENT_DESCRIPTION_PARAMETER_DESCRIPTION,
+  TASK_SUBAGENT_NAME,
+  TASK_SUBAGENT_SYSTEM_PROMPT,
+} from "./prompts";
 
 
 export default class SubAgentManager {
@@ -17,9 +23,6 @@ export default class SubAgentManager {
 
   getEnabledTools(allToolSet: ToolSet): ToolSet {
     const enabledSubAgents = SubAgentLogic.getInstance().getEnabledSubAgents();
-    if (enabledSubAgents.length === 0) {
-      return {};
-    }
 
     const modelManager = AIModelManager.getInstance();
     // Check if default model is configured
@@ -37,59 +40,103 @@ export default class SubAgentManager {
           message: z.string().describe("The message to send to the sub agent, should include context information"),
         }),
         execute: async ({ message }, { toolCallId, experimental_context, abortSignal }) => {
-          // Dynamically get current model configuration
-          const currentModel = agentStore.getState().model;
-          const currentVariant = agentStore.getState().variant;
-          const agentModelConfig = currentModel ?? modelManager.agentModelConfig;
-          const agentVariant = currentVariant ?? modelManager.currentVariant ?? null;
-          
-          if (!agentModelConfig) {
-            throw new Error('No model configured for SubAgent');
-          }
-
-          const context = experimental_context as { addMessage: (message: MessageV2) => void }
-          const userMessage = new UserMessage(message)
-
-          let messages: MessageV2[] = [userMessage];
-          const toolMessage = ToolMessage.from(config.name, toolCallId)
-          toolMessage.setChildren(render(config.name, messages, true));
-          context.addMessage(toolMessage)
-
-          // Build system prompt with injected rules
-          const subAgentRules = RuleLogic.getInstance().getRulesForSubAgent();
-          let systemPrompt = config.systemPrompt;
-          if (subAgentRules.length > 0) {
-            const rulesContent = subAgentRules.map(rule => {
-              return `## Rule: ${rule.name}\n${rule.body}`;
-            }).join('\n\n---\n\n');
-            systemPrompt += `\n\n# Rules\n\nThe following rules must be followed at all times:\n\n${rulesContent}`;
-          }
-
-          const agent = new SubAgent(config.name, systemPrompt, config.description, agentModelConfig, agentVariant)
-          agent.setTools(getToolSetForSubAgent(config, allToolSet))
-
-          const text = await agent.query(userMessage, abortSignal ?? new AbortController().signal, (message: MessageV2) => {
-            const existingIndex = messages.findIndex((m) => m.id === message.id);
-
-            if (existingIndex >= 0) {
-              const newMessages = [...messages];
-              newMessages[existingIndex] = message;
-              messages = newMessages;
-            } else {
-              messages = [...messages, message];
-            }
-
-            toolMessage.setChildren(render(config.name, messages, true));
-            context.addMessage(toolMessage)
-          })
-          toolMessage.setChildren(render(config.name, messages, false));
-          toolMessage.close()
-          return text
+          return this.runSubAgentTool(
+            config,
+            message,
+            getToolSetForSubAgent(config, allToolSet),
+            toolCallId,
+            experimental_context,
+            abortSignal ?? new AbortController().signal,
+          );
         }
       })
       toolSet[config.name] = agentTool
     })
+
+    if (toolSet[TASK_SUBAGENT_NAME]) {
+      console.warn(`SubAgentManager: Built-in subagent "${TASK_SUBAGENT_NAME}" overrides file-based subagent with the same name`);
+    }
+
+    toolSet[TASK_SUBAGENT_NAME] = tool({
+      title: TASK_SUBAGENT_NAME,
+      description: TASK_SUBAGENT_DESCRIPTION,
+      inputSchema: z.object({
+        description: z.string().describe(TASK_SUBAGENT_DESCRIPTION_PARAMETER_DESCRIPTION),
+      }),
+      execute: async ({ description }, { toolCallId, experimental_context, abortSignal }) => {
+        return this.runSubAgentTool(
+          {
+            name: TASK_SUBAGENT_NAME,
+            description: TASK_SUBAGENT_DESCRIPTION,
+            systemPrompt: TASK_SUBAGENT_SYSTEM_PROMPT,
+            enabled: true,
+            filePath: "",
+            builtin: true,
+          },
+          description,
+          getToolSetForTaskSubAgent(allToolSet),
+          toolCallId,
+          experimental_context,
+          abortSignal ?? new AbortController().signal,
+        );
+      }
+    })
+
     return toolSet
+  }
+
+  private async runSubAgentTool(
+    config: SubAgentConfig,
+    prompt: string,
+    toolSet: ToolSet,
+    toolCallId: string,
+    experimentalContext: unknown,
+    abortSignal: AbortSignal,
+  ): Promise<string> {
+    const modelManager = AIModelManager.getInstance();
+    const currentModel = agentStore.getState().model;
+    const currentVariant = agentStore.getState().variant;
+    const agentModelConfig = currentModel ?? modelManager.agentModelConfig;
+    const agentVariant = currentVariant ?? modelManager.currentVariant ?? null;
+
+    if (!agentModelConfig) {
+      throw new Error('No model configured for SubAgent');
+    }
+
+    const context = experimentalContext as { addMessage: (message: MessageV2) => void }
+    const userMessage = new UserMessage(prompt)
+
+    let messages: MessageV2[] = [userMessage];
+    const toolMessage = ToolMessage.from(config.name, toolCallId)
+    toolMessage.setChildren(render(config.name, messages, true));
+    context.addMessage(toolMessage)
+
+    const agent = new SubAgent(
+      config.name,
+      buildSubAgentSystemPrompt(config),
+      config.description,
+      agentModelConfig,
+      agentVariant,
+    )
+    agent.setTools(toolSet)
+
+    const text = await agent.query(userMessage, abortSignal, (message: MessageV2) => {
+      const existingIndex = messages.findIndex((m) => m.id === message.id);
+
+      if (existingIndex >= 0) {
+        const newMessages = [...messages];
+        newMessages[existingIndex] = message;
+        messages = newMessages;
+      } else {
+        messages = [...messages, message];
+      }
+
+      toolMessage.setChildren(render(config.name, messages, true));
+      context.addMessage(toolMessage)
+    })
+    toolMessage.setChildren(render(config.name, messages, false));
+    toolMessage.close()
+    return text
   }
 }
 
@@ -103,5 +150,24 @@ function getToolSetForSubAgent(config: SubAgentConfig, toolSet: ToolSet): ToolSe
   if (!config.tools || config.tools.length === 0) {
     return {};
   }
-  return Object.fromEntries(Object.entries(toolSet).filter(([k, v]) => config.tools!.includes(k)))
+  return Object.fromEntries(Object.entries(toolSet).filter(([toolName]) => config.tools!.includes(toolName)))
+}
+
+function getToolSetForTaskSubAgent(toolSet: ToolSet): ToolSet {
+  return Object.fromEntries(
+    Object.entries(toolSet).filter(([toolName]) => toolName !== TASK_SUBAGENT_NAME && toolName !== "skill")
+  )
+}
+
+function buildSubAgentSystemPrompt(config: SubAgentConfig): string {
+  const subAgentRules = RuleLogic.getInstance().getRulesForSubAgent();
+  if (subAgentRules.length === 0) {
+    return config.systemPrompt;
+  }
+
+  const rulesContent = subAgentRules.map(rule => {
+    return `## Rule: ${rule.name}\n${rule.body}`;
+  }).join('\n\n---\n\n');
+
+  return `${config.systemPrompt}\n\n# Rules\n\nThe following rules must be followed at all times:\n\n${rulesContent}`;
 }
