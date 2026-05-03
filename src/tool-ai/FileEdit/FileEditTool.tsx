@@ -8,6 +8,7 @@ import { FileEditToolMessageCard } from "@/ui/components/agent-view/messages/mes
 import { FileEdit, FileReviewStatus, MessageV2 } from "@/types";
 import { diff_match_patch } from "diff-match-patch";
 import { FileReviewLogic } from "@/logic/file-review-logic";
+import { SnapshotLogic } from "@/logic/snapshot-logic";
 import { fileMutex } from "./mutex";
 
 export const toolName = "editFile"
@@ -171,6 +172,7 @@ export const FileEditTool = tool({
 
 			const diff = createDiff(oldContent, newContent)
 			const toolMessage = ToolMessage.from(toolName, toolCallId ?? "")
+			const undoSnapshotId = await SnapshotLogic.getInstance().createSnapshot(relativePath)
 			const reviewBase = await FileReviewLogic.getInstance().prepareReviewBase(relativePath, oldContent, false)
 
 			const fileEdit: FileEdit = {
@@ -178,7 +180,7 @@ export const FileEditTool = tool({
 				file_path: relativePath,
 				old_string,
 				new_string,
-				old_content: oldContent || undefined,
+				old_content: oldContent,
 				new_content: newContent,
 			}
 
@@ -197,6 +199,7 @@ export const FileEditTool = tool({
 				toolName,
 				fileEdit,
 				snapshotId: reviewBase.baselineSnapshotId,
+				undoSnapshotId,
 				reviewStatus: reviewEntry.status,
 				isReverted: reviewEntry.isReverted,
 			};

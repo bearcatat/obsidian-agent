@@ -243,6 +243,10 @@ export class SessionLogic {
                   snapshotIds.add(snapshotId);
                     }
                 }
+
+                for (const messageData of turn.assistantMessages || []) {
+                  this.collectSnapshotIdsFromToolMessage(messageData, snapshotIds);
+                }
             }
 
             for (const review of sessionData.fileReviews || []) {
@@ -262,6 +266,24 @@ export class SessionLogic {
   }
 
   // --- Serialization Helpers ---
+
+  private collectSnapshotIdsFromToolMessage(messageData: any, snapshotIds: Set<string>): void {
+    if (messageData?.role !== 'tool' || !messageData.content) {
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(messageData.content);
+      if (payload.snapshotId) {
+        snapshotIds.add(payload.snapshotId);
+      }
+      if (payload.undoSnapshotId) {
+        snapshotIds.add(payload.undoSnapshotId);
+      }
+    } catch (e) {
+      // ignore parse errors
+    }
+  }
 
   private serializeToTurns(messages: MessageV2[], modelMessages: ModelMessage[]): TurnData[] {
     const turns: TurnData[] = [];

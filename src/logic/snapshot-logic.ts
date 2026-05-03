@@ -6,6 +6,7 @@ export class SnapshotLogic {
   private static instance: SnapshotLogic;
   private app: App;
   private readonly SNAPSHOTS_DIR = ".obsidian/plugins/obsidian-agent/sessions/snapshots";
+  private readonly FILE_NOT_EXISTED_SENTINEL = "__FILE_NOT_EXISTED__";
 
   private constructor() {
     this.app = getGlobalApp();
@@ -29,6 +30,25 @@ export class SnapshotLogic {
     }
   }
 
+  private async ensureParentDir(relativePath: string): Promise<void> {
+    const adapter = this.app.vault.adapter;
+    const dirPath = relativePath.substring(0, relativePath.lastIndexOf('/'));
+
+    if (!dirPath || dirPath === '.') {
+      return;
+    }
+
+    const parts = dirPath.split('/').filter(Boolean);
+    let currentPath = "";
+
+    for (const part of parts) {
+      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      if (!(await adapter.exists(currentPath))) {
+        await adapter.mkdir(currentPath);
+      }
+    }
+  }
+
   /**
    * Captures the current state of a file before modification.
    * Returns the snapshot ID.
@@ -48,7 +68,7 @@ export class SnapshotLogic {
         content = await vault.read(file);
     } else {
         // File does not exist
-        content = "__FILE_NOT_EXISTED__"; 
+        content = this.FILE_NOT_EXISTED_SENTINEL;
     }
 
     const snapshotId = uuidv4();
@@ -63,8 +83,7 @@ export class SnapshotLogic {
    * Restores a file to the state recorded in the snapshot.
    */
   async restoreSnapshot(snapshotId: string, filePath: string): Promise<void> {
-    const vault = this.app.vault;
-    const adapter = vault.adapter;
+    const adapter = this.app.vault.adapter;
     const snapshotPath = `${this.SNAPSHOTS_DIR}/${snapshotId}.txt`;
 
     if (!(await adapter.exists(snapshotPath))) {
@@ -73,30 +92,33 @@ export class SnapshotLogic {
     }
 
     const content = await adapter.read(snapshotPath);
-    
-    // Normalize path
-    let relativePath = normalizePath(filePath);
+    await this.restoreFileContent(
+      filePath,
+      content === this.FILE_NOT_EXISTED_SENTINEL ? null : content,
+    );
+  }
 
-    if (content === "__FILE_NOT_EXISTED__") {
-        // File didn't exist before, so we delete it if it exists now
-        const file = vault.getAbstractFileByPath(relativePath);
-        if (file) {
-            await vault.delete(file);
-        }
-    } else {
-        // File existed, restore content
-        const file = vault.getAbstractFileByPath(relativePath);
-        if (file instanceof TFile) {
-            await vault.modify(file, content);
-        } else if (!file) {
-            // File was deleted, recreate it
-            // Ensure directory exists
-            const dirPath = relativePath.substring(0, relativePath.lastIndexOf('/'));
-            if (dirPath && !(await adapter.exists(dirPath))) {
-                await adapter.mkdir(dirPath);
-            }
-            await vault.create(relativePath, content);
-        }
+  async restoreFileContent(filePath: string, content: string | null): Promise<void> {
+    const vault = this.app.vault;
+    const relativePath = normalizePath(filePath);
+
+    if (content === null) {
+      const file = vault.getAbstractFileByPath(relativePath);
+      if (file) {
+        await vault.delete(file);
+      }
+      return;
+    }
+
+    const file = vault.getAbstractFileByPath(relativePath);
+    if (file instanceof TFile) {
+      await vault.modify(file, content);
+      return;
+    }
+
+    if (!file) {
+      await this.ensureParentDir(relativePath);
+      await vault.create(relativePath, content);
     }
   }
 

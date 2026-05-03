@@ -8,6 +8,7 @@ import { WriteToolMessageCard } from "@/ui/components/agent-view/messages/messag
 import { FileReviewStatus, MessageV2 } from "@/types";
 import { diff_match_patch } from "diff-match-patch";
 import { FileReviewLogic } from "@/logic/file-review-logic";
+import { SnapshotLogic } from "@/logic/snapshot-logic";
 import { fileMutex } from "./mutex";
 
 export const toolName = "write"
@@ -94,6 +95,7 @@ export const WriteTool = tool({
 
       const diff = exists ? createDiff(oldContent, content) : ''
       const toolMessage = ToolMessage.from(toolName, toolCallId ?? "")
+      const undoSnapshotId = await SnapshotLogic.getInstance().createSnapshot(relativePath)
       const reviewBase = await FileReviewLogic.getInstance().prepareReviewBase(relativePath, oldContent, !exists)
 
       const writeResult: WriteResult = {
@@ -130,6 +132,7 @@ export const WriteTool = tool({
         toolName,
         writeResult,
         snapshotId: reviewBase.baselineSnapshotId,
+        undoSnapshotId,
         reviewStatus: reviewEntry.status,
         isReverted: reviewEntry.isReverted,
       };
