@@ -12,7 +12,7 @@ export const Chat: React.FC<ChatProps> = () => {
   return (
     <div className="tw-h-full">
       <div className="tw-relative tw-flex tw-h-full tw-flex-col">
-        <div className="tw-flex tw-size-full tw-flex-col tw-overflow-hidden">
+        <div className="tw-flex tw-size-full tw-flex-col">
           <Title />
           <Messages />
           <FileReviewPanel />
