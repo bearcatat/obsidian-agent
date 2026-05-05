@@ -1,5 +1,5 @@
 import { ModelConfig, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig } from '../types';
-import { getDefaultBuiltinTools } from '../tool-ai/BuiltinTools';
+import { getDefaultBuiltinTools } from '../tool/BuiltinTools';
 
 export interface ISettingsState {
   readonly models: ModelConfig[];

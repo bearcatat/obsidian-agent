@@ -12,7 +12,7 @@ import { EditHistoryManager } from './state/edit-history-state';
 import { CopyContextManager } from './state/copy-context-state';
 import { ChatMenuManager } from './state/chat-menu-state';
 import { InputEditorState } from './state/input-editor-state';
-import AIToolManager from './tool-ai/ToolManager';
+import AIToolManager from './tool/ToolManager';
 import AIModelManager from './llm/ModelManager';
 import CommandLogic from './logic/command-logic';
 import SkillLogic from './logic/skill-logic';
@@ -21,7 +21,7 @@ import RuleLogic from './logic/rule-logic';
 import { skillStore } from './state/skill-state';
 import { subAgentStore } from './state/subagent-state';
 import { ruleStore } from './state/rule-state';
-import TelegramFeedbackRuntime from './tool-ai/TelegramFeedback/TelegramFeedbackRuntime';
+import TelegramFeedbackRuntime from './tool/TelegramFeedback/TelegramFeedbackRuntime';
 
 export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgentPlugin {
 	private uiManager!: UIManager;

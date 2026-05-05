@@ -1,7 +1,7 @@
 import { generateText, ModelMessage } from "ai";
 import { UserMessage } from "@/messages/user-message";
 import { getSystemPrompts, getTitleGenerationPrompt } from "./system-prompts";
-import AIToolManager from "@/tool-ai/ToolManager";
+import AIToolManager from "@/tool/ToolManager";
 import { MessageV2 } from "@/types";
 import AIModelManager from "./ModelManager";
 import SkillLogic from "@/logic/skill-logic";

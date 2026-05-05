@@ -5,7 +5,7 @@ import { SubAgentConfig } from "@/types";
 import SubAgentLogic from "@/logic/subagent-logic";
 import { useSubAgentStore } from "@/state/subagent-state";
 import { SettingSwitch } from "@/ui/elements/setting-switch";
-import AIToolManager from "@/tool-ai/ToolManager";
+import AIToolManager from "@/tool/ToolManager";
 
 export const SubAgentSetting: React.FC = () => {
   const subAgents = useSubAgentStore((state) => state.subAgents);

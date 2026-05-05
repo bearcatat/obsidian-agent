@@ -36,3 +36,4 @@ dist/manifest.json
 .github/skills/*
 .github/agents/*
 .agents/*
+.opencode/*

@@ -1,6 +1,6 @@
 import { Plugin } from "obsidian";
 import { settingsStore } from "@/state/settings-state-impl";
-import { getDefaultBuiltinTools } from "@/tool-ai/BuiltinTools";
+import { getDefaultBuiltinTools } from "@/tool/BuiltinTools";
 
 let settingsPlugin: Plugin | undefined;
 

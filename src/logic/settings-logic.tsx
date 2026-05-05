@@ -1,10 +1,10 @@
 import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig } from "../types";
 import { settingsStore } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
-import AIToolManager from "@/tool-ai/ToolManager";
+import AIToolManager from "@/tool/ToolManager";
 import { ToolSet } from "ai";
 import { setSettingsPlugin } from "./settings-persistence";
-import TelegramFeedbackRuntime from "@/tool-ai/TelegramFeedback/TelegramFeedbackRuntime";
+import TelegramFeedbackRuntime from "@/tool/TelegramFeedback/TelegramFeedbackRuntime";
 
 export class SettingsLogic {
     private static instance: SettingsLogic;
@@ -218,7 +218,7 @@ export class SettingsLogic {
                 settingsStore.getState().setAllData(savedData);
             }
             // 异步初始化，不阻塞插件加载
-            TelegramFeedbackRuntime.getInstance().configure(settingsStore.getState().telegramFeedbackConfig).catch(error => {
+            TelegramFeedbackRuntime.getInstance().configure(settingsStore.getState().telegramFeedbackConfig).catch((error: unknown) => {
                 console.error('[TelegramFeedbackRuntime] Background configure failed:', error);
             });
         } catch (error) {

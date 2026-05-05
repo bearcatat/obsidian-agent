@@ -4,7 +4,7 @@ import { FileReviewEntry } from "@/types";
 import { hashReviewContent } from "./file-review-utils";
 import { SnapshotLogic } from "./snapshot-logic";
 import { getGlobalApp } from "@/utils";
-import { fileMutex } from "@/tool-ai/FileEdit/mutex";
+import { fileMutex } from "@/tool/FileEdit/mutex";
 
 interface PrepareReviewBaseResult {
   baselineContent: string;

@@ -3,17 +3,17 @@ import { BashToolMessageCard } from './bash-tool-message-card';
 import { FileEditToolMessageCard } from './file-edit-tool-message-card';
 import { WriteToolMessageCard } from './write-tool-message-card';
 import { QuestionToolMessageCard } from './question-tool-message-card';
-import { renderBochaWebSearchMessage } from '@/tool-ai/BochaSearch/BochaSearchTool';
-import { renderExaWebSearchMessage } from '@/tool-ai/ExaSearch/ExaSearchTool';
-import { renderListMessage } from '@/tool-ai/List/ListTool';
-import { renderMoveNoteMessage } from '@/tool-ai/MoveNote/MoveNoteTool';
-import { renderReadNoteByLinkMessage } from '@/tool-ai/ReadNote/ReadNoteByLink/ReadNoteByLinkTool';
-import { renderReadNoteByPathMessage } from '@/tool-ai/ReadNote/ReadNoteByPath/ReadNoteByPathTool';
-import { renderSearchMessage } from '@/tool-ai/Search/SearchTool';
-import { renderSkillMessage } from '@/tool-ai/Skill/SkillTool';
+import { renderBochaWebSearchMessage } from '@/tool/BochaSearch/BochaSearchTool';
+import { renderExaWebSearchMessage } from '@/tool/ExaSearch/ExaSearchTool';
+import { renderListMessage } from '@/tool/List/ListTool';
+import { renderMoveNoteMessage } from '@/tool/MoveNote/MoveNoteTool';
+import { renderReadNoteByLinkMessage } from '@/tool/ReadNote/ReadNoteByLink/ReadNoteByLinkTool';
+import { renderReadNoteByPathMessage } from '@/tool/ReadNote/ReadNoteByPath/ReadNoteByPathTool';
+import { renderSearchMessage } from '@/tool/Search/SearchTool';
+import { renderSkillMessage } from '@/tool/Skill/SkillTool';
 import { renderTelegramFeedbackMessage } from './telegram-feedback-message-card';
-import { renderGetCurrentTimeMessage } from '@/tool-ai/Time/GetCurrentTime/GetCurrentTimeTool';
-import { renderWebFetchMessage } from '@/tool-ai/WebFetch/WebFetchTool';
+import { renderGetCurrentTimeMessage } from '@/tool/Time/GetCurrentTime/GetCurrentTimeTool';
+import { renderWebFetchMessage } from '@/tool/WebFetch/WebFetchTool';
 
 interface CreateCommandResult {
   name: string;
