@@ -1,7 +1,9 @@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui/elements/collapsible";
 import { Button } from "@/ui/elements/button";
+import { MessageV2 } from "@/types";
 import { AssistantMessageCard } from "./assistant-message-card";
-import React, { useState, useEffect } from "react";
+import { VirtualMessagesList } from "../virtual-messages-list";
+import { useState, useEffect, useMemo } from "react";
 import { ChevronsUpDown } from "lucide-react";
 
 type Props = {
@@ -16,6 +18,16 @@ export const ThinkingMessageCard = ({ content, isStreaming }: Props) => {
         setIsOpen(isStreaming);
     }, [isStreaming]);
 
+    const thinkingMessages = useMemo<MessageV2[]>(() => {
+        return [{
+            id: "thinking-message-card",
+            role: "thinking",
+            isStreaming,
+            content,
+            render: () => <AssistantMessageCard content={content} />,
+        }];
+    }, [content, isStreaming]);
+
     return (
         <Collapsible
             open={isOpen}
@@ -27,13 +39,18 @@ export const ThinkingMessageCard = ({ content, isStreaming }: Props) => {
                     💭 Thinking
                 </div>
                 <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-8">
+                    <Button variant="ghost" size="icon" className="tw-size-8">
                         <ChevronsUpDown className="tw-size-4" />
                     </Button>
                 </CollapsibleTrigger>
             </div>
-            <CollapsibleContent className="tw-text-muted tw-p-1 tw-rounded-sm tw-bg-primary tw-max-h-64 tw-overflow-y-auto">
-                <AssistantMessageCard content={content} />
+            <CollapsibleContent className="tw-text-muted tw-rounded-sm tw-bg-primary tw-overflow-hidden">
+                <VirtualMessagesList
+                    messages={thinkingMessages}
+                    isStreaming={isStreaming}
+                    className="obsidian-agent-hide-scrollbar tw-w-full"
+                    style={{ height: "16rem" }}
+                />
             </CollapsibleContent>
         </Collapsible>
     );

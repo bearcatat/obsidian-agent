@@ -16,6 +16,15 @@ If your plugin does not need CSS, delete this file.
   z-index: 9999 !important;
 }
 
+.obsidian-agent-hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.obsidian-agent-hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .button-container {
   display: flex;
   justify-content: space-between;
