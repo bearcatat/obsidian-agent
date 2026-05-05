@@ -14,6 +14,9 @@ import { renderSkillMessage } from '@/tool/Skill/SkillTool';
 import { renderTelegramFeedbackMessage } from './telegram-feedback-message-card';
 import { renderGetCurrentTimeMessage } from '@/tool/Time/GetCurrentTime/GetCurrentTimeTool';
 import { renderWebFetchMessage } from '@/tool/WebFetch/WebFetchTool';
+import { deserializeMessageForHistory, type SerializedHistoryMessage } from '@/messages/history-message';
+import type { MessageV2 } from '@/types';
+import { SubAgentMessagesCard } from '@/ui/components/agent-view/messages/messages';
 
 interface CreateCommandResult {
   name: string;
@@ -40,6 +43,10 @@ interface TimeInfo {
 export function renderHistoricalToolMessage(toolName: string, contentJson: string): React.ReactNode {
   try {
     const data = JSON.parse(contentJson);
+
+    if (isSubAgentHistoryPayload(data)) {
+      return renderSubAgentHistoryMessage(toolName, data);
+    }
     
     switch (toolName) {
       case 'bash':
@@ -197,4 +204,33 @@ export function renderHistoricalToolMessage(toolName: string, contentJson: strin
 
     return <div className="tw-p-2 tw-text-muted tw-italic">Completed: {toolName}</div>;
   }
+}
+
+type SubAgentHistoryPayload = {
+  toolName: "subAgent";
+  name?: string;
+  messages: SerializedHistoryMessage[];
+};
+
+function isSubAgentHistoryPayload(data: unknown): data is SubAgentHistoryPayload {
+  if (typeof data !== 'object' || data === null) {
+    return false;
+  }
+
+  const payload = data as { toolName?: unknown; messages?: unknown };
+  return payload.toolName === 'subAgent' && Array.isArray(payload.messages);
+}
+
+function renderSubAgentHistoryMessage(toolName: string, payload: SubAgentHistoryPayload): React.ReactNode {
+  const messages = payload.messages
+    .map((messageData) => deserializeMessageForHistory(messageData, renderHistoricalToolMessage))
+    .filter((message): message is MessageV2 => message !== null);
+
+  return (
+    <SubAgentMessagesCard
+      name={payload.name || toolName}
+      messages={messages}
+      isStreaming={false}
+    />
+  );
 }

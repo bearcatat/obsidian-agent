@@ -9,6 +9,7 @@ import SubAgentLogic from "@/logic/subagent-logic";
 import RuleLogic from "@/logic/rule-logic";
 import AIModelManager from "@/llm/ModelManager";
 import { agentStore } from "@/state/agent-state-impl";
+import { serializeMessagesForHistory } from "@/messages/history-message";
 import {
   TASK_SUBAGENT_DESCRIPTION,
   TASK_SUBAGENT_DESCRIPTION_PARAMETER_DESCRIPTION,
@@ -108,6 +109,7 @@ export default class SubAgentManager {
 
     let messages: MessageV2[] = [userMessage];
     const toolMessage = ToolMessage.from(config.name, toolCallId)
+    toolMessage.setContent(createSubAgentHistoryContent(config.name, messages));
     toolMessage.setChildren(render(config.name, messages, true));
     context.addMessage(toolMessage)
 
@@ -132,10 +134,13 @@ export default class SubAgentManager {
       }
 
       toolMessage.setChildren(render(config.name, messages, true));
+      toolMessage.setContent(createSubAgentHistoryContent(config.name, messages));
       context.addMessage(toolMessage)
     })
+    toolMessage.setContent(createSubAgentHistoryContent(config.name, messages, text));
     toolMessage.setChildren(render(config.name, messages, false));
     toolMessage.close()
+    context.addMessage(toolMessage)
     return text
   }
 }
@@ -144,6 +149,15 @@ function render(name: string, messages: MessageV2[], isStreaming: boolean): Reac
   return (
     <SubAgentMessagesCard name={name} messages={messages} isStreaming={isStreaming} />
   )
+}
+
+function createSubAgentHistoryContent(name: string, messages: MessageV2[], result: string = ""): string {
+  return JSON.stringify({
+    toolName: "subAgent",
+    name,
+    result,
+    messages: serializeMessagesForHistory(messages),
+  });
 }
 
 function getToolSetForSubAgent(config: SubAgentConfig, toolSet: ToolSet): ToolSet {
