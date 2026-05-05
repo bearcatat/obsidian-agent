@@ -13,7 +13,7 @@ import { CopyContextManager } from './state/copy-context-state';
 import { ChatMenuManager } from './state/chat-menu-state';
 import { InputEditorState } from './state/input-editor-state';
 import AIToolManager from './tool-ai/ToolManager';
-import AIModelManager from './llm-ai/ModelManager';
+import AIModelManager from './llm/ModelManager';
 import CommandLogic from './logic/command-logic';
 import SkillLogic from './logic/skill-logic';
 import SubAgentLogic from './logic/subagent-logic';

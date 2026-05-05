@@ -2,9 +2,9 @@ import { Context, MessageV2, ModelConfig, ModelVariant, getDefaultVariant } from
 import { agentStore } from "../state/agent-state-impl";
 import { App, Notice, TFile } from "obsidian";
 import { UserMessage } from "@/messages/user-message";
-import AIAgent from "@/llm-ai/Agent";
-import AIModelManager from "@/llm-ai/ModelManager";
-import { CHAT_TITLE_MAX_LENGTH } from "@/llm-ai/title-constants";
+import AIAgent from "@/llm/Agent";
+import AIModelManager from "@/llm/ModelManager";
+import { CHAT_TITLE_MAX_LENGTH } from "@/llm/title-constants";
 import { SessionLogic } from "./session-logic";
 import { FileReviewLogic } from "./file-review-logic";
 

@@ -1,4 +1,4 @@
-import SubAgent from "@/llm-ai/SubAgent";
+import SubAgent from "@/llm/SubAgent";
 import { ToolMessage } from "@/messages/tool-message";
 import { UserMessage } from "@/messages/user-message";
 import { MessageV2, SubAgentConfig } from "@/types";
@@ -7,7 +7,7 @@ import { tool, ToolSet } from "ai";
 import { z } from 'zod';
 import SubAgentLogic from "@/logic/subagent-logic";
 import RuleLogic from "@/logic/rule-logic";
-import AIModelManager from "@/llm-ai/ModelManager";
+import AIModelManager from "@/llm/ModelManager";
 import { agentStore } from "@/state/agent-state-impl";
 import {
   TASK_SUBAGENT_DESCRIPTION,

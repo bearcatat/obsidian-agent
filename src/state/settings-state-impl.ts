@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { ModelConfig, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig } from '../types';
 import { getDefaultBuiltinTools } from '../tool-ai/BuiltinTools';
-import AIModelManager from '../llm-ai/ModelManager';
+import AIModelManager from '../llm/ModelManager';
 import { SettingsStateData } from './settings-state';
 
 interface SettingsStore extends SettingsStateData {

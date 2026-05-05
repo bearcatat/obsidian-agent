@@ -8,7 +8,7 @@ import React, { useState, useEffect } from "react";
 import { SessionLogic, SessionMetadata } from "@/logic/session-logic";
 import { agentStore } from "@/state/agent-state-impl";
 import { SkillLogic } from "@/logic/skill-logic";
-import AIModelManager from "@/llm-ai/ModelManager";
+import AIModelManager from "@/llm/ModelManager";
 
 export interface TitleProps { }
 

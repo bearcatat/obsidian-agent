@@ -4,9 +4,9 @@ import TelegramApiClient, { TelegramApiUpdate } from "./TelegramApiClient";
 import { settingsStore } from "@/state/settings-state-impl";
 import { persistSettingsStore } from "@/logic/settings-persistence";
 import { IMAGE_ANALYSIS_SYSTEM_PROMPT } from "./prompts";
-import AIModelManager from "@/llm-ai/ModelManager";
+import AIModelManager from "@/llm/ModelManager";
 import { agentStore } from "@/state/agent-state-impl";
-import SubAgent from "@/llm-ai/SubAgent";
+import SubAgent from "@/llm/SubAgent";
 import { UserMessage } from "@/messages/user-message";
 
 interface BeginFeedbackRequestParams {
