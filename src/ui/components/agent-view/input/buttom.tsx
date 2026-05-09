@@ -1,6 +1,6 @@
 import { ArrowUp, ChevronDown, Loader2, StopCircle, Image, Activity } from "lucide-react";
 import { Button } from "../../../elements/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../../elements/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "../../../elements/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../../elements/tooltip";
 import { useState, useRef } from "react";
 import { useAgentLogic, useAgentState } from "../../../../hooks/use-agent";
@@ -8,7 +8,7 @@ import { useSettingsState } from "../../../../hooks/use-settings";
 import { useApp } from "@/hooks/app-context";
 import { Notice } from "obsidian";
 import { MAX_IMAGE_SIZE } from "./cm-config/utils";
-import { getAvailableVariants, ModelVariant } from "@/types";
+import { getAvailableVariants, ModelConfig, ModelVariant } from "@/types";
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico'];
 const IMAGE_MIME_TYPES = 'image/png,image/jpeg,image/gif,image/webp,image/bmp,image/svg+xml,image/x-icon';
@@ -31,6 +31,20 @@ const formatTokens = (num: number) => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'm';
   if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
   return num.toString();
+};
+
+const getModelVariantLabel = (modelConfig: ModelConfig, variant: ModelVariant | null) => {
+  const variants = getAvailableVariants(modelConfig);
+  if (!variants || !variant) {
+    return modelConfig.id;
+  }
+
+  const selectedVariant = variants.find((option) => option.value === variant);
+  if (!selectedVariant) {
+    return modelConfig.id;
+  }
+
+  return `${modelConfig.id} | ${selectedVariant.label}`;
 };
 
 interface InputButtomGenerateProps {
@@ -69,9 +83,8 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
   onAddImages,
 }) => {
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
-  const [isVariantDropdownOpen, setIsVariantDropdownOpen] = useState(false);
   const { model, messages, variant } = useAgentState();
-  const { setModel, setVariant } = useAgentLogic();
+  const { setModel } = useAgentLogic();
   const { models } = useSettingsState();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const app = useApp();
@@ -133,39 +146,41 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
         <DropdownMenu open={isModelDropdownOpen} onOpenChange={setIsModelDropdownOpen}>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost2" size="fit">
-              {model?.id || "Select Model"}
+              {model ? getModelVariantLabel(model, variant) : "Select Model"}
               <ChevronDown className="tw-mt-0.5 tw-size-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            {models.map((model) => (
-              <DropdownMenuItem key={model.id} onSelect={() => setModel(model)}>
-                {model.id}
-              </DropdownMenuItem>
-            ))}
+            {models.map((modelOption) => {
+              const variants = getAvailableVariants(modelOption);
+              if (!variants) {
+                return (
+                  <DropdownMenuItem key={modelOption.id} onSelect={() => setModel(modelOption)}>
+                    {modelOption.id}
+                  </DropdownMenuItem>
+                );
+              }
+
+              return (
+                <DropdownMenuSub key={modelOption.id}>
+                  <DropdownMenuSubTrigger>
+                    {modelOption.id}
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {variants.map((variantOption) => (
+                      <DropdownMenuItem
+                        key={variantOption.value}
+                        onSelect={() => setModel(modelOption, variantOption.value)}
+                      >
+                        {variantOption.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              );
+            })}
           </DropdownMenuContent>
         </DropdownMenu>
-        {(() => {
-          const variants = model ? getAvailableVariants(model) : null;
-          if (!variants) return null;
-          return (
-            <DropdownMenu open={isVariantDropdownOpen} onOpenChange={setIsVariantDropdownOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost2" size="fit">
-                  {variant ? variants.find(v => v.value === variant)?.label ?? 'Thinking' : 'Thinking'}
-                  <ChevronDown className="tw-mt-0.5 tw-size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                {variants.map((v) => (
-                  <DropdownMenuItem key={v.value} onSelect={() => setVariant(v.value)}>
-                    {v.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          );
-        })()}
       </div>
       <div className="tw-flex tw-items-center">
         {lastUsage && lastUsage.totalTokens && (

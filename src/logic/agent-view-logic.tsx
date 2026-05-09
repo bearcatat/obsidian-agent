@@ -123,16 +123,11 @@ export class AgentViewLogic {
     AIModelManager.getInstance().setVariant(currentVariant);
   }
 
-  setModel(model: ModelConfig): void {
-    const defaultVariant = getDefaultVariant(model);
+  setModel(model: ModelConfig, variant?: ModelVariant | null): void {
+    const nextVariant = variant === undefined ? getDefaultVariant(model) : variant;
     agentStore.getState().setModel(model);
-    agentStore.getState().setVariant(defaultVariant);
-    AIModelManager.getInstance().setAgent(model, defaultVariant);
-  }
-
-  setVariant(variant: ModelVariant | null): void {
-    agentStore.getState().setVariant(variant);
-    AIModelManager.getInstance().setVariant(variant);
+    agentStore.getState().setVariant(nextVariant);
+    AIModelManager.getInstance().setAgent(model, nextVariant);
   }
 
   setTitleModel(model: ModelConfig): void {
