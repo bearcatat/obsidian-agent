@@ -3,15 +3,17 @@ import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/vi
 import { EditorState, Compartment, Prec } from '@codemirror/state';
 import { minimalSetup } from 'codemirror';
 import { autocompletion, acceptCompletion, completionStatus, moveCompletionSelection, closeCompletion } from '@codemirror/autocomplete';
+import type { Completion } from '@codemirror/autocomplete';
 import { TFile, App } from 'obsidian';
 import { useApp } from '../../../../hooks/app-context';
 import { cn } from '../../../elements/utils';
 import { editorTheme } from './cm-config/theme';
 import { createWikiLinkPlugin } from './cm-config/wiki-link-plugin';
-import { createWikiLinkCompletionSource } from './cm-config/wiki-link-autocomplete';
+import { createWikiLinkCompletionSource, getNoteCompletionOptionClass, renderNoteCompletionIcon } from './cm-config/wiki-link-autocomplete';
 import { createMarkdownLinkPlugin } from './cm-config/markdown-link-plugin';
 import { pasteHandlerPlugin } from './cm-config/paste-handler-plugin';
 import { createFolderRefPlugin } from './cm-config/folder-ref-plugin';
+import { createFolderCompletionSource, getFolderCompletionOptionClass, renderFolderCompletionIcon } from './cm-config/folder-autocomplete';
 import { createCommandCompletionSource } from './cm-config/command-autocomplete';
 import { MAX_IMAGE_SIZE, adjustHeight } from './cm-config/utils';
 
@@ -153,6 +155,10 @@ function createKeymap(onSend?: () => void, disabled?: boolean) {
   ]);
 }
 
+const getCompletionOptionClass = (completion: Completion) => {
+  return [getFolderCompletionOptionClass(completion), getNoteCompletionOptionClass(completion)].filter(Boolean).join(' ');
+};
+
 // ==================== Component ====================
 
 export const InputEditor = forwardRef<InputEditorRef, InputEditorProps>(({
@@ -259,7 +265,18 @@ extensions: [
           createFolderRefPlugin(),
           pasteHandlerPlugin(onPasteImages),
           ...(app ? [autocompletion({
-            override: [createCommandCompletionSource(), createWikiLinkCompletionSource(app)],
+            override: [createCommandCompletionSource(), createFolderCompletionSource(app), createWikiLinkCompletionSource(app)],
+            optionClass: (completion) => getCompletionOptionClass(completion),
+            addToOptions: [
+              {
+                position: 20,
+                render: (completion) => renderFolderCompletionIcon(completion),
+              },
+              {
+                position: 20,
+                render: (completion) => renderNoteCompletionIcon(completion),
+              }
+            ],
             defaultKeymap: false,
             closeOnBlur: false,
           })] : []),

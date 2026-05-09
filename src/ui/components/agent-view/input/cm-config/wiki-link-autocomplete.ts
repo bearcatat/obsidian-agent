@@ -4,6 +4,51 @@ import { App, TFile, prepareFuzzySearch } from 'obsidian';
 // Regex patterns for wiki link triggers
 const WIKI_LINK_PATTERN = /\[\[([^\]]*)/;  // English [[
 const CHINESE_WIKI_LINK_PATTERN = /\u3010\u3010([^\u3011]*)/;  // Chinese 【【
+const NOTE_ICON_PATHS = [
+  'M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z',
+  'M14 2v4a2 2 0 0 0 2 2h4',
+  'M10 9H8',
+  'M16 13H8',
+  'M16 17H8',
+];
+
+type NoteCompletion = Completion & {
+  noteCompletion: true;
+};
+
+const isNoteCompletion = (completion: Completion): completion is NoteCompletion => {
+  return (completion as NoteCompletion).noteCompletion === true;
+};
+
+export const getNoteCompletionOptionClass = (completion: Completion): string => {
+  return isNoteCompletion(completion) ? 'cm-noteCompletionOption' : '';
+};
+
+export const renderNoteCompletionIcon = (completion: Completion): Node | null => {
+  if (!isNoteCompletion(completion)) return null;
+
+  const svgNamespace = 'http://www.w3.org/2000/svg';
+  const wrapper = document.createElement('span');
+  wrapper.className = 'cm-noteCompletionIcon';
+  wrapper.setAttribute('aria-hidden', 'true');
+
+  const svg = document.createElementNS(svgNamespace, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+
+  for (const iconPath of NOTE_ICON_PATHS) {
+    const path = document.createElementNS(svgNamespace, 'path');
+    path.setAttribute('d', iconPath);
+    svg.appendChild(path);
+  }
+
+  wrapper.appendChild(svg);
+  return wrapper;
+};
 
 /**
  * Create a completion source for wiki link auto-completion
@@ -49,9 +94,9 @@ export const createWikiLinkCompletionSource = (app: App): CompletionSource => {
     const limitedMatches = matches.slice(0, 20);
     
     // Create completions
-    const options: Completion[] = limitedMatches.map((file) => ({
+    const options: NoteCompletion[] = limitedMatches.map((file) => ({
       label: file.path,
-      type: 'link',
+      noteCompletion: true,
       detail: file.basename,
       apply: (view, completion, fromPos, toPos) => {
         // Insert the wiki link with proper format (always use English [[ for compatibility)

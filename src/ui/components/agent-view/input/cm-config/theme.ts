@@ -24,6 +24,24 @@ const baseThemeSpec = {
     '&::-webkit-scrollbar': {
       display: 'none'
     }
+  },
+  '.cm-folderCompletionIcon, .cm-noteCompletionIcon': {
+    width: '1em',
+    height: '1em',
+    display: 'inline-block',
+    verticalAlign: '-0.125em',
+    paddingRight: '0.25em',
+    opacity: '0.8',
+    color: 'var(--text-muted)',
+    boxSizing: 'content-box',
+    '& svg': {
+      width: '1em',
+      height: '1em',
+      display: 'block'
+    }
+  },
+  '.cm-folderCompletionOption .cm-completionIcon, .cm-noteCompletionOption .cm-completionIcon': {
+    display: 'none'
   }
 };
 
