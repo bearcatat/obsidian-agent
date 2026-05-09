@@ -5,6 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui/elemen
 import { Button } from "@/ui/elements/button";
 import { ChevronsUpDown } from "lucide-react";
 import { VirtualMessagesList } from "./virtual-messages-list";
+import { NestedMessagesList } from "./nested-messages-list";
 
 export const Messages = memo(
   () => {
@@ -70,11 +71,10 @@ export const SubAgentMessagesCard = memo(({ name, messages, isStreaming }: Props
         </CollapsibleTrigger>
       </div>
       <CollapsibleContent className="tw-text-muted tw-rounded-sm tw-bg-primary tw-overflow-hidden">
-        <VirtualMessagesList
+        <NestedMessagesList
           messages={messages}
+          isOpen={isOpen}
           isStreaming={isStreaming}
-          className="obsidian-agent-hide-scrollbar tw-w-full"
-          style={{ height: "16rem" }}
         />
       </CollapsibleContent>
     </Collapsible>

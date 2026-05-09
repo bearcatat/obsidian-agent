@@ -2,7 +2,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui/elemen
 import { Button } from "@/ui/elements/button";
 import { MessageV2 } from "@/types";
 import { AssistantMessageCard } from "./assistant-message-card";
-import { VirtualMessagesList } from "../virtual-messages-list";
+import { NestedMessagesList } from "../nested-messages-list";
 import { useState, useEffect, useMemo } from "react";
 import { ChevronsUpDown } from "lucide-react";
 
@@ -45,11 +45,10 @@ export const ThinkingMessageCard = ({ content, isStreaming }: Props) => {
                 </CollapsibleTrigger>
             </div>
             <CollapsibleContent className="tw-text-muted tw-rounded-sm tw-bg-primary tw-overflow-hidden">
-                <VirtualMessagesList
+                <NestedMessagesList
                     messages={thinkingMessages}
+                    isOpen={isOpen}
                     isStreaming={isStreaming}
-                    className="obsidian-agent-hide-scrollbar tw-w-full"
-                    style={{ height: "16rem" }}
                 />
             </CollapsibleContent>
         </Collapsible>
