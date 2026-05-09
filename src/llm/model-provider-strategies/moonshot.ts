@@ -1,21 +1,12 @@
-import { AIModelGenerator, ModelConfig, ModelProviders, ModelVariant } from "@/types";
+import { ModelConfig, ModelProviderStrategy, ModelProviders, ModelVariant } from "@/types";
 import { createMoonshotAI } from "@ai-sdk/moonshotai";
 import { LanguageModelV3 } from "@ai-sdk/provider";
 import { ToolLoopAgentSettings } from "ai";
 import { createOpenAICORSPseudoStreamFetchAdapter } from "../utils/cors-fetch";
 
 
-export default class MoonshotGenerator implements AIModelGenerator {
-    private static instance: MoonshotGenerator;
-
-    public provider: string = ModelProviders.MOONSHOT;
-
-    static getInstance(): MoonshotGenerator {
-        if (!MoonshotGenerator.instance) {
-            MoonshotGenerator.instance = new MoonshotGenerator();
-        }
-        return MoonshotGenerator.instance;
-    }
+export default class MoonshotProviderStrategy implements ModelProviderStrategy {
+    readonly provider = ModelProviders.MOONSHOT;
 
     private createModel(modelConfig: ModelConfig): LanguageModelV3 {
         // 根据配置决定是否使用 CORS 代理，使用伪流式适配器

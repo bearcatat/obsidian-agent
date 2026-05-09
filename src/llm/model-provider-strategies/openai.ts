@@ -1,20 +1,11 @@
-import { AIModelGenerator, ModelConfig, ModelProviders, ModelVariant } from "@/types";
+import { ModelConfig, ModelProviderStrategy, ModelProviders, ModelVariant } from "@/types";
 import { createOpenAI } from '@ai-sdk/openai';
 import { LanguageModelV3 } from "@ai-sdk/provider";
 import { ToolLoopAgentSettings } from "ai";
 
 
-export default class OpenAIGenerator implements AIModelGenerator {
-    private static instance: OpenAIGenerator;
-
-    public provider: string = ModelProviders.OPENAI;
-
-    static getInstance(): OpenAIGenerator {
-        if (!OpenAIGenerator.instance) {
-            OpenAIGenerator.instance = new OpenAIGenerator();
-        }
-        return OpenAIGenerator.instance;
-    }
+export default class OpenAIProviderStrategy implements ModelProviderStrategy {
+    readonly provider = ModelProviders.OPENAI;
 
     private createModel(modelConfig: ModelConfig): LanguageModelV3 {
         const openai = createOpenAI({

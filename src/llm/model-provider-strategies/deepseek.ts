@@ -1,21 +1,12 @@
-import { AIModelGenerator, ModelConfig, ModelProviders, ModelVariant } from "@/types";
+import { ModelConfig, ModelProviderStrategy, ModelProviders, ModelVariant } from "@/types";
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { LanguageModelV3 } from "@ai-sdk/provider";
 import { ModelMessage, ToolLoopAgentSettings } from "ai";
 
 
 
-export default class DeepSeekGenerator implements AIModelGenerator {
-    private static instance: DeepSeekGenerator;
-
-    public provider: string = ModelProviders.DEEPSEEK;
-
-    static getInstance(): DeepSeekGenerator {
-        if (!DeepSeekGenerator.instance) {
-            DeepSeekGenerator.instance = new DeepSeekGenerator();
-        }
-        return DeepSeekGenerator.instance;
-    }
+export default class DeepSeekProviderStrategy implements ModelProviderStrategy {
+    readonly provider = ModelProviders.DEEPSEEK;
 
     private createModel(modelConfig: ModelConfig): LanguageModelV3 {
         return createOpenAICompatible({

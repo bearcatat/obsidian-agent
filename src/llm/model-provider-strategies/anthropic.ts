@@ -1,20 +1,11 @@
-import { AIModelGenerator, ModelConfig, ModelProviders, ModelVariant } from "@/types";
+import { ModelConfig, ModelProviderStrategy, ModelProviders, ModelVariant } from "@/types";
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { LanguageModelV3 } from "@ai-sdk/provider";
 import { ToolLoopAgentSettings } from "ai";
 
 
-export default class AnthropicGenerator implements AIModelGenerator {
-    private static instance: AnthropicGenerator;
-
-    public provider: string = ModelProviders.ANTHROPIC;
-
-    static getInstance(): AnthropicGenerator {
-        if (!AnthropicGenerator.instance) {
-            AnthropicGenerator.instance = new AnthropicGenerator();
-        }
-        return AnthropicGenerator.instance;
-    }
+export default class AnthropicProviderStrategy implements ModelProviderStrategy {
+    readonly provider = ModelProviders.ANTHROPIC;
 
     private createModel(modelConfig: ModelConfig): LanguageModelV3 {
         return createAnthropic(

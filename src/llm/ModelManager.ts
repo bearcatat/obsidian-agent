@@ -1,11 +1,12 @@
-import { AIModelGenerator, ModelConfig, ModelProviders, ModelVariant } from "@/types";
+import { ModelConfig, ModelVariant } from "@/types";
 import { ModelMessage, ToolLoopAgentSettings } from "ai";
-import DeepSeekGenerator from "./models/deepseek";
-import AnthropicGenerator from "./models/anthropic";
-import OpenAIGenerator from "./models/openai";
-import MoonshotGenerator from "./models/moonshot";
-import OpenAIFormatGenerator from "./models/openai-format";
-import GoogleGenerator from "./models/google";
+import DeepSeekProviderStrategy from "./model-provider-strategies/deepseek";
+import AnthropicProviderStrategy from "./model-provider-strategies/anthropic";
+import OpenAIProviderStrategy from "./model-provider-strategies/openai";
+import MoonshotProviderStrategy from "./model-provider-strategies/moonshot";
+import OpenAIFormatProviderStrategy from "./model-provider-strategies/openai-format";
+import GoogleProviderStrategy from "./model-provider-strategies/google";
+import ModelProviderRegistry from "./ModelProviderRegistry";
 
 export default class AIModelManager {
     private static instance: AIModelManager;
@@ -13,14 +14,14 @@ export default class AIModelManager {
     public agentModelConfig: ModelConfig | null = null;
     public currentVariant: ModelVariant | null = null;
     public titleModelConfig: ModelConfig | null = null;
-    private modelGenerators: Record<string, AIModelGenerator> = {
-        [ModelProviders.DEEPSEEK]: DeepSeekGenerator.getInstance(),
-        [ModelProviders.ANTHROPIC]: AnthropicGenerator.getInstance(),
-        [ModelProviders.OPENAI]: OpenAIGenerator.getInstance(),
-        [ModelProviders.MOONSHOT]: MoonshotGenerator.getInstance(),
-        [ModelProviders.OPENAI_FORMAT]: OpenAIFormatGenerator.getInstance(),
-        [ModelProviders.GOOGLE]: GoogleGenerator.getInstance(),
-    }
+    private providerRegistry = new ModelProviderRegistry([
+        new DeepSeekProviderStrategy(),
+        new AnthropicProviderStrategy(),
+        new OpenAIProviderStrategy(),
+        new MoonshotProviderStrategy(),
+        new OpenAIFormatProviderStrategy(),
+        new GoogleProviderStrategy(),
+    ])
 
     static getInstance(): AIModelManager {
         if (!AIModelManager.instance) {
@@ -47,11 +48,7 @@ export default class AIModelManager {
     }
 
     buildAgentConfig(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings {
-        const generator = this.modelGenerators[modelConfig.provider]
-        if (generator) {
-            return generator.buildAgentConfig(modelConfig, variant)
-        }
-        throw new Error("provider not found")
+        return this.providerRegistry.get(modelConfig.provider).buildAgentConfig(modelConfig, variant)
     }
 
     getAgentConfig(): ToolLoopAgentSettings {
@@ -77,7 +74,7 @@ export default class AIModelManager {
     ): ModelMessage[] {
         if (!modelConfig) return messages
 
-        const generator = this.modelGenerators[modelConfig.provider]
-        return generator?.normalizeMessages?.(messages, modelConfig, variant) ?? messages
+        const strategy = this.providerRegistry.find(modelConfig.provider)
+        return strategy?.normalizeMessages?.(messages, modelConfig, variant) ?? messages
     }
 }

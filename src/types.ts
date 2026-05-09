@@ -153,7 +153,8 @@ export function getDefaultVariant(modelConfig: ModelConfig): ModelVariant | null
     return nonOffVariants[idx].value;
 }
 
-export interface AIModelGenerator {
+export interface ModelProviderStrategy {
+  readonly provider: ModelProviders;
   buildAgentConfig(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings;
   normalizeMessages?(messages: ModelMessage[], modelConfig: ModelConfig, variant?: ModelVariant | null): ModelMessage[];
 }

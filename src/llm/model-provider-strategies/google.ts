@@ -1,20 +1,11 @@
-import { AIModelGenerator, ModelConfig, ModelProviders, ModelVariant } from "@/types";
+import { ModelConfig, ModelProviderStrategy, ModelProviders, ModelVariant } from "@/types";
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { LanguageModelV3 } from "@ai-sdk/provider";
 import { ToolLoopAgentSettings } from "ai";
 
 
-export default class GoogleGenerator implements AIModelGenerator {
-    private static instance: GoogleGenerator;
-
-    public provider: string = ModelProviders.GOOGLE;
-
-    static getInstance(): GoogleGenerator {
-        if (!GoogleGenerator.instance) {
-            GoogleGenerator.instance = new GoogleGenerator();
-        }
-        return GoogleGenerator.instance;
-    }
+export default class GoogleProviderStrategy implements ModelProviderStrategy {
+    readonly provider = ModelProviders.GOOGLE;
 
     private createModel(modelConfig: ModelConfig): LanguageModelV3 {
         const google = createGoogleGenerativeAI({
