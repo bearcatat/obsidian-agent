@@ -63,6 +63,41 @@ interface UndoRestoreTarget {
   isNewFile: boolean;
 }
 
+function collectSnapshotIdsFromToolMessage(message: MessageV2, snapshotIds: Set<string>): void {
+  if (message.role !== 'tool' || !message.content) {
+    return;
+  }
+
+  try {
+    const payload = JSON.parse(message.content) as FileToolPayload;
+    if (payload.snapshotId) {
+      snapshotIds.add(payload.snapshotId);
+    }
+    if (payload.undoSnapshotId) {
+      snapshotIds.add(payload.undoSnapshotId);
+    }
+  } catch (e) {
+    // Ignore non-JSON tool payloads during snapshot cleanup.
+  }
+}
+
+function collectRetainedSnapshotIds(
+  messages: MessageV2[],
+  fileReviews: FileReviewEntry[],
+): Set<string> {
+  const retainedSnapshotIds = new Set<string>();
+
+  for (const message of messages) {
+    collectSnapshotIdsFromToolMessage(message, retainedSnapshotIds);
+  }
+
+  for (const review of fileReviews) {
+    retainedSnapshotIds.add(review.baselineSnapshotId);
+  }
+
+  return retainedSnapshotIds;
+}
+
 function parseFileToolPayload(content: string): UndoRestoreTarget | null {
   const payload = JSON.parse(content) as FileToolPayload;
   const filePath = payload.fileEdit?.file_path ?? payload.writeResult?.file_path;
@@ -212,8 +247,10 @@ export const useAgentStore = create<AgentStore>()(
       if (messageIndex === -1) return;
 
       const messagesToDiscard = state.messages.slice(messageIndex);
+      const discardedSnapshotIds = new Set<string>();
       for (let i = messagesToDiscard.length - 1; i >= 0; i--) {
         const msg = messagesToDiscard[i];
+        collectSnapshotIdsFromToolMessage(msg, discardedSnapshotIds);
         if (msg.role === 'tool' && msg.content) {
           const toolName = (msg as ToolMessage).name;
           if (toolName === 'editFile' || toolName === 'write') {
@@ -231,6 +268,20 @@ export const useAgentStore = create<AgentStore>()(
 
       const remainingMessages = state.messages.slice(0, messageIndex);
       const nextFileReviews = await rebuildFileReviewsAfterUndo(state.fileReviews, remainingMessages);
+      const retainedSnapshotIds = collectRetainedSnapshotIds(remainingMessages, nextFileReviews);
+      const snapshotLogic = SnapshotLogic.getInstance();
+
+      for (const snapshotId of discardedSnapshotIds) {
+        if (retainedSnapshotIds.has(snapshotId)) {
+          continue;
+        }
+
+        try {
+          await snapshotLogic.deleteSnapshot(snapshotId);
+        } catch (e) {
+          console.error('Failed to delete snapshot after undo', snapshotId, e);
+        }
+      }
 
       set((state) => {
         const messageIndex = state.messages.findIndex((m) => m.id === messageId);
