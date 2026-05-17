@@ -27,5 +27,5 @@
   "include": [
     "**/*.ts",
     "**/*.tsx"
-, "src/tools/Time/GetCurrentTime/GetCurrentTimeTool.ts"  ]
+  ]
 }

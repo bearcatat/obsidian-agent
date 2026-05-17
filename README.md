@@ -69,7 +69,6 @@ Simply type your question and press Enter. The AI will automatically analyze you
 
 ### Tool Examples
 Ask naturally and the AI will use appropriate tools:
-- "What's the current time?"
 - "Find all notes mentioning 'project plan'"
 - "Help me improve this note's structure"
 - "Search for TODO items in my journal"

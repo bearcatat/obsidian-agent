@@ -1,6 +1,6 @@
 import { Plugin } from "obsidian";
 import { settingsStore } from "@/state/settings-state-impl";
-import { getDefaultBuiltinTools } from "@/tool/BuiltinTools";
+import { normalizeBuiltinTools } from "@/tool/BuiltinTools";
 
 let settingsPlugin: Plugin | undefined;
 
@@ -22,7 +22,7 @@ export async function persistSettingsStore(): Promise<void> {
     titleModel: state.titleModel,
     imageModel: state.imageModel,
     mcpServers: state.mcpServers,
-    builtinTools: state.builtinTools,
+    builtinTools: normalizeBuiltinTools(state.builtinTools),
     exaSearchConfig: state.exaSearchConfig,
     bochaSearchConfig: state.bochaSearchConfig,
     telegramFeedbackConfig: state.telegramFeedbackConfig,

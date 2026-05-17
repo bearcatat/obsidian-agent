@@ -1,6 +1,5 @@
 import { ToolSet } from "ai";
 import { BuiltinToolConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig } from "../types";
-import { GetCurrentTimeTool, toolName as GetCurrentTimeToolName } from "./Time/GetCurrentTime/GetCurrentTimeTool";
 import { ReadNoteByPathTool, toolName as ReadNoteByPathToolName } from "./ReadNote/ReadNoteByPath/ReadNoteByPathTool";
 import { ReadNoteByLinkTool, toolName as ReadNoteByLinkToolName } from "./ReadNote/ReadNoteByLink/ReadNoteByLinkTool";
 import { QuestionTool, toolName as QuestionToolName } from "./Question/QuestionTool";
@@ -23,7 +22,6 @@ import SubAgentLogic from "../logic/subagent-logic";
 export default class AIToolManager {
   private static instance: AIToolManager;
   private static readonly BUILTIN_TOOLS: ToolSet = {
-    [GetCurrentTimeToolName]: GetCurrentTimeTool,
     [ReadNoteByPathToolName]: ReadNoteByPathTool,
     [ReadNoteByLinkToolName]: ReadNoteByLinkTool,
     [QuestionToolName]: QuestionTool,

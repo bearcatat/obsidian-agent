@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { ModelConfig, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig } from '../types';
-import { getDefaultBuiltinTools } from '../tool/BuiltinTools';
+import { getDefaultBuiltinTools, normalizeBuiltinTools } from '../tool/BuiltinTools';
 import AIModelManager from '../llm/ModelManager';
 import { SettingsStateData } from './settings-state';
 
@@ -215,20 +215,12 @@ export const useSettingsStore = create<SettingsStore>()(
 
     setAllData: (data: SettingsStateData) =>
       set((state) => {
-        const builtinTools = data.builtinTools || [...getDefaultBuiltinTools()];
-        // 合并默认工具，确保新添加的默认工具也被包含
-        for (const builtinTool of getDefaultBuiltinTools()) {
-          const existingBuiltinTool = builtinTools.find((bt) => bt.name === builtinTool.name);
-          if (!existingBuiltinTool) {
-            builtinTools.push(builtinTool);
-          }
-        }
         state.models = data.models || [];
         state.defaultAgentModel = data.defaultAgentModel || null;
         state.titleModel = data.titleModel || null;
         state.imageModel = data.imageModel || null;
         state.mcpServers = data.mcpServers || [];
-        state.builtinTools = builtinTools;
+        state.builtinTools = normalizeBuiltinTools(data.builtinTools);
         state.exaSearchConfig = data.exaSearchConfig || {
           apiKey: "",
           enabled: false,

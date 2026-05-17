@@ -1,5 +1,19 @@
 import { BuiltinToolConfig, BashPermissionConfig } from '../types';
 
+function cloneBashPermissions(permissions: BashPermissionConfig): BashPermissionConfig {
+  return {
+    default: permissions.default,
+    rules: permissions.rules.map((rule) => ({ ...rule })),
+  };
+}
+
+function cloneBuiltinTool(tool: BuiltinToolConfig): BuiltinToolConfig {
+  return {
+    ...tool,
+    permissions: tool.permissions ? cloneBashPermissions(tool.permissions) : undefined,
+  };
+}
+
 // 默认 Bash 权限配置
 export const DEFAULT_BASH_PERMISSIONS: BashPermissionConfig = {
   default: "ask",
@@ -21,11 +35,6 @@ export const DEFAULT_BASH_PERMISSIONS: BashPermissionConfig = {
 
 // 默认内置工具配置
 export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
-  {
-    name: "getCurrentTime",
-    description: "Get current time information",
-    enabled: true,
-  },
   {
     name: "readNoteByPath",
     description: "Read note content by file path", 
@@ -91,5 +100,16 @@ export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
 
 // 获取默认配置的函数（便于未来扩展）
 export function getDefaultBuiltinTools(): BuiltinToolConfig[] {
-  return [...DEFAULT_BUILTIN_TOOLS];
+  return DEFAULT_BUILTIN_TOOLS.map(cloneBuiltinTool);
+}
+
+export function normalizeBuiltinTools(savedBuiltinTools: BuiltinToolConfig[] = []): BuiltinToolConfig[] {
+  const savedBuiltinToolsByName = new Map(savedBuiltinTools.map((tool) => [tool.name, tool]));
+
+  return getDefaultBuiltinTools().map((builtinTool) => {
+    const savedBuiltinTool = savedBuiltinToolsByName.get(builtinTool.name);
+    return savedBuiltinTool
+      ? { ...builtinTool, enabled: savedBuiltinTool.enabled }
+      : builtinTool;
+  });
 }

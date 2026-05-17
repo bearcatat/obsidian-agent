@@ -12,7 +12,6 @@ import { renderReadNoteByPathMessage } from '@/tool/ReadNote/ReadNoteByPath/Read
 import { renderSearchMessage } from '@/tool/Search/SearchTool';
 import { renderSkillMessage } from '@/tool/Skill/SkillTool';
 import { renderTelegramFeedbackMessage } from './telegram-feedback-message-card';
-import { renderGetCurrentTimeMessage } from '@/tool/Time/GetCurrentTime/GetCurrentTimeTool';
 import { renderWebFetchMessage } from '@/tool/WebFetch/WebFetchTool';
 import { deserializeMessageForHistory, type SerializedHistoryMessage } from '@/messages/history-message';
 import type { MessageV2 } from '@/types';
@@ -37,7 +36,11 @@ interface SkillResult {
 interface TimeInfo {
   formatted: string;
   timezone: string;
-  timestamp: number;
+  timestamp: number | string;
+}
+
+function renderLegacyGetCurrentTimeMessage(timeInfo: TimeInfo | null): React.ReactNode {
+  return `Current time: ${timeInfo?.formatted || 'Current time'}`;
 }
 
 export function renderHistoricalToolMessage(toolName: string, contentJson: string): React.ReactNode {
@@ -164,7 +167,7 @@ export function renderHistoricalToolMessage(toolName: string, contentJson: strin
             timeInfo = { formatted: match[1].trim(), timezone: '', timestamp: 0 };
           }
         }
-        return renderGetCurrentTimeMessage(timeInfo as any);
+        return renderLegacyGetCurrentTimeMessage(timeInfo);
       }
       case 'telegramFeedback':
         return renderTelegramFeedbackMessage(data);

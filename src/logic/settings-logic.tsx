@@ -2,6 +2,7 @@ import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashP
 import { settingsStore } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
 import AIToolManager from "@/tool/ToolManager";
+import { normalizeBuiltinTools } from "@/tool/BuiltinTools";
 import { ToolSet } from "ai";
 import { setSettingsPlugin } from "./settings-persistence";
 import TelegramFeedbackRuntime from "@/tool/TelegramFeedback/TelegramFeedbackRuntime";
@@ -216,6 +217,10 @@ export class SettingsLogic {
             const savedData = await this.plugin?.loadData();
             if (savedData) {
                 settingsStore.getState().setAllData(savedData);
+                const normalizedBuiltinTools = normalizeBuiltinTools(savedData.builtinTools);
+                if (JSON.stringify(savedData.builtinTools || []) !== JSON.stringify(normalizedBuiltinTools)) {
+                    await this.saveSettings();
+                }
             }
             // 异步初始化，不阻塞插件加载
             TelegramFeedbackRuntime.getInstance().configure(settingsStore.getState().telegramFeedbackConfig).catch((error: unknown) => {
@@ -235,7 +240,7 @@ export class SettingsLogic {
                 titleModel: state.titleModel,
                 imageModel: state.imageModel,
                 mcpServers: state.mcpServers,
-                builtinTools: state.builtinTools,
+                builtinTools: normalizeBuiltinTools(state.builtinTools),
                 exaSearchConfig: state.exaSearchConfig,
                 bochaSearchConfig: state.bochaSearchConfig,
                 telegramFeedbackConfig: state.telegramFeedbackConfig,
