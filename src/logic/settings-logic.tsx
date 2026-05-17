@@ -306,6 +306,7 @@ export class SettingsLogic {
         const state = settingsStore.getState();
         state.setTelegramFeedbackConfig(config);
         await TelegramFeedbackRuntime.getInstance().configure(config);
+        await AIToolManager.getInstance().updateTelegramFeedbackConfig(config);
         await this.saveSettings();
     }
 
@@ -322,6 +323,7 @@ export class SettingsLogic {
 
         state.setTelegramFeedbackConfig(nextConfig);
         await TelegramFeedbackRuntime.getInstance().configure(nextConfig);
+        await AIToolManager.getInstance().updateTelegramFeedbackConfig(nextConfig);
         await this.saveSettings();
         return nextConfig;
     }
@@ -338,6 +340,7 @@ export class SettingsLogic {
 
         state.setTelegramFeedbackConfig(nextConfig);
         await TelegramFeedbackRuntime.getInstance().configure(nextConfig);
+        await AIToolManager.getInstance().updateTelegramFeedbackConfig(nextConfig);
         await this.saveSettings();
         return nextConfig;
     }
@@ -356,6 +359,7 @@ export class SettingsLogic {
 
         state.setTelegramFeedbackConfig(nextConfig);
         await TelegramFeedbackRuntime.getInstance().configure(nextConfig);
+        await AIToolManager.getInstance().updateTelegramFeedbackConfig(nextConfig);
         await this.saveSettings();
         return nextConfig;
     }

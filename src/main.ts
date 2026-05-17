@@ -387,6 +387,12 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			if (bochaSearchConfig) {
 				await aiToolManager.updateBochaSearchConfig(bochaSearchConfig);
 			}
+
+			// 初始化 Telegram feedback 配置
+			const telegramFeedbackConfig = settingsState.telegramFeedbackConfig;
+			if (telegramFeedbackConfig) {
+				await aiToolManager.updateTelegramFeedbackConfig(telegramFeedbackConfig);
+			}
 		} catch (error) {
 			console.error('Failed to initialize tools:', error);
 		}

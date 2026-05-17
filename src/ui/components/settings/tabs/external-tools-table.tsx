@@ -11,7 +11,7 @@ interface ExternalTool {
   name: string;
   description: string;
   enabled: boolean;
-  hasApiKey: boolean;
+  isConfigured: boolean;
   getLink: string;
 }
 
@@ -21,6 +21,10 @@ interface ExternalToolsTableProps {
 
 export const ExternalToolsTable: React.FC<ExternalToolsTableProps> = ({ onEdit }) => {
   const { exaSearchConfig, bochaSearchConfig, telegramFeedbackConfig } = useSettingsState();
+  const isTelegramConfigured =
+    telegramFeedbackConfig.botToken.trim().length > 0 &&
+    !!telegramFeedbackConfig.boundUserId &&
+    !!telegramFeedbackConfig.boundChatId;
 
   const externalTools: ExternalTool[] = [
     {
@@ -28,7 +32,7 @@ export const ExternalToolsTable: React.FC<ExternalToolsTableProps> = ({ onEdit }
       name: "Exa Web Search",
       description: "Search the web using Exa AI",
       enabled: exaSearchConfig.enabled && !!exaSearchConfig.apiKey,
-      hasApiKey: !!exaSearchConfig.apiKey,
+      isConfigured: !!exaSearchConfig.apiKey,
       getLink: "https://dashboard.exa.ai/api-keys",
     },
     {
@@ -36,15 +40,15 @@ export const ExternalToolsTable: React.FC<ExternalToolsTableProps> = ({ onEdit }
       name: "Bocha Web Search",
       description: "Search the web using Bocha AI",
       enabled: bochaSearchConfig.enabled && !!bochaSearchConfig.apiKey,
-      hasApiKey: !!bochaSearchConfig.apiKey,
+      isConfigured: !!bochaSearchConfig.apiKey,
       getLink: "https://open.bochaai.com",
     },
     {
       id: "telegram",
       name: "Telegram Feedback",
       description: "Push async feedback requests to a bound Telegram user",
-      enabled: telegramFeedbackConfig.enabled && !!telegramFeedbackConfig.botToken,
-      hasApiKey: !!telegramFeedbackConfig.botToken,
+      enabled: telegramFeedbackConfig.enabled && isTelegramConfigured,
+      isConfigured: isTelegramConfigured,
       getLink: "https://t.me/BotFather",
     },
   ];
@@ -69,18 +73,18 @@ export const ExternalToolsTable: React.FC<ExternalToolsTableProps> = ({ onEdit }
                 <TableCell>
                   <div className="tw-flex tw-items-center tw-gap-2">
                     <div
-                      className={`tw-w-2 tw-h-2 tw-rounded-full ${
-                        tool.enabled
-                          ? "tw-bg-green-500"
-                          : tool.hasApiKey
-                          ? "tw-bg-yellow-500"
-                          : "tw-bg-gray-400"
-                      }`}
+                        className={`tw-w-2 tw-h-2 tw-rounded-full ${
+                          tool.enabled
+                            ? "tw-bg-green-500"
+                            : tool.isConfigured
+                            ? "tw-bg-yellow-500"
+                            : "tw-bg-gray-400"
+                        }`}
                     />
                     <span className="tw-text-sm tw-text-gray-600">
                       {tool.enabled
                         ? "Enabled"
-                        : tool.hasApiKey
+                        : tool.isConfigured
                         ? "Disabled"
                         : "Not configured"}
                     </span>
