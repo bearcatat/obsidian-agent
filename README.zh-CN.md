@@ -1,6 +1,6 @@
 # Obsidian Agent
 
-[![版本](https://img.shields.io/badge/version-0.20.0-blue.svg)](https://github.com/bearcatat/obsidian-agent/releases)
+[![版本](https://img.shields.io/badge/version-0.20.1-blue.svg)](https://github.com/bearcatat/obsidian-agent/releases)
 [![许可证](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE)
 [![Obsidian](https://img.shields.io/badge/Obsidian-0.16.0+-purple.svg)](https://obsidian.md)
 
@@ -69,7 +69,6 @@
 
 ### 工具使用示例
 自然地提问，AI 会自动使用合适的工具：
-- "现在几点了？"
 - "查找所有提到'项目计划'的笔记"
 - "帮我改进这篇笔记的结构"
 - "在我的日记中搜索待办事项"

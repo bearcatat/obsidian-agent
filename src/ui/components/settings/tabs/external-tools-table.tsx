@@ -129,7 +129,7 @@ export const ExternalToolsTable: React.FC<ExternalToolsTableProps> = ({ onEdit }
                 className={`tw-w-2 tw-h-2 tw-rounded-full ${
                   tool.enabled
                     ? "tw-bg-green-500"
-                    : tool.hasApiKey
+                    : tool.isConfigured
                     ? "tw-bg-yellow-500"
                     : "tw-bg-gray-400"
                 }`}
@@ -137,7 +137,7 @@ export const ExternalToolsTable: React.FC<ExternalToolsTableProps> = ({ onEdit }
               <span className="tw-text-sm tw-text-gray-600">
                 {tool.enabled
                   ? "Enabled"
-                  : tool.hasApiKey
+                  : tool.isConfigured
                   ? "Disabled"
                   : "Not configured"}
               </span>
