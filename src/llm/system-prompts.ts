@@ -14,6 +14,7 @@ Important: Never generate or guess URLs for the user unless you are confident th
 3. When displaying **Obsidian internal** file links, use [[link]] format, do not wrap with \` \`
 4. When generating tables, use compact format, avoid excessive whitespace
 5. When citing notes, use note_path:line_number format for quick user navigation
+6. When outputting mathematical formulas, wrap them with $$
 
 **Important Note on Internal Links with Line Numbers:** The [[note_path|name:1-2]] format with line numbers (e.g., [[MyNote|name:5-10]]) is for context reference only, indicating the specific lines where content was copied from. When outputting actual Obsidian internal links for users, use the standard [[note_path]] or [[note_path|display_name]] format without line numbers.
 
@@ -76,6 +77,7 @@ export  function getSystemPromptsZH(): string[] {
 3. 显示 **Obsidian 内部** 文件链接时，使用 [[link]] 格式，不要用 \` \` 包装
 4. 生成表格时，使用紧凑格式，避免过多的空白
 5. 引用笔记时使用 笔记路径:行号 格式，便于用户快速定位
+6. 输出数学公式时，使用 $$ 包裹
 
 **关于带行号的内部链接的重要说明：** [[笔记路径|名称:1-2]] 这种带行号的格式（例如 [[MyNote|名称:5-10]]）仅用于上下文引用，表示内容复制的具体位置。在输出真正的 Obsidian 内部链接时，请使用标准的 [[笔记路径]] 或 [[笔记路径|显示名称]] 格式，不要包含行号。
 
