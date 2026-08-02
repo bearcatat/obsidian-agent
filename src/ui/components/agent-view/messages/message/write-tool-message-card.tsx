@@ -38,6 +38,9 @@ function getStatusText(
     if (reviewStatus === "reviewed") {
         return "Reviewed";
     }
+    if (reviewStatus === "conflicted") {
+        return "Conflict";
+    }
     if (reviewStatus) {
         return "Needs sync";
     }

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { ToolMessage } from "@/messages/tool-message";
 import { MessageV2 } from "@/types";
 import SkillLogic from "@/logic/skill-logic";
+import { AgentToolContext } from "@/tool/ToolContext";
 
 export const toolName = "skill";
 
@@ -46,7 +47,7 @@ export const SkillTool = tool({
     name: z.string().describe("The name of the skill to load"),
   }),
   execute: async ({ name }, { toolCallId, experimental_context }) => {
-    const context = experimental_context as { addMessage: (message: MessageV2) => void };
+    const context = experimental_context as AgentToolContext;
     
     try {
       const toolMessage = ToolMessage.from(toolName, toolCallId);
@@ -68,7 +69,7 @@ export const SkillTool = tool({
       }
       
       // 将会话级 skill 激活
-      skillLogic.activateSessionSkill(name);
+      context.activateSkill(name);
       
       const result = {
         success: true,

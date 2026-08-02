@@ -1,5 +1,5 @@
 import { Bot } from "gramio";
-import { TelegramFeedbackConfig, TelegramFeedbackProgress, TelegramFeedbackReply, TelegramFeedbackRequest, TelegramFeedbackResult, createDefaultTelegramFeedbackConfig } from "@/types";
+import { ModelConfig, TelegramFeedbackConfig, TelegramFeedbackProgress, TelegramFeedbackReply, TelegramFeedbackRequest, TelegramFeedbackResult, createDefaultTelegramFeedbackConfig } from "@/types";
 import TelegramApiClient, { TelegramApiUpdate } from "./TelegramApiClient";
 import { settingsStore } from "@/state/settings-state-impl";
 import { persistSettingsStore } from "@/logic/settings-persistence";
@@ -15,6 +15,7 @@ interface BeginFeedbackRequestParams {
   sessionId?: string | null;
   toolCallId?: string;
   onUpdate?: (update: TelegramFeedbackProgress) => void | Promise<void>;
+  model?: ModelConfig;
 }
 
 interface PendingFeedbackRequest {
@@ -24,6 +25,7 @@ interface PendingFeedbackRequest {
   resolve: (result: TelegramFeedbackResult) => void;
   reject: (error: Error) => void;
   notifyUpdate?: (update: TelegramFeedbackProgress) => void | Promise<void>;
+  model?: ModelConfig;
 }
 
 interface FeedbackAwaiter {
@@ -41,7 +43,7 @@ export default class TelegramFeedbackRuntime {
   private pollGeneration = 0;
   private pollingAbortController: AbortController | null = null;
   private pollingOffset = 0;
-  private pendingRequest: PendingFeedbackRequest | null = null;
+  private pendingRequests = new Map<string, PendingFeedbackRequest>();
 
   static getInstance(): TelegramFeedbackRuntime {
     if (!TelegramFeedbackRuntime.instance) {
@@ -109,8 +111,8 @@ export default class TelegramFeedbackRuntime {
     this.pollingAbortController?.abort();
     this.pollingAbortController = null;
 
-    if (this.pendingRequest) {
-      this.rejectPendingRequest(new Error("Telegram feedback runtime stopped."));
+    for (const requestId of Array.from(this.pendingRequests.keys())) {
+      this.rejectPendingRequest(requestId, new Error("Telegram feedback runtime stopped."));
     }
 
     this.bot = null;
@@ -131,10 +133,6 @@ export default class TelegramFeedbackRuntime {
 
     if (!this.config.boundChatId || !this.config.boundUserId) {
       throw new Error("Telegram user is not bound. Generate a verification code in settings and finish the binding flow first.");
-    }
-
-    if (this.pendingRequest) {
-      throw new Error("Another Telegram feedback request is already pending. Finish or cancel it before creating a new one.");
     }
 
     const requestId = this.createRequestId();
@@ -166,21 +164,22 @@ export default class TelegramFeedbackRuntime {
     });
 
     const promise = new Promise<TelegramFeedbackResult>((resolve, reject) => {
-      this.pendingRequest = {
+      this.pendingRequests.set(requestId, {
         request,
         sourceMessageId: sentMessage?.message_id,
         replies: [],
         resolve,
         reject,
         notifyUpdate: params.onUpdate,
-      };
+        model: params.model,
+      });
     });
 
     return {
       requestId,
       promise,
       cancel: async (reason?: Error) => {
-        this.rejectPendingRequest(reason ?? new Error("Telegram feedback cancelled."), "cancelled");
+        this.rejectPendingRequest(requestId, reason ?? new Error("Telegram feedback cancelled."), "cancelled");
       },
     };
   }
@@ -273,7 +272,8 @@ export default class TelegramFeedbackRuntime {
     }
 
     const requestId = data.replace("tgf:submit:", "");
-    if (!this.pendingRequest || this.pendingRequest.request.requestId !== requestId || !this.client) {
+    const pendingRequest = this.pendingRequests.get(requestId);
+    if (!pendingRequest || !this.client) {
       await this.client?.answerCallbackQuery({
         callback_query_id: callbackQuery?.id,
         text: "This feedback request is no longer active.",
@@ -310,7 +310,7 @@ export default class TelegramFeedbackRuntime {
       console.error("[TelegramFeedbackRuntime] Failed to finalize callback query:", error);
     }
 
-    await this.resolvePendingRequest();
+    await this.resolvePendingRequest(requestId);
   }
 
   private async tryBindUser(message: any, text: string): Promise<boolean> {
@@ -364,13 +364,15 @@ export default class TelegramFeedbackRuntime {
   }
 
   private async collectFeedbackReply(message: any): Promise<void> {
-    if (!this.pendingRequest) {
-      return;
-    }
-
     if (!this.isBoundUser(message.from?.id, message.chat?.id)) {
       return;
     }
+
+    const replyToMessageId = message.reply_to_message?.message_id;
+    const candidates = Array.from(this.pendingRequests.values());
+    const active = candidates.find(request => request.sourceMessageId === replyToMessageId)
+      ?? (candidates.length === 1 ? candidates[0] : null);
+    if (!active) return;
 
     const imageFileIds = this.extractImageFileIds(message);
     const text = [message.text, message.caption].filter((value): value is string => typeof value === "string" && value.trim().length > 0).join("\n\n");
@@ -381,36 +383,35 @@ export default class TelegramFeedbackRuntime {
 
     const images = imageFileIds.length > 0 ? await this.downloadImages(imageFileIds) : [];
 
-    this.pendingRequest.replies.push({
+    active.replies.push({
       messageId: message.message_id,
       text,
       imageFileIds,
       images,
       receivedAt: Date.now(),
     });
-    this.pendingRequest.request.replyCount = this.pendingRequest.replies.length;
+    active.request.replyCount = active.replies.length;
 
-    await this.emitProgress(this.pendingRequest, {
-      requestId: this.pendingRequest.request.requestId,
-      question: this.pendingRequest.request.question,
+    await this.emitProgress(active, {
+      requestId: active.request.requestId,
+      question: active.request.question,
       status: "pending",
-      replies: [...this.pendingRequest.replies],
-      imageCount: this.pendingRequest.replies.reduce((total, reply) => total + reply.imageFileIds.length, 0),
+      replies: [...active.replies],
+      imageCount: active.replies.reduce((total, reply) => total + reply.imageFileIds.length, 0),
       username: this.config.boundUsername || undefined,
     });
   }
 
-  private async resolvePendingRequest(): Promise<void> {
-    if (!this.pendingRequest || !this.client) {
+  private async resolvePendingRequest(requestId: string): Promise<void> {
+    const active = this.pendingRequests.get(requestId);
+    if (!active || !this.client) {
       return;
     }
-
-    const active = this.pendingRequest;
     active.request.status = "submitted";
 
     const replies = [...active.replies];
     const pendingRequest = active.request;
-    this.pendingRequest = null;
+    this.pendingRequests.delete(requestId);
 
     const combinedText = replies
       .map((reply) => reply.text.trim())
@@ -433,7 +434,7 @@ export default class TelegramFeedbackRuntime {
     }
 
     const imageAnalysis = images.length > 0
-      ? await this.analyzeImages(images, combinedText)
+      ? await this.analyzeImages(images, combinedText, active.model)
       : imageFileIds.length > 0
       ? "Image analysis skipped because Telegram images could not be downloaded."
       : undefined;
@@ -470,24 +471,24 @@ export default class TelegramFeedbackRuntime {
     active.resolve(result);
   }
 
-  private rejectPendingRequest(error: Error, status: TelegramFeedbackRequest["status"] = "cancelled") {
-    if (!this.pendingRequest) {
+  private rejectPendingRequest(requestId: string, error: Error, status: TelegramFeedbackRequest["status"] = "cancelled") {
+    const active = this.pendingRequests.get(requestId);
+    if (!active) {
       return;
     }
-
-    const active = this.pendingRequest;
     active.request.status = status;
-    this.pendingRequest = null;
+    this.pendingRequests.delete(requestId);
     active.reject(error);
   }
 
-  private async analyzeImages(images: string[], collectedText: string): Promise<string | undefined> {
+  private async analyzeImages(images: string[], collectedText: string, requestModel?: ModelConfig): Promise<string | undefined> {
     if (images.length === 0) {
       return undefined;
     }
 
     const modelConfig =
       settingsStore.getState().imageModel ??
+      requestModel ??
       agentStore.getState().model ??
       AIModelManager.getInstance().agentModelConfig;
     if (!modelConfig) {

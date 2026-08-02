@@ -2,10 +2,11 @@ import { IconManager } from './icons';
 import { ObsidianAgentSettingTab } from './components/settings/setttings-tab';
 import { IObsidianAgentPlugin } from '../types';
 import { AgentView, AGENT_VIEW_TYPE } from './components/agent-view/agent-view';
+import { ConversationListView, CONVERSATION_LIST_VIEW_TYPE } from './components/conversation-list-view';
+import { WorkspaceLeaf } from 'obsidian';
 
 export class UIManager {
 	private plugin: IObsidianAgentPlugin;
-	private view: AgentView | null = null;
 
 	constructor(plugin: IObsidianAgentPlugin) {
 		this.plugin = plugin;
@@ -15,7 +16,7 @@ export class UIManager {
 		this.registerIcons();
 		this.setupRibbonIcon();
 		this.setupSettingTab();
-		this.registerView();
+		this.registerViews();
 	}
 
 	private registerIcons(): void {
@@ -26,38 +27,36 @@ export class UIManager {
 		const ribbonIconEl = this.plugin.addRibbonIcon(
 			IconManager.getIconName(),
 			'Obsidian Agent',
-			this.handleRibbonClick
+			this.handleRibbonClick,
 		);
 		ribbonIconEl.addClass('obsidian-agent-ribbon-class');
 	}
 
-	private registerView(): void {
-		this.plugin.registerView(
-			AGENT_VIEW_TYPE,
-			(leaf) => new AgentView(leaf)
-		);
+	private registerViews(): void {
+		this.plugin.registerView(AGENT_VIEW_TYPE, leaf => new AgentView(leaf));
+		this.plugin.registerView(CONVERSATION_LIST_VIEW_TYPE, leaf => new ConversationListView(leaf));
 	}
 
-	private handleRibbonClick = async (evt: MouseEvent): Promise<void> => {
+	private handleRibbonClick = async (_evt: MouseEvent): Promise<void> => {
 		const { workspace } = this.plugin.app;
-		
-		// 检查视图是否已经存在
-		const existingLeaf = workspace.getLeavesOfType(AGENT_VIEW_TYPE)[0];
-		
-		if (existingLeaf) {
-			// 如果视图已存在，激活它
-			workspace.revealLeaf(existingLeaf);
-		} else {
-			// 创建新的视图
-			const leaf = workspace.getRightLeaf(false);
-			if (leaf) {
-				await leaf.setViewState({
-					type: AGENT_VIEW_TYPE,
-					active: true,
-				});
-				workspace.revealLeaf(leaf);
+
+		let conversationLeaf: WorkspaceLeaf | null = workspace.getLeavesOfType(CONVERSATION_LIST_VIEW_TYPE)[0] ?? null;
+		if (!conversationLeaf) {
+			conversationLeaf = workspace.getLeftLeaf(false);
+			if (conversationLeaf) {
+				await conversationLeaf.setViewState({ type: CONVERSATION_LIST_VIEW_TYPE, active: true });
 			}
 		}
+		if (conversationLeaf) await workspace.revealLeaf(conversationLeaf);
+
+		let agentLeaf: WorkspaceLeaf | null = workspace.getLeavesOfType(AGENT_VIEW_TYPE)[0] ?? null;
+		if (!agentLeaf) {
+			agentLeaf = workspace.getRightLeaf(false);
+			if (agentLeaf) {
+				await agentLeaf.setViewState({ type: AGENT_VIEW_TYPE, active: true });
+			}
+		}
+		if (agentLeaf) await workspace.revealLeaf(agentLeaf);
 	}
 
 	private setupSettingTab(): void {
@@ -65,8 +64,5 @@ export class UIManager {
 	}
 
 	cleanup(): void {
-		// 清理UI资源
-		// 注意：Obsidian会自动清理注册的视图和设置标签页
-		// 这里主要清理自定义的资源
 	}
 }

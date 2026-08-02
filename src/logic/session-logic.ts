@@ -1,5 +1,5 @@
 import { App } from "obsidian";
-import { AgentStateData } from "@/state/agent-state";
+import { ConversationState } from "@/state/agent-state";
 import { getGlobalApp } from "@/utils";
 import { FileReviewEntry, MessageV2 } from "@/types";
 import { ModelMessage } from "ai";
@@ -9,18 +9,6 @@ import { AssistantMessage } from "@/messages/assistant-message";
 import { v4 as uuidv4 } from 'uuid';
 import { renderHistoricalToolMessage } from "@/ui/components/agent-view/messages/message/historical-tool-renderer";
 import { SnapshotLogic } from "@/logic/snapshot-logic";
-import { agentStore } from "@/state/agent-state-impl";
-import { SkillLogic } from "@/logic/skill-logic";
-
-function debounce<T extends (...args: any[]) => void>(func: T, wait: number): T {
-  let timeout: ReturnType<typeof setTimeout> | null = null;
-  return ((...args: any[]) => {
-    if (timeout) clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      func(...args);
-    }, wait);
-  }) as T;
-}
 
 export interface SnapshotData {
   snapshotId: string;
@@ -43,12 +31,14 @@ export interface SessionData {
   turns: TurnData[];
   activeSkills: string[];
   fileReviews: FileReviewEntry[];
+  hasUnread?: boolean;
 }
 
 export interface SessionMetadata {
   id: string;
   title: string;
   updatedAt: number;
+  hasUnread: boolean;
 }
 
 export class SessionLogic {
@@ -56,12 +46,10 @@ export class SessionLogic {
   private app: App;
   private readonly SESSIONS_DIR = ".obsidian/plugins/obsidian-agent/sessions";
   
-  // Debounced save function
-  private debouncedSave: (sessionId: string, state: AgentStateData) => void;
+  private saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   private constructor() {
     this.app = getGlobalApp();
-    this.debouncedSave = debounce(this.saveSessionInternal.bind(this), 1000);
   }
 
   static getInstance(): SessionLogic {
@@ -93,10 +81,12 @@ export class SessionLogic {
       try {
         const content = await adapter.read(file);
         const data = JSON.parse(content) as SessionData;
+        if (!data.turns || data.turns.length === 0) continue;
         sessions.push({
           id: data.id,
           title: data.title,
-          updatedAt: data.updatedAt
+          updatedAt: data.updatedAt,
+          hasUnread: data.hasUnread ?? false,
         });
       } catch (e) {
         console.error(`Failed to parse session file ${file}`, e);
@@ -106,41 +96,44 @@ export class SessionLogic {
     return sessions.sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
-  async createSession(title: string = "New Chat"): Promise<string> {
-    const id = uuidv4();
-    agentStore.getState().setSessionId(id);
-    agentStore.getState().setTitle(title);
-    return id;
+  async createSession(_title: string = "New Chat"): Promise<string> {
+    return uuidv4();
   }
 
   // Public API to trigger save
-  saveSession(state: AgentStateData): void {
-    if (!state.sessionId) return;
-    this.debouncedSave(state.sessionId, state);
+  saveSession(state: ConversationState): void {
+    if (!state.sessionId || state.messages.length === 0) return;
+    const existing = this.saveTimers.get(state.sessionId);
+    if (existing) clearTimeout(existing);
+    this.saveTimers.set(state.sessionId, setTimeout(() => {
+      this.saveTimers.delete(state.sessionId);
+      void this.saveSessionInternal(state.sessionId, state);
+    }, 1000));
   }
 
-  async saveSessionNow(state: AgentStateData): Promise<void> {
-    if (!state.sessionId) return;
+  async saveSessionNow(state: ConversationState): Promise<void> {
+    if (!state.sessionId || state.messages.length === 0) return;
+    const existing = this.saveTimers.get(state.sessionId);
+    if (existing) clearTimeout(existing);
+    this.saveTimers.delete(state.sessionId);
     await this.saveSessionInternal(state.sessionId, state);
   }
 
-  private async saveSessionInternal(sessionId: string, state: AgentStateData): Promise<void> {
+  private async saveSessionInternal(sessionId: string, state: ConversationState): Promise<void> {
     try {
       await this.ensureSessionsDir();
       
       const turns = this.serializeToTurns(state.messages, state.modelMessages);
       
-      // Get active skills for the session
-      const activeSkills = SkillLogic.getInstance().getActiveSkillsForSession().map(s => s.name);
-      
       const sessionData: SessionData = {
         id: sessionId,
         title: state.title,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        createdAt: state.createdAt,
+        updatedAt: state.updatedAt,
         turns,
-        activeSkills,
-        fileReviews: state.fileReviews || []
+        activeSkills: state.activeSkills,
+        fileReviews: state.fileReviews || [],
+        hasUnread: state.hasUnread,
       };
 
       const filePath = `${this.SESSIONS_DIR}/${sessionId}.json`;
@@ -150,7 +143,7 @@ export class SessionLogic {
     }
   }
 
-  async loadSession(sessionId: string): Promise<AgentStateData | null> {
+  async loadSession(sessionId: string): Promise<ConversationState | null> {
     try {
       const filePath = `${this.SESSIONS_DIR}/${sessionId}.json`;
       const adapter = this.app.vault.adapter;
@@ -216,7 +209,11 @@ export class SessionLogic {
           variant: null,
           abortController: null,
           fileReviews: sessionData.fileReviews || [],
-          activeSkills: sessionData.activeSkills || []
+          activeSkills: sessionData.activeSkills || [],
+          createdAt: sessionData.createdAt || sessionData.updatedAt || Date.now(),
+          updatedAt: sessionData.updatedAt || Date.now(),
+          status: 'idle',
+          hasUnread: sessionData.hasUnread ?? false,
       };
 
     } catch (e) {
@@ -226,6 +223,9 @@ export class SessionLogic {
   }
   
   async deleteSession(sessionId: string): Promise<void> {
+    const pendingSave = this.saveTimers.get(sessionId);
+    if (pendingSave) clearTimeout(pendingSave);
+    this.saveTimers.delete(sessionId);
     const filePath = `${this.SESSIONS_DIR}/${sessionId}.json`;
     const adapter = this.app.vault.adapter;
     if (await adapter.exists(filePath)) {

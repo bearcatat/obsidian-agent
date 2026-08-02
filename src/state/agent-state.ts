@@ -41,3 +41,14 @@ export interface AgentStateData {
   variant: ModelVariant | null;
   activeSkills?: string[];
 }
+
+export type ConversationStatus = 'idle' | 'running' | 'conflicted';
+
+export interface ConversationState extends AgentStateData {
+  sessionId: string;
+  createdAt: number;
+  updatedAt: number;
+  status: ConversationStatus;
+  activeSkills: string[];
+  hasUnread: boolean;
+}

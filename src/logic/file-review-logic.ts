@@ -1,10 +1,11 @@
-import { MarkdownView, TFile, WorkspaceLeaf, normalizePath } from "obsidian";
+import { MarkdownView, Notice, TFile, WorkspaceLeaf, normalizePath } from "obsidian";
 import { agentStore } from "@/state/agent-state-impl";
 import { FileReviewEntry } from "@/types";
 import { hashReviewContent } from "./file-review-utils";
 import { SnapshotLogic } from "./snapshot-logic";
 import { getGlobalApp } from "@/utils";
 import { fileMutex } from "@/tool/FileEdit/mutex";
+import { SessionLogic } from "./session-logic";
 
 interface PrepareReviewBaseResult {
   baselineContent: string;
@@ -18,6 +19,7 @@ interface RegisterAutoAppliedChangeInput extends PrepareReviewBaseResult {
   toolCallId: string;
   messageId: string;
   toolName: string;
+  conversationId?: string;
 }
 
 function isMarkdownLeaf(leaf: WorkspaceLeaf): leaf is WorkspaceLeaf & { view: MarkdownView } {
@@ -38,21 +40,25 @@ export class FileReviewLogic {
     FileReviewLogic.instance = undefined as any;
   }
 
-  getFileReview(filePath: string): FileReviewEntry | undefined {
+  getFileReview(filePath: string, conversationId?: string): FileReviewEntry | undefined {
     const normalizedPath = normalizePath(filePath);
-    return agentStore.getState().fileReviews.find((review) => review.filePath === normalizedPath);
+    const store = agentStore.getState();
+    const id = conversationId ?? store.activeConversationId;
+    return (id ? store.conversations[id]?.fileReviews ?? [] : []).find((review) => review.filePath === normalizedPath);
   }
 
-  getActiveFileReviews(): FileReviewEntry[] {
-    return agentStore.getState().fileReviews
+  getActiveFileReviews(conversationId?: string): FileReviewEntry[] {
+    const store = agentStore.getState();
+    const id = conversationId ?? store.activeConversationId;
+    return (id ? store.conversations[id]?.fileReviews ?? [] : [])
       .filter((review) => review.hasActiveDiff)
       .slice()
       .sort((left, right) => right.updatedAt - left.updatedAt);
   }
 
-  async prepareReviewBase(filePath: string, currentContent: string, isNewFile: boolean): Promise<PrepareReviewBaseResult> {
+  async prepareReviewBase(filePath: string, currentContent: string, isNewFile: boolean, conversationId?: string): Promise<PrepareReviewBaseResult> {
     const normalizedPath = normalizePath(filePath);
-    const existing = this.getFileReview(normalizedPath);
+    const existing = this.getFileReview(normalizedPath, conversationId);
 
     if (existing && existing.hasActiveDiff && existing.status === "reviewing") {
       return {
@@ -71,8 +77,18 @@ export class FileReviewLogic {
 
   registerAutoAppliedChange(input: RegisterAutoAppliedChangeInput): FileReviewEntry {
     const normalizedPath = normalizePath(input.filePath);
-    const existing = this.getFileReview(normalizedPath);
+    const existing = this.getFileReview(normalizedPath, input.conversationId);
     const hasActiveDiff = input.headContent !== input.baselineContent;
+
+    for (const [conversationId, conversation] of Object.entries(agentStore.getState().conversations)) {
+      if (conversationId === input.conversationId) continue;
+      const competing = conversation.fileReviews.find(review => review.filePath === normalizedPath && review.hasActiveDiff);
+      if (competing && competing.status !== 'conflicted') {
+        agentStore.getState().upsertFileReview({ ...competing, status: 'conflicted', updatedAt: Date.now() }, conversationId);
+        const updated = agentStore.getState().conversations[conversationId];
+        if (updated) SessionLogic.getInstance().saveSession(updated);
+      }
+    }
 
     const entry: FileReviewEntry = {
       filePath: normalizedPath,
@@ -91,13 +107,13 @@ export class FileReviewLogic {
       updatedAt: Date.now(),
     };
 
-    agentStore.getState().upsertFileReview(entry);
+    agentStore.getState().upsertFileReview(entry, input.conversationId);
     return entry;
   }
 
-  async adoptCurrentAsHead(filePath: string): Promise<void> {
+  async adoptCurrentAsHead(filePath: string, conversationId?: string): Promise<void> {
     const normalizedPath = normalizePath(filePath);
-    const existing = this.getFileReview(normalizedPath);
+    const existing = this.getFileReview(normalizedPath, conversationId);
     if (!existing || !existing.hasActiveDiff) {
       return;
     }
@@ -114,11 +130,11 @@ export class FileReviewLogic {
       hasActiveDiff,
       isReverted: !hasActiveDiff,
       updatedAt: Date.now(),
-    });
+    }, conversationId);
   }
 
-  applyFile(filePath: string): void {
-    const existing = this.getFileReview(filePath);
+  applyFile(filePath: string, conversationId?: string): void {
+    const existing = this.getFileReview(filePath, conversationId);
     if (!existing) {
       return;
     }
@@ -130,28 +146,33 @@ export class FileReviewLogic {
       hasActiveDiff: false,
       updatedAt: Date.now(),
       isReverted: false,
-    });
+    }, conversationId);
   }
 
   applyBlock(_filePath: string, _blockId: string): void {
     // Legacy method — no-op in derived-block mode
   }
 
-  applyAll(): void {
-    for (const review of this.getActiveFileReviews()) {
+  applyAll(conversationId?: string): void {
+    for (const review of this.getActiveFileReviews(conversationId)) {
       if (review.status === "reviewing") {
-        this.applyFile(review.filePath);
+        this.applyFile(review.filePath, conversationId);
       }
     }
   }
 
-  flushPendingAsApplied(): void {
-    this.applyAll();
+  flushPendingAsApplied(conversationId?: string): void {
+    this.applyAll(conversationId);
   }
 
-  async rejectFile(filePath: string): Promise<void> {
-    const review = this.getFileReview(filePath);
+  async rejectFile(filePath: string, conversationId?: string): Promise<void> {
+    const targetId = conversationId ?? agentStore.getState().activeConversationId ?? undefined;
+    const review = this.getFileReview(filePath, targetId);
     if (!review || !review.hasActiveDiff) {
+      return;
+    }
+    if (review.status === 'conflicted') {
+      new Notice('Cannot reject this change because the file was modified by another conversation.', 4000);
       return;
     }
 
@@ -173,7 +194,7 @@ export class FileReviewLogic {
         isReverted: true,
         blocks: [],
         updatedAt: Date.now(),
-      });
+      }, targetId);
     } finally {
       release();
     }
@@ -183,8 +204,9 @@ export class FileReviewLogic {
     // Legacy method — no-op in derived-block mode
   }
 
-  async applyDerivedBlock(filePath: string, derivedBlock: { baselineStart: number; baselineEnd: number; patchText: string }): Promise<void> {
-    const review = this.getFileReview(filePath);
+  async applyDerivedBlock(filePath: string, derivedBlock: { baselineStart: number; baselineEnd: number; patchText: string }, conversationId?: string): Promise<void> {
+    const targetId = conversationId ?? agentStore.getState().activeConversationId ?? undefined;
+    const review = this.getFileReview(filePath, targetId);
     if (!review || !review.hasActiveDiff) {
       return;
     }
@@ -208,12 +230,17 @@ export class FileReviewLogic {
       hasActiveDiff,
       isReverted: false,
       updatedAt: Date.now(),
-    });
+    }, targetId);
   }
 
-  async rejectDerivedBlock(filePath: string, derivedBlock: { baselineStart: number; baselineEnd: number; patchText: string }): Promise<void> {
-    const review = this.getFileReview(filePath);
+  async rejectDerivedBlock(filePath: string, derivedBlock: { baselineStart: number; baselineEnd: number; patchText: string }, conversationId?: string): Promise<void> {
+    const targetId = conversationId ?? agentStore.getState().activeConversationId ?? undefined;
+    const review = this.getFileReview(filePath, targetId);
     if (!review || !review.hasActiveDiff) {
+      return;
+    }
+    if (review.status === 'conflicted') {
+      new Notice('Cannot reject this block because the file was modified by another conversation.', 4000);
       return;
     }
 
@@ -247,16 +274,17 @@ export class FileReviewLogic {
         hasActiveDiff,
         isReverted: !hasActiveDiff,
         updatedAt: Date.now(),
-      });
+      }, targetId);
     } finally {
       release();
     }
   }
 
-  async rejectAll(): Promise<void> {
-    for (const review of this.getActiveFileReviews()) {
+  async rejectAll(conversationId?: string): Promise<void> {
+    conversationId = conversationId ?? agentStore.getState().activeConversationId ?? undefined;
+    for (const review of this.getActiveFileReviews(conversationId)) {
       if (review.status === "reviewing") {
-        await this.rejectFile(review.filePath);
+        await this.rejectFile(review.filePath, conversationId);
       }
     }
   }

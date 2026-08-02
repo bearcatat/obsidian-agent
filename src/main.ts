@@ -22,6 +22,7 @@ import { skillStore } from './state/skill-state';
 import { subAgentStore } from './state/subagent-state';
 import { ruleStore } from './state/rule-state';
 import TelegramFeedbackRuntime from './tool/TelegramFeedback/TelegramFeedbackRuntime';
+import { SessionLogic } from './logic/session-logic';
 
 export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgentPlugin {
 	private uiManager!: UIManager;
@@ -98,8 +99,8 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 			// 1. 中断正在进行的请求
 			const agentState = agentStore.getState();
-			if (agentState.abortController) {
-				agentState.abortController.abort();
+			for (const conversation of Object.values(agentState.conversations)) {
+				conversation.abortController?.abort();
 			}
 
 			await AgentViewLogic.getInstance().finalizePendingReviews();
@@ -111,6 +112,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 			// 3. 重置单例实例
 			AgentViewLogic.resetInstance();
+			SessionLogic.resetInstance();
 			FileReviewDriftMonitor.resetInstance();
 			FileReviewLogic.resetInstance();
 			SettingsLogic.resetInstance();

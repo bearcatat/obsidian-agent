@@ -4,6 +4,7 @@ import AIModelManager from "./ModelManager";
 import { UserMessage } from "@/messages/user-message";
 import { runStreamingTurn } from "./AgentRuntime";
 import { mergeTools } from "./agent-utils";
+import { AgentToolContext } from "@/tool/ToolContext";
 
 export default class SubAgent {
     private toolset: ToolSet = {};
@@ -27,7 +28,8 @@ export default class SubAgent {
 
     async query(message: UserMessage,
         abortSignal: AbortSignal,
-        addMessage: (message: MessageV2) => void
+        addMessage: (message: MessageV2) => void,
+        context?: AgentToolContext,
     ) {
         const builtinTools = this.agentConfig.tools;
         const mergedTools = mergeTools(this.toolset, builtinTools, `[SubAgent: ${this.name}]`);
@@ -41,6 +43,15 @@ export default class SubAgent {
             rawMessages,
             abortSignal,
             normalizeMessages: messages => AIModelManager.getInstance().normalizeMessages(messages, this.modelConfig, this.variant),
+            context: context
+                ? { ...context, addMessage }
+                : {
+                    conversationId: '',
+                    addMessage,
+                    model: this.modelConfig,
+                    variant: this.variant,
+                    activateSkill: () => false,
+                },
         })
         this.messages = [...normalizedMessages, ...responseMessages]
         return text

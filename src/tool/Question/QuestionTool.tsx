@@ -22,7 +22,7 @@ export const QuestionTool = tool({
 			custom: z.boolean().optional().describe("Allow typing a custom answer (default: true)"),
 		})).describe("Questions to ask"),
 	}),
-	execute: async ({ questions }, { toolCallId, experimental_context }) => {
+	execute: async ({ questions }, { toolCallId, experimental_context, abortSignal }) => {
 		const context = experimental_context as { addMessage: (message: MessageV2) => void }
 		try {
 			const toolMessage = ToolMessage.from(toolName, toolCallId)
@@ -52,7 +52,11 @@ export const QuestionTool = tool({
 			toolMessage.setChildren(render(questionData, false, [], submitAnswer))
 			context.addMessage(toolMessage)
 
-			const results: string[][] = await Promise.all(promises)
+			const abortPromise = new Promise<never>((_, reject) => {
+				if (abortSignal?.aborted) reject(new Error('Question request was aborted.'));
+				abortSignal?.addEventListener('abort', () => reject(new Error('Question request was aborted.')), { once: true });
+			});
+			const results: string[][] = await Promise.race([Promise.all(promises), abortPromise])
 			
 			toolMessage.setChildren(render(questionData, true, results, submitAnswer))
 			const payload = {

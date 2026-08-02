@@ -1,29 +1,39 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { TFile, normalizePath } from 'obsidian';
+import { Notice, TFile, normalizePath } from 'obsidian';
 import { ModelConfig, ModelVariant } from '../types';
 import { FileReviewEntry, MessageV2 } from '@/types';
-import { AgentStateData } from './agent-state';
+import { AgentStateData, ConversationState } from './agent-state';
 import { ModelMessage } from 'ai';
 import { SnapshotLogic } from '@/logic/snapshot-logic';
 import { hashReviewContent } from '@/logic/file-review-utils';
 import { ToolMessage } from '@/messages/tool-message';
 import { getGlobalApp } from '@/utils';
+import { SessionLogic } from '@/logic/session-logic';
 
-interface AgentStore extends AgentStateData {
+export interface AgentStore extends AgentStateData {
+  conversations: Record<string, ConversationState>;
+  activeConversationId: string | null;
+  createConversation: (id: string, title?: string) => void;
+  upsertConversation: (conversation: ConversationState) => void;
+  selectConversation: (id: string) => void;
+  removeConversation: (id: string) => void;
   // 状态操作
   setSessionId: (id: string) => void;
-  setLoading: (isLoading: boolean) => void;
-  addMessage: (message: MessageV2) => void;
-  setModelMessages: (modelMessages: ModelMessage[]) => void;
+  setLoading: (isLoading: boolean, conversationId?: string) => void;
+  addMessage: (message: MessageV2, conversationId?: string) => void;
+  setModelMessages: (modelMessages: ModelMessage[], conversationId?: string) => void;
   undoToMessage: (messageId: string) => Promise<void>;
-  setTitle: (title: string) => void;
+  setTitle: (title: string, conversationId?: string) => void;
   setModel: (model: ModelConfig) => void;
   setVariant: (variant: ModelVariant | null) => void;
-  setAbortController: (abortController: AbortController) => void;
-  setFileReviews: (fileReviews: FileReviewEntry[]) => void;
-  upsertFileReview: (fileReview: FileReviewEntry) => void;
-  removeFileReview: (filePath: string) => void;
+  setAbortController: (abortController: AbortController | null, conversationId?: string) => void;
+  setFileReviews: (fileReviews: FileReviewEntry[], conversationId?: string) => void;
+  upsertFileReview: (fileReview: FileReviewEntry, conversationId?: string) => void;
+  removeFileReview: (filePath: string, conversationId?: string) => void;
+  setActiveSkills: (skills: string[], conversationId?: string) => void;
+  setUnread: (hasUnread: boolean, conversationId?: string) => void;
+  setUpdatedAt: (updatedAt: number, conversationId?: string) => void;
   resetForNewChat: () => void;
   cleanupOldMessages: (keepCount?: number) => void;
   cleanupStreamingMessages: () => void;
@@ -39,6 +49,13 @@ const initialState: AgentStateData = {
   abortController: null,
   fileReviews: [],
   variant: null,
+  activeSkills: [],
+};
+
+const registryInitialState = {
+  ...initialState,
+  conversations: {} as Record<string, ConversationState>,
+  activeConversationId: null as string | null,
 };
 
 interface FileToolPayload {
@@ -209,44 +226,124 @@ async function rebuildFileReviewsAfterUndo(
   return nextFileReviews;
 }
 
+function syncActiveConversation(state: any): void {
+  const active = state.activeConversationId ? state.conversations[state.activeConversationId] : null;
+  const source = active ?? initialState;
+  state.sessionId = source.sessionId;
+  state.messages = source.messages;
+  state.modelMessages = source.modelMessages;
+  state.isLoading = source.isLoading;
+  state.title = source.title;
+  state.abortController = source.abortController;
+  state.fileReviews = source.fileReviews;
+  state.activeSkills = source.activeSkills ?? [];
+}
+
+function updateConversation(state: any, conversationId: string | undefined, update: (conversation: ConversationState) => void): void {
+  const id = conversationId ?? state.activeConversationId;
+  if (!id || !state.conversations[id]) return;
+  update(state.conversations[id]);
+  if (state.activeConversationId === id) syncActiveConversation(state);
+}
+
+function createConversationState(id: string, title: string, model: ModelConfig | null, variant: ModelVariant | null): ConversationState {
+  const now = Date.now();
+  return {
+    sessionId: id, messages: [], modelMessages: [], isLoading: false, title,
+    model, variant, abortController: null, fileReviews: [], activeSkills: [],
+    createdAt: now, updatedAt: now, status: 'idle', hasUnread: false,
+  };
+}
+
 export const useAgentStore = create<AgentStore>()(
   immer((set, get) => ({
-    ...initialState,
+    ...registryInitialState,
 
-    setSessionId: (id: string) =>
+    createConversation: (id: string, title: string = 'New Chat') =>
       set((state) => {
-        state.sessionId = id;
+        if (!state.conversations[id]) state.conversations[id] = createConversationState(id, title, state.model, state.variant) as any;
+        state.activeConversationId = id;
+        syncActiveConversation(state);
       }),
 
-    setLoading: (isLoading: boolean) =>
+    upsertConversation: (conversation: ConversationState) =>
       set((state) => {
-        state.isLoading = isLoading;
+        state.conversations[conversation.sessionId] = conversation as any;
+        if (!state.activeConversationId) state.activeConversationId = conversation.sessionId;
+        if (state.activeConversationId === conversation.sessionId) syncActiveConversation(state);
       }),
 
-    addMessage: (message: MessageV2) =>
+    selectConversation: (id: string) =>
       set((state) => {
-        const existingIndex = state.messages.findIndex((m) => m.id === message.id);
+        if (!state.conversations[id]) return;
+        state.conversations[id].hasUnread = false;
+        state.activeConversationId = id;
+        syncActiveConversation(state);
+      }),
 
-        if (existingIndex >= 0) {
-          const newMessages = [...state.messages];
-          newMessages.splice(existingIndex, 1, message);
-          state.messages = newMessages;
-        } else {
-          state.messages.push(message);
+    removeConversation: (id: string) =>
+      set((state) => {
+        delete state.conversations[id];
+        if (state.activeConversationId === id) {
+          state.activeConversationId = Object.keys(state.conversations)[0] ?? null;
+          syncActiveConversation(state);
         }
       }),
 
-    setModelMessages: (modelMessages: ModelMessage[]) =>
+    setSessionId: (id: string) =>
       set((state) => {
-        state.modelMessages = modelMessages as any;
+        if (!state.conversations[id]) state.conversations[id] = createConversationState(id, 'New Chat', state.model, state.variant) as any;
+        state.activeConversationId = id;
+        syncActiveConversation(state);
+      }),
+
+    setLoading: (isLoading: boolean, conversationId?: string) =>
+      set((state) => {
+        updateConversation(state, conversationId, conversation => {
+          conversation.isLoading = isLoading;
+          conversation.status = isLoading ? 'running' : 'idle';
+        });
+      }),
+
+    addMessage: (message: MessageV2, conversationId?: string) =>
+      set((state) => {
+        updateConversation(state, conversationId, conversation => {
+          const existingIndex = conversation.messages.findIndex((m) => m.id === message.id);
+          if (existingIndex >= 0) conversation.messages.splice(existingIndex, 1, message);
+          else conversation.messages.push(message);
+        });
+      }),
+
+    setModelMessages: (modelMessages: ModelMessage[], conversationId?: string) =>
+      set((state) => {
+        updateConversation(state, conversationId, conversation => {
+          conversation.modelMessages = modelMessages as any;
+        });
       }),
 
     undoToMessage: async (messageId: string) => {
       const state = get();
-      const messageIndex = state.messages.findIndex((m: MessageV2) => m.id === messageId);
+      const conversationId = state.activeConversationId;
+      const conversation = conversationId ? state.conversations[conversationId] : null;
+      if (!conversationId || !conversation) return;
+      const messageIndex = conversation.messages.findIndex((m: MessageV2) => m.id === messageId);
       if (messageIndex === -1) return;
 
-      const messagesToDiscard = state.messages.slice(messageIndex);
+      const messagesToDiscard = conversation.messages.slice(messageIndex);
+      const hasConflictedFile = messagesToDiscard.some(message => {
+        if (message.role !== 'tool' || !message.content) return false;
+        try {
+          const target = parseFileToolPayload(message.content);
+          return Boolean(target && conversation.fileReviews.find(review =>
+            review.filePath === normalizePath(target.filePath) && review.status === 'conflicted'));
+        } catch {
+          return false;
+        }
+      });
+      if (hasConflictedFile) {
+        new Notice('Cannot undo this turn because a changed file was modified by another conversation.', 4000);
+        return;
+      }
       const discardedSnapshotIds = new Set<string>();
       for (let i = messagesToDiscard.length - 1; i >= 0; i--) {
         const msg = messagesToDiscard[i];
@@ -266,8 +363,8 @@ export const useAgentStore = create<AgentStore>()(
         }
       }
 
-      const remainingMessages = state.messages.slice(0, messageIndex);
-      const nextFileReviews = await rebuildFileReviewsAfterUndo(state.fileReviews, remainingMessages);
+      const remainingMessages = conversation.messages.slice(0, messageIndex);
+      const nextFileReviews = await rebuildFileReviewsAfterUndo(conversation.fileReviews, remainingMessages);
       const retainedSnapshotIds = collectRetainedSnapshotIds(remainingMessages, nextFileReviews);
       const snapshotLogic = SnapshotLogic.getInstance();
 
@@ -284,21 +381,21 @@ export const useAgentStore = create<AgentStore>()(
       }
 
       set((state) => {
-        const messageIndex = state.messages.findIndex((m) => m.id === messageId);
-        if (messageIndex === -1) return;
-
-        state.messages = remainingMessages;
+        updateConversation(state, conversationId, current => {
+        const currentIndex = current.messages.findIndex((m) => m.id === messageId);
+        if (currentIndex === -1) return;
+        current.messages = remainingMessages;
         
         // Count how many user messages are kept
-        const userMessagesKept = state.messages.filter(m => m.role === 'user').length;
+        const userMessagesKept = current.messages.filter(m => m.role === 'user').length;
         
         // Truncate modelMessages based on user messages count
         // Each user message corresponds to one User message in modelMessages
         let userMessageCount = 0;
-        let truncateIndex = state.modelMessages.length;
+        let truncateIndex = current.modelMessages.length;
         
-        for (let i = 0; i < state.modelMessages.length; i++) {
-          if (state.modelMessages[i].role === 'user') {
+        for (let i = 0; i < current.modelMessages.length; i++) {
+          if (current.modelMessages[i].role === 'user') {
             if (userMessageCount === userMessagesKept) {
               truncateIndex = i;
               break;
@@ -307,76 +404,96 @@ export const useAgentStore = create<AgentStore>()(
           }
         }
         
-        state.modelMessages = state.modelMessages.slice(0, truncateIndex) as any;
-        state.isLoading = false;
-        state.fileReviews = nextFileReviews;
-        if (state.abortController) {
-          state.abortController.abort();
-          state.abortController = null;
+        current.modelMessages = current.modelMessages.slice(0, truncateIndex) as any;
+        current.isLoading = false;
+        current.status = 'idle';
+        current.fileReviews = nextFileReviews;
+        if (current.abortController) {
+          current.abortController.abort();
+          current.abortController = null;
         }
+        });
       });
+      const updatedConversation = get().conversations[conversationId];
+      if (updatedConversation) await SessionLogic.getInstance().saveSessionNow(updatedConversation);
     },
 
-    setTitle: (title: string) =>
+    setTitle: (title: string, conversationId?: string) =>
       set((state) => {
-        state.title = title;
+        updateConversation(state, conversationId, conversation => { conversation.title = title; });
       }),
 
     setModel: (model: ModelConfig) =>
       set((state) => {
         state.model = model;
+        for (const conversation of Object.values(state.conversations)) conversation.model = model;
       }),
     setVariant: (variant: ModelVariant | null) =>
       set((state) => {
         state.variant = variant;
+        for (const conversation of Object.values(state.conversations)) conversation.variant = variant;
       }),
-    setAbortController: (abortController: AbortController) =>
+    setAbortController: (abortController: AbortController | null, conversationId?: string) =>
       set((state) => {
-        state.abortController = abortController;
-      }),
-
-    setFileReviews: (fileReviews: FileReviewEntry[]) =>
-      set((state) => {
-        state.fileReviews = fileReviews;
+        updateConversation(state, conversationId, conversation => { conversation.abortController = abortController; });
       }),
 
-    upsertFileReview: (fileReview: FileReviewEntry) =>
+    setFileReviews: (fileReviews: FileReviewEntry[], conversationId?: string) =>
       set((state) => {
-        const existingIndex = state.fileReviews.findIndex((review) => review.filePath === fileReview.filePath);
-        if (existingIndex >= 0) {
-          state.fileReviews[existingIndex] = fileReview;
-        } else {
-          state.fileReviews.push(fileReview);
-        }
+        updateConversation(state, conversationId, conversation => { conversation.fileReviews = fileReviews; });
       }),
 
-    removeFileReview: (filePath: string) =>
+    upsertFileReview: (fileReview: FileReviewEntry, conversationId?: string) =>
       set((state) => {
-        state.fileReviews = state.fileReviews.filter((review) => review.filePath !== filePath);
+        updateConversation(state, conversationId, conversation => {
+          const existingIndex = conversation.fileReviews.findIndex((review) => review.filePath === fileReview.filePath);
+          if (existingIndex >= 0) conversation.fileReviews[existingIndex] = fileReview;
+          else conversation.fileReviews.push(fileReview);
+        });
+      }),
+
+    removeFileReview: (filePath: string, conversationId?: string) =>
+      set((state) => {
+        updateConversation(state, conversationId, conversation => {
+          conversation.fileReviews = conversation.fileReviews.filter((review) => review.filePath !== filePath);
+        });
+      }),
+
+    setActiveSkills: (skills: string[], conversationId?: string) =>
+      set((state) => {
+        updateConversation(state, conversationId, conversation => { conversation.activeSkills = skills; });
+      }),
+
+    setUnread: (hasUnread: boolean, conversationId?: string) =>
+      set((state) => {
+        updateConversation(state, conversationId, conversation => { conversation.hasUnread = hasUnread; });
+      }),
+
+    setUpdatedAt: (updatedAt: number, conversationId?: string) =>
+      set((state) => {
+        updateConversation(state, conversationId, conversation => { conversation.updatedAt = updatedAt; });
       }),
 
     resetForNewChat: () =>
       set((state) => {
-        state.sessionId = null;
-        state.messages = [];
-        state.modelMessages = [];
-        state.isLoading = false;
-        state.title = 'New Chat';
-        state.abortController = null;
-        state.fileReviews = [];
-        // variant is intentionally preserved across new chats
+        const id = state.activeConversationId;
+        if (!id) return;
+        state.conversations[id] = createConversationState(id, 'New Chat', state.model, state.variant) as any;
+        syncActiveConversation(state);
       }),
 
     cleanupOldMessages: (keepCount: number = 50) =>
       set((state) => {
-        if (state.messages.length > keepCount) {
-          state.messages = state.messages.slice(-keepCount);
-        }
+        updateConversation(state, undefined, conversation => {
+          if (conversation.messages.length > keepCount) conversation.messages = conversation.messages.slice(-keepCount);
+        });
       }),
 
     cleanupStreamingMessages: () =>
       set((state) => {
-        state.messages = state.messages.filter((message) => !message.isStreaming);
+        updateConversation(state, undefined, conversation => {
+          conversation.messages = conversation.messages.filter((message) => !message.isStreaming);
+        });
       }),
   }))
 );
@@ -386,5 +503,5 @@ export const agentStore = {
   getState: () => useAgentStore.getState(),
   setState: useAgentStore.setState,
   subscribe: useAgentStore.subscribe,
-  reset: () => useAgentStore.setState(initialState),
+  reset: () => useAgentStore.setState(registryInitialState),
 };

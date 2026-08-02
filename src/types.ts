@@ -242,7 +242,7 @@ export interface FileEdit {
   new_content?: string;  // 完整新文件内容（用于 diff 显示）
 }
 
-export type FileReviewStatus = "reviewing" | "reviewed";
+export type FileReviewStatus = "reviewing" | "reviewed" | "conflicted";
 
 export type FileReviewBlockStatus = "reviewing" | "applied" | "rejected";
 

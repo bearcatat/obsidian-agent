@@ -554,6 +554,8 @@ export function FileReviewDialog({
                   Reject File
                 </Button>
               </div>
+              ) : displayReview.status === 'conflicted' ? (
+                <span className="tw-text-[#82071e] dark:tw-text-[#ffa198]">Modified by another conversation</span>
               ) : null}
             </div>
           </div>

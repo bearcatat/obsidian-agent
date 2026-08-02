@@ -5,6 +5,8 @@ import { App } from 'obsidian';
 import { ModelConfig, ModelVariant } from '../types';
 import { useShallow } from 'zustand/react/shallow';
 import { UserMessage } from '@/messages/user-message';
+import { agentStore } from '@/state/agent-state-impl';
+import { SessionLogic } from '@/logic/session-logic';
 
 // 导出 store hook，组件可以直接使用
 export { useAgentStore };
@@ -27,6 +29,12 @@ export function useAgentState() {
 export function useAgentLogic() {
   const agentLogic = AgentViewLogic.getInstance();
   const fileReviewLogic = FileReviewLogic.getInstance();
+  const getActiveConversationId = () => agentStore.getState().activeConversationId ?? undefined;
+  const persistConversation = async (conversationId?: string) => {
+    if (!conversationId) return;
+    const conversation = agentStore.getState().conversations[conversationId];
+    if (conversation) await SessionLogic.getInstance().saveSessionNow(conversation);
+  };
 
   return {
     sendMessage: (message: UserMessage) => agentLogic.sendMessage(message),
@@ -34,12 +42,36 @@ export function useAgentLogic() {
     resetForNewChat: (app: App | undefined) => agentLogic.resetForNewChat(app),
     finalizePendingReviews: () => agentLogic.finalizePendingReviews(),
     setModel: (model: ModelConfig, variant?: ModelVariant | null) => agentLogic.setModel(model, variant),
-    applyFileReview: (filePath: string) => fileReviewLogic.applyFile(filePath),
-    rejectFileReview: (filePath: string) => fileReviewLogic.rejectFile(filePath),
-    applyDerivedBlock: (filePath: string, block: { baselineStart: number; baselineEnd: number; patchText: string }) => fileReviewLogic.applyDerivedBlock(filePath, block),
-    rejectDerivedBlock: (filePath: string, block: { baselineStart: number; baselineEnd: number; patchText: string }) => fileReviewLogic.rejectDerivedBlock(filePath, block),
-    applyAllFileReviews: () => fileReviewLogic.applyAll(),
-    rejectAllFileReviews: () => fileReviewLogic.rejectAll(),
+    applyFileReview: async (filePath: string) => {
+      const id = getActiveConversationId();
+      fileReviewLogic.applyFile(filePath, id);
+      await persistConversation(id);
+    },
+    rejectFileReview: async (filePath: string) => {
+      const id = getActiveConversationId();
+      await fileReviewLogic.rejectFile(filePath, id);
+      await persistConversation(id);
+    },
+    applyDerivedBlock: async (filePath: string, block: { baselineStart: number; baselineEnd: number; patchText: string }) => {
+      const id = getActiveConversationId();
+      await fileReviewLogic.applyDerivedBlock(filePath, block, id);
+      await persistConversation(id);
+    },
+    rejectDerivedBlock: async (filePath: string, block: { baselineStart: number; baselineEnd: number; patchText: string }) => {
+      const id = getActiveConversationId();
+      await fileReviewLogic.rejectDerivedBlock(filePath, block, id);
+      await persistConversation(id);
+    },
+    applyAllFileReviews: async () => {
+      const id = getActiveConversationId();
+      fileReviewLogic.applyAll(id);
+      await persistConversation(id);
+    },
+    rejectAllFileReviews: async () => {
+      const id = getActiveConversationId();
+      await fileReviewLogic.rejectAll(id);
+      await persistConversation(id);
+    },
     focusFileReview: (filePath: string) => fileReviewLogic.focusFile(filePath),
   };
 }

@@ -8,7 +8,7 @@ import { z } from 'zod';
 import SubAgentLogic from "@/logic/subagent-logic";
 import RuleLogic from "@/logic/rule-logic";
 import AIModelManager from "@/llm/ModelManager";
-import { agentStore } from "@/state/agent-state-impl";
+import { AgentToolContext } from "@/tool/ToolContext";
 import { serializeMessagesForHistory } from "@/messages/history-message";
 import {
   TASK_SUBAGENT_DESCRIPTION,
@@ -94,17 +94,14 @@ export default class SubAgentManager {
     experimentalContext: unknown,
     abortSignal: AbortSignal,
   ): Promise<string> {
-    const modelManager = AIModelManager.getInstance();
-    const currentModel = agentStore.getState().model;
-    const currentVariant = agentStore.getState().variant;
-    const agentModelConfig = currentModel ?? modelManager.agentModelConfig;
-    const agentVariant = currentVariant ?? modelManager.currentVariant ?? null;
+    const context = experimentalContext as AgentToolContext;
+    const agentModelConfig = context.model;
+    const agentVariant = context.variant;
 
     if (!agentModelConfig) {
       throw new Error('No model configured for SubAgent');
     }
 
-    const context = experimentalContext as { addMessage: (message: MessageV2) => void }
     const userMessage = new UserMessage(prompt)
 
     let messages: MessageV2[] = [userMessage];
@@ -136,7 +133,7 @@ export default class SubAgentManager {
       toolMessage.setChildren(render(config.name, messages, true));
       toolMessage.setContent(createSubAgentHistoryContent(config.name, messages));
       context.addMessage(toolMessage)
-    })
+    }, context)
     toolMessage.setContent(createSubAgentHistoryContent(config.name, messages, text));
     toolMessage.setChildren(render(config.name, messages, false));
     toolMessage.close()

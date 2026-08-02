@@ -42,9 +42,9 @@ function computeLineDiffStats(entry: FileReviewEntry): { added: number; removed:
   return { added, removed };
 }
 
-type ReviewingEntry = FileReviewEntry & { status: "reviewing" };
-function isReviewing(r: FileReviewEntry): r is ReviewingEntry {
-  return r.status === "reviewing";
+type PendingEntry = FileReviewEntry & { status: "reviewing" | "conflicted" };
+function isPending(r: FileReviewEntry): r is PendingEntry {
+  return r.status === "reviewing" || r.status === "conflicted";
 }
 
 export const FileReviewPanel = () => {
@@ -72,7 +72,7 @@ export const FileReviewPanel = () => {
   );
 
   const pending = React.useMemo(
-    () => activeReviews.filter(isReviewing),
+    () => activeReviews.filter(isPending),
     [activeReviews]
   );
 
@@ -219,6 +219,7 @@ export const FileReviewPanel = () => {
                 >
                   <TableCell className="tw-py-0.5 tw-pl-2">
                     <span className="tw-truncate tw-font-mono tw-text-xs">{item.filePath}</span>
+                    {item.status === 'conflicted' ? <span className="tw-ml-1 tw-text-xs tw-text-[#82071e] dark:tw-text-[#ffa198]">Conflict</span> : null}
                   </TableCell>
                   <TableCell
                     className="tw-py-0.5 tw-pr-2 tw-text-right tw-whitespace-nowrap"

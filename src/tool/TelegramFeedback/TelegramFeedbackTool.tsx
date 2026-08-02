@@ -4,7 +4,7 @@ import { ToolMessage } from "@/messages/tool-message";
 import { MessageV2, TelegramFeedbackProgress } from "@/types";
 import { DESCRIPTION } from "./prompts";
 import TelegramFeedbackRuntime from "./TelegramFeedbackRuntime";
-import { agentStore } from "@/state/agent-state-impl";
+import { AgentToolContext } from "@/tool/ToolContext";
 import { renderTelegramFeedbackMessage } from "@/ui/components/agent-view/messages/message/telegram-feedback-message-card";
 
 export const toolName = "telegramFeedback";
@@ -17,7 +17,7 @@ export const TelegramFeedbackTool = tool({
     submitButtonText: z.string().min(1).max(32).optional().describe("Inline button text used to finish the feedback flow."),
   }),
   execute: async ({ question, submitButtonText }, { toolCallId, experimental_context, abortSignal }) => {
-    const context = experimental_context as { addMessage: (message: MessageV2) => void };
+    const context = experimental_context as AgentToolContext;
 
     try {
       const runtime = TelegramFeedbackRuntime.getInstance();
@@ -40,9 +40,10 @@ export const TelegramFeedbackTool = tool({
       const awaiter = await runtime.beginFeedbackRequest({
         question,
         submitButtonText: submitButtonText ?? "结束反馈",
-        sessionId: agentStore.getState().sessionId,
+        sessionId: context.conversationId,
         toolCallId,
         onUpdate: updateProgress,
+        model: context.model,
       });
 
       updateProgress({ ...progress, requestId: awaiter.requestId });

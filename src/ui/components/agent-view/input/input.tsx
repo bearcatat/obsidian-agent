@@ -9,6 +9,9 @@ import { ContextLogic } from '@/logic/context-logic';
 import { InputEditorState } from '@/state/input-editor-state';
 import CommandLogic from '@/logic/command-logic';
 import { UserMessage } from '@/messages/user-message';
+import SkillLogic from '@/logic/skill-logic';
+import { AgentViewLogic } from '@/logic/agent-view-logic';
+import { useAgentStore } from '@/state/agent-state-impl';
 
 export const Input = () => {
   const emptyContext: Context = {
@@ -18,7 +21,6 @@ export const Input = () => {
   const [message, setMessage] = useState('');
   const [context, setContext] = useState<Context>(emptyContext)
   const { isLoading } = useAgentState();
-  const { sendMessage } = useAgentLogic();
   const inputEditorRef = useRef<InputEditorRef>(null);
 
   useEffect(() => {
@@ -44,13 +46,16 @@ export const Input = () => {
 
   const onSend = async () => {
     if (!message.trim() || isLoading) return;
+    const conversationId = useAgentStore.getState().activeConversationId ?? undefined;
     const contextLogic = ContextLogic.getInstance();
     const finalContext = contextLogic.getContext(context);
 
     const commandLogic = CommandLogic.getInstance();
+    const parsedSkill = SkillLogic.getInstance().parseSkillCommand(message.trim());
+    if (parsedSkill?.skillName) AgentViewLogic.getInstance().activateSkill(parsedSkill.skillName, conversationId);
     const processed = await commandLogic.processCommand(message.trim());
 
-    sendMessage(new UserMessage(processed ?? message.trim(), finalContext));
+    void AgentViewLogic.getInstance().sendMessage(new UserMessage(processed ?? message.trim(), finalContext), conversationId);
     clear();
   };
 

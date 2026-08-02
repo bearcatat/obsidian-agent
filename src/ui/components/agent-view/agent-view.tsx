@@ -5,7 +5,7 @@ import { AppContextProvider } from '../../../hooks/app-context';
 import { IconManager } from '../../icons';
 import { TooltipProvider } from '../../elements/tooltip';
 import React from 'react';
-import { AgentViewLogic } from '@/logic/agent-view-logic';
+import { CONVERSATION_LIST_VIEW_TYPE } from '../conversation-list-view';
 
 export const AGENT_VIEW_TYPE = 'agent-view';
 
@@ -29,6 +29,12 @@ export class AgentView extends ItemView {
 	}
 
 	async onOpen(): Promise<void> {
+		if (this.app.workspace.getLeavesOfType(CONVERSATION_LIST_VIEW_TYPE).length === 0) {
+			const conversationLeaf = this.app.workspace.getLeftLeaf(false);
+			if (conversationLeaf) {
+				await conversationLeaf.setViewState({ type: CONVERSATION_LIST_VIEW_TYPE, active: true });
+			}
+		}
 		const container = this.containerEl.children[1];
 		container.empty();
 
@@ -51,7 +57,6 @@ export class AgentView extends ItemView {
 	}
 
 	async onClose(): Promise<void> {
-		await AgentViewLogic.getInstance().finalizePendingReviews();
 		// 清理React组件
 		if (this.root) {
 			this.root.unmount();

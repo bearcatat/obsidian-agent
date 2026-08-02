@@ -208,7 +208,6 @@ export class CommandLogic {
     const skill = SkillLogic.getInstance().getSkillByName(parsed.commandName);
     if (skill) {
       // 激活该 skill 用于当前会话
-      SkillLogic.getInstance().activateSessionSkill(parsed.commandName);
       // 返回 skill 的 body 内容
       return input;
     }

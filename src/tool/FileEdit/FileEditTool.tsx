@@ -10,6 +10,7 @@ import { diff_match_patch } from "diff-match-patch";
 import { FileReviewLogic } from "@/logic/file-review-logic";
 import { SnapshotLogic } from "@/logic/snapshot-logic";
 import { fileMutex } from "./mutex";
+import { AgentToolContext } from "@/tool/ToolContext";
 
 export const toolName = "editFile"
 
@@ -117,7 +118,7 @@ export const FileEditTool = tool({
 		replaceAll: z.boolean().optional().describe("是否替换所有匹配项（默认 false，仅替换第一个匹配）").default(false),
 	}),
 	execute: async ({ file_path, old_string, new_string, replaceAll }, { toolCallId, experimental_context, abortSignal }) => {
-		const context = experimental_context as { addMessage: (message: MessageV2) => void }
+		const context = experimental_context as AgentToolContext
 		
 		const app = getGlobalApp()
 		const vault = app.vault
@@ -173,7 +174,7 @@ export const FileEditTool = tool({
 			const diff = createDiff(oldContent, newContent)
 			const toolMessage = ToolMessage.from(toolName, toolCallId ?? "")
 			const undoSnapshotId = await SnapshotLogic.getInstance().createSnapshot(relativePath)
-			const reviewBase = await FileReviewLogic.getInstance().prepareReviewBase(relativePath, oldContent, false)
+			const reviewBase = await FileReviewLogic.getInstance().prepareReviewBase(relativePath, oldContent, false, context.conversationId)
 
 			const fileEdit: FileEdit = {
 				id: toolCallId ?? "",
@@ -193,6 +194,7 @@ export const FileEditTool = tool({
 				toolCallId: toolCallId ?? "",
 				messageId: toolMessage.id,
 				toolName,
+				conversationId: context.conversationId,
 			})
 
 			const payload = {

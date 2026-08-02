@@ -1,6 +1,7 @@
 import { MessageV2 } from "@/types";
 import { ModelMessage, ToolLoopAgent, ToolLoopAgentSettings, ToolSet } from "ai";
 import Streamer from "./Streamer";
+import { AgentToolContext } from "@/tool/ToolContext";
 
 type RunStreamingTurnParams = {
     agentConfig: ToolLoopAgentSettings;
@@ -11,6 +12,7 @@ type RunStreamingTurnParams = {
     abortSignal: AbortSignal;
     normalizeMessages: (messages: ModelMessage[]) => ModelMessage[];
     maxRetries?: number;
+    context: AgentToolContext;
 }
 
 export async function runStreamingTurn({
@@ -22,6 +24,7 @@ export async function runStreamingTurn({
     abortSignal,
     normalizeMessages,
     maxRetries,
+    context,
 }: RunStreamingTurnParams): Promise<{
     normalizedMessages: ModelMessage[];
     responseMessages: ModelMessage[];
@@ -32,9 +35,7 @@ export async function runStreamingTurn({
         instructions,
         tools,
         toolChoice: "auto",
-        experimental_context: {
-            addMessage,
-        },
+        experimental_context: context,
         stopWhen: [],
     };
 

@@ -1,6 +1,7 @@
 import { MarkdownFileInfo, MarkdownView, Plugin } from "obsidian";
-import { FileReviewLogic } from "./file-review-logic";
 import { hashReviewContent } from "./file-review-utils";
+import { agentStore } from "@/state/agent-state-impl";
+import { SessionLogic } from "./session-logic";
 
 export class FileReviewDriftMonitor {
   private static instance: FileReviewDriftMonitor;
@@ -23,18 +24,14 @@ export class FileReviewDriftMonitor {
         return;
       }
 
-      const review = FileReviewLogic.getInstance().getFileReview(filePath);
-      if (!review || !review.hasActiveDiff) {
-        return;
-      }
-
-      if (Date.now() - review.updatedAt < 500) {
-        return;
-      }
-
       const currentHash = hashReviewContent(editor.getValue());
-      if (currentHash !== review.headHash) {
-        void FileReviewLogic.getInstance().adoptCurrentAsHead(filePath);
+      const store = agentStore.getState();
+      for (const [conversationId, conversation] of Object.entries(store.conversations)) {
+        const review = conversation.fileReviews.find(item => item.filePath === filePath && item.hasActiveDiff);
+        if (!review || Date.now() - review.updatedAt < 500 || currentHash === review.headHash) continue;
+        store.upsertFileReview({ ...review, status: 'conflicted', updatedAt: Date.now() }, conversationId);
+        const updated = agentStore.getState().conversations[conversationId];
+        if (updated) SessionLogic.getInstance().saveSession(updated);
       }
     }));
   }

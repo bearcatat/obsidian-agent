@@ -1,32 +1,21 @@
 import { MessageV2, ModelConfig, ModelVariant, getDefaultVariant } from "../types";
 import { agentStore } from "../state/agent-state-impl";
-import { App, Notice, TFile } from "obsidian";
+import { App, Notice } from "obsidian";
 import { UserMessage } from "@/messages/user-message";
 import AIAgent from "@/llm/Agent";
 import AIModelManager from "@/llm/ModelManager";
 import { CHAT_TITLE_MAX_LENGTH } from "@/llm/title-constants";
 import { SessionLogic } from "./session-logic";
 import { FileReviewLogic } from "./file-review-logic";
+import SkillLogic from "./skill-logic";
 
 export class AgentViewLogic {
   private static instance: AgentViewLogic;
 
-  private constructor() {
-    agentStore.subscribe((state, prevState) => {
-      if (
-        state.sessionId &&
-        !state.isLoading &&
-        (state.messages !== prevState.messages || state.fileReviews !== prevState.fileReviews)
-      ) {
-        SessionLogic.getInstance().saveSession(state);
-      }
-    });
-  }
+  private constructor() {}
 
   static getInstance(): AgentViewLogic {
-    if (!AgentViewLogic.instance) {
-      AgentViewLogic.instance = new AgentViewLogic();
-    }
+    if (!AgentViewLogic.instance) AgentViewLogic.instance = new AgentViewLogic();
     return AgentViewLogic.instance;
   }
 
@@ -34,68 +23,94 @@ export class AgentViewLogic {
     AgentViewLogic.instance = undefined as any;
   }
 
-  // 业务逻辑方法
-  async sendMessage(userMessage: UserMessage): Promise<void> {
-    // 设置加载状态
-    const store = agentStore.getState();
-    if (!store.sessionId) {
-      await SessionLogic.getInstance().createSession();
+  async sendMessage(userMessage: UserMessage, requestedConversationId?: string): Promise<void> {
+    let store = agentStore.getState();
+    let conversationId = requestedConversationId ?? store.activeConversationId;
+    if (!conversationId) {
+      conversationId = await SessionLogic.getInstance().createSession();
+      store.createConversation(conversationId);
+      store = agentStore.getState();
     }
-    
-    agentStore.getState().setLoading(true);
-    const abortController = new AbortController()
-    agentStore.getState().setAbortController(abortController);
+    if (requestedConversationId && !store.conversations[requestedConversationId]) return;
+    const targetId = conversationId;
+
+    const conversation = store.conversations[targetId];
+    const model = store.model;
+    const variant = store.variant;
+    if (!conversation || conversation.isLoading || !model) return;
+
+    store.setLoading(true, targetId);
+    const abortController = new AbortController();
+    store.setAbortController(abortController, targetId);
+    let completedSuccessfully = false;
 
     try {
-      this.setTitleIfNewChat(userMessage.content);
-      // 添加用户消息
-      agentStore.getState().addMessage(userMessage);
-      const currentStore = agentStore.getState();
+      const titlePromise = this.setTitleIfNewChat(userMessage.content, targetId);
+      agentStore.getState().addMessage(userMessage, targetId);
+      const current = agentStore.getState().conversations[targetId];
       const newModelMessages = await AIAgent.getInstance().query(
-        userMessage, 
-        currentStore.modelMessages,
-        abortController, 
-        (message: MessageV2) => {
-          agentStore.getState().addMessage(message);
-        }
+        userMessage,
+        current.modelMessages,
+        abortController,
+        message => agentStore.getState().addMessage(message, targetId),
+        {
+          conversationId: targetId,
+          model,
+          variant,
+          activeSkills: current.activeSkills,
+          activateSkill: name => this.activateSkill(name, targetId),
+        },
       );
-      agentStore.getState().setModelMessages(newModelMessages);
+      agentStore.getState().setModelMessages(newModelMessages, targetId);
+      await titlePromise;
+      completedSuccessfully = true;
     } catch (error) {
-      console.error('Failed to send message:', error);
-      new Notice(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`, 3000);
+      if (!abortController.signal.aborted) {
+        console.error('Failed to send message:', error);
+        new Notice(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`, 3000);
+      }
     } finally {
-      agentStore.getState().setLoading(false);
-      // Force a save after the turn completes
-      SessionLogic.getInstance().saveSession(agentStore.getState());
+      const latest = agentStore.getState();
+      latest.setLoading(false, targetId);
+      latest.setAbortController(null, targetId);
+      if (completedSuccessfully) {
+        latest.setUnread(latest.activeConversationId !== targetId, targetId);
+        latest.setUpdatedAt(Date.now(), targetId);
+      }
+      const completed = agentStore.getState().conversations[targetId];
+      if (completedSuccessfully && completed) await SessionLogic.getInstance().saveSessionNow(completed);
     }
   }
 
-  addMessage(message: MessageV2) {
-    agentStore.getState().addMessage(message)
+  addMessage(message: MessageV2, conversationId?: string): void {
+    agentStore.getState().addMessage(message, conversationId);
   }
 
-  async setTitleIfNewChat(userMessage: string): Promise<void> {
+  async setTitleIfNewChat(userMessage: string, conversationId?: string): Promise<void> {
     const store = agentStore.getState();
-    if (store.title === "New Chat") {
-      const fallbackTitle = userMessage.substring(0, CHAT_TITLE_MAX_LENGTH).trim() || "New Chat";
-      // 使用 Agent 的 generateTitle 方法生成标题
-      try {
-        const title = await AIAgent.getInstance().generateTitle(userMessage);
-        store.setTitle(title.trim() || fallbackTitle);
-      } catch (error) {
-        console.error('Failed to generate title:', error);
-        // 如果标题生成失败，使用用户消息的前 CHAT_TITLE_MAX_LENGTH 个字符作为标题
-        store.setTitle(fallbackTitle);
-      }
+    const id = conversationId ?? store.activeConversationId;
+    const conversation = id ? store.conversations[id] : null;
+    if (!id || conversation?.title !== 'New Chat') return;
+
+    const fallbackTitle = userMessage.substring(0, CHAT_TITLE_MAX_LENGTH).trim() || 'New Chat';
+    try {
+      const title = await AIAgent.getInstance().generateTitle(userMessage);
+      agentStore.getState().setTitle(title.trim() || fallbackTitle, id);
+    } catch (error) {
+      console.error('Failed to generate title:', error);
+      agentStore.getState().setTitle(fallbackTitle, id);
     }
   }
 
   stopLoading(): void {
+    const id = agentStore.getState().activeConversationId;
+    if (id) this.stopConversation(id);
+  }
+
+  stopConversation(conversationId: string): void {
     const store = agentStore.getState();
-    if (store.abortController) {
-      store.abortController.abort();
-    }
-    store.setLoading(false);
+    store.conversations[conversationId]?.abortController?.abort();
+    store.setLoading(false, conversationId);
   }
 
   setTitle(title: string): void {
@@ -104,22 +119,20 @@ export class AgentViewLogic {
 
   async finalizePendingReviews(): Promise<void> {
     const store = agentStore.getState();
-    if (!store.sessionId) {
-      return;
+    for (const conversation of Object.values(store.conversations)) {
+      if (conversation.isLoading) continue;
+      FileReviewLogic.getInstance().flushPendingAsApplied(conversation.sessionId);
+      const latest = agentStore.getState().conversations[conversation.sessionId];
+      if (latest) await SessionLogic.getInstance().saveSessionNow(latest);
     }
-
-    FileReviewLogic.getInstance().flushPendingAsApplied();
-    await SessionLogic.getInstance().saveSessionNow(agentStore.getState());
   }
 
-  async resetForNewChat(app: App | undefined): Promise<void> {
-    this.stopLoading();
-    await this.finalizePendingReviews();
-    agentStore.getState().resetForNewChat();
-    AIAgent.getInstance().clearMemory();
-    // Re-apply current variant to ModelManager after reset
-    const currentVariant = agentStore.getState().variant;
-    AIModelManager.getInstance().setVariant(currentVariant);
+  async resetForNewChat(_app: App | undefined): Promise<void> {
+    const store = agentStore.getState();
+    const active = store.activeConversationId ? store.conversations[store.activeConversationId] : null;
+    if (active && active.messages.length === 0 && !active.isLoading) return;
+    const id = await SessionLogic.getInstance().createSession();
+    agentStore.getState().createConversation(id);
   }
 
   setModel(model: ModelConfig, variant?: ModelVariant | null): void {
@@ -131,6 +144,16 @@ export class AgentViewLogic {
 
   setTitleModel(model: ModelConfig): void {
     AIModelManager.getInstance().setTitle(model);
+  }
+
+  activateSkill(name: string, conversationId?: string): boolean {
+    if (!SkillLogic.getInstance().getSkillByName(name)) return false;
+    const store = agentStore.getState();
+    const id = conversationId ?? store.activeConversationId;
+    const conversation = id ? store.conversations[id] : null;
+    if (!id || !conversation) return false;
+    store.setActiveSkills(Array.from(new Set([...conversation.activeSkills, name])), id);
+    return true;
   }
 }
 

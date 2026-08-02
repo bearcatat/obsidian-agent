@@ -10,6 +10,7 @@ import { diff_match_patch } from "diff-match-patch";
 import { FileReviewLogic } from "@/logic/file-review-logic";
 import { SnapshotLogic } from "@/logic/snapshot-logic";
 import { fileMutex } from "./mutex";
+import { AgentToolContext } from "@/tool/ToolContext";
 
 export const toolName = "write"
 
@@ -54,7 +55,7 @@ export const WriteTool = tool({
     content: z.string().describe("要写入的笔记完整内容"),
   }),
   execute: async ({ file_path, content }, { toolCallId, experimental_context, abortSignal }) => {
-    const context = experimental_context as { addMessage: (message: MessageV2) => void }
+    const context = experimental_context as AgentToolContext
     
     const app = getGlobalApp()
     const vault = app.vault
@@ -96,7 +97,7 @@ export const WriteTool = tool({
       const diff = exists ? createDiff(oldContent, content) : ''
       const toolMessage = ToolMessage.from(toolName, toolCallId ?? "")
       const undoSnapshotId = await SnapshotLogic.getInstance().createSnapshot(relativePath)
-      const reviewBase = await FileReviewLogic.getInstance().prepareReviewBase(relativePath, oldContent, !exists)
+      const reviewBase = await FileReviewLogic.getInstance().prepareReviewBase(relativePath, oldContent, !exists, context.conversationId)
 
       const writeResult: WriteResult = {
         file_path: relativePath,
@@ -126,6 +127,7 @@ export const WriteTool = tool({
         toolCallId: toolCallId ?? "",
         messageId: toolMessage.id,
         toolName,
+        conversationId: context.conversationId,
       })
 
       const payload = {

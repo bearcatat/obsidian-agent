@@ -2,7 +2,7 @@ import { generateText, ModelMessage } from "ai";
 import { UserMessage } from "@/messages/user-message";
 import { getSystemPrompts, getTitleGenerationPrompt } from "./system-prompts";
 import AIToolManager from "@/tool/ToolManager";
-import { MessageV2 } from "@/types";
+import { MessageV2, ModelConfig, ModelVariant } from "@/types";
 import AIModelManager from "./ModelManager";
 import SkillLogic from "@/logic/skill-logic";
 import RuleLogic from "@/logic/rule-logic";
@@ -24,10 +24,14 @@ export default class AIAgent {
         AIAgent.instance = undefined as any;
     }
 
-    private buildSystemPrompt(): string {
+    private buildSystemPrompt(activeSkillNames: string[]): string {
         const basePrompt = getSystemPrompts()[0];
         const skillLogic = SkillLogic.getInstance();
-        const activeSkills = skillLogic.getActiveSkillsForSession();
+        const enabledSkills = skillLogic.getEnabledSkills();
+        const sessionSkills = activeSkillNames
+            .map(name => skillLogic.getSkillByName(name))
+            .filter((skill): skill is NonNullable<typeof skill> => Boolean(skill));
+        const activeSkills = Array.from(new Map([...enabledSkills, ...sessionSkills].map(skill => [skill.name, skill])).values());
         
         let prompt = basePrompt;
         
@@ -52,22 +56,36 @@ export default class AIAgent {
     async query(message: UserMessage,
         history: ModelMessage[],
         abortController: AbortController,
-        addMessage: (message: MessageV2) => void
+        addMessage: (message: MessageV2) => void,
+        options: {
+            conversationId: string;
+            model: ModelConfig;
+            variant: ModelVariant | null;
+            activeSkills: string[];
+            activateSkill: (name: string) => boolean;
+        }
     ): Promise<ModelMessage[]> {
         const modelManager = AIModelManager.getInstance();
-        const agentConfig = modelManager.getAgentConfig();
+        const agentConfig = modelManager.buildAgentConfig(options.model, options.variant ?? undefined);
         const userTools = AIToolManager.getInstance().getMainAgentEnabledTools();
         const builtinTools = agentConfig.tools;
         const mergedTools = mergeTools(userTools, builtinTools, "[Agent]");
         const rawHistory = [...history, message.toModelMessage()];
         const { normalizedMessages, responseMessages } = await runStreamingTurn({
             agentConfig,
-            instructions: this.buildSystemPrompt(),
+            instructions: this.buildSystemPrompt(options.activeSkills),
             tools: mergedTools,
             addMessage,
             rawMessages: rawHistory,
             abortSignal: abortController.signal,
-            normalizeMessages: (messages: ModelMessage[]) => modelManager.normalizeMessages(messages),
+            normalizeMessages: (messages: ModelMessage[]) => modelManager.normalizeMessages(messages, options.model, options.variant),
+            context: {
+                conversationId: options.conversationId,
+                addMessage,
+                model: options.model,
+                variant: options.variant,
+                activateSkill: options.activateSkill,
+            },
             maxRetries: 3,
         });
         return [...normalizedMessages, ...responseMessages];
