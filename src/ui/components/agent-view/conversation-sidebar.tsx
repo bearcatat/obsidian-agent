@@ -84,8 +84,8 @@ export const ConversationSidebar: React.FC = () => {
   return (
     <aside className="tw-m-0 tw-flex tw-h-full tw-w-full tw-min-w-0 tw-flex-col">
       <div className="tw-flex tw-items-center tw-justify-between tw-px-2 tw-py-1">
-        <span className="tw-text-sm tw-font-medium">CHATS</span>
-        <Button variant="ghost2" size="fit" onClick={() => void createConversation()}>
+        <span className="tw-text-sm tw-font-normal">CHATS</span>
+        <Button variant="ghost2" size="fit" className="tw-text-sm tw-font-normal" onClick={() => void createConversation()}>
           <MessageSquarePlus className="tw-mr-1 tw-size-4" />New Chat
         </Button>
       </div>
@@ -100,11 +100,10 @@ export const ConversationSidebar: React.FC = () => {
                   role="button"
                   tabIndex={0}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`nav-file-title tw-group tw-m-0 tw-flex tw-items-center tw-gap-2 tw-rounded-md tw-px-2 tw-py-0.5 hover:tw-bg-[var(--nav-item-background-hover)] hover:tw-text-[var(--nav-item-color-hover)] ${isActive ? 'is-active' : ''}`}
+                  className={`nav-file-title tw-group tw-m-0 tw-flex tw-items-center tw-gap-2 tw-rounded-md tw-px-2 tw-py-0.5 tw-text-sm tw-font-normal hover:tw-bg-[var(--nav-item-background-hover)] hover:tw-text-[var(--nav-item-color-hover)] ${isActive ? 'is-active' : ''}`}
                   style={isActive ? {
                     backgroundColor: 'var(--nav-item-background-active)',
                     color: 'var(--nav-item-color-active)',
-                    fontWeight: 'var(--nav-item-weight-active)' as React.CSSProperties['fontWeight'],
                   } : undefined}
                   onClick={() => void openConversation(item.id)}
                 >
