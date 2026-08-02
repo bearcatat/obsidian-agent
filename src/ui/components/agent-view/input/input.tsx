@@ -8,6 +8,7 @@ import { InputEditor, InputEditorRef } from './InputEditor';
 import { ContextLogic } from '@/logic/context-logic';
 import { InputEditorState } from '@/state/input-editor-state';
 import CommandLogic from '@/logic/command-logic';
+import { UserMessage } from '@/messages/user-message';
 
 export const Input = () => {
   const emptyContext: Context = {
@@ -49,11 +50,7 @@ export const Input = () => {
     const commandLogic = CommandLogic.getInstance();
     const processed = await commandLogic.processCommand(message.trim());
 
-    if (processed) {
-      sendMessage(processed, finalContext);
-    } else {
-      sendMessage(message.trim(), finalContext);
-    }
+    sendMessage(new UserMessage(processed ?? message.trim(), finalContext));
     clear();
   };
 

@@ -1,4 +1,4 @@
-import { Context, MessageV2, ModelConfig, ModelVariant, getDefaultVariant } from "../types";
+import { MessageV2, ModelConfig, ModelVariant, getDefaultVariant } from "../types";
 import { agentStore } from "../state/agent-state-impl";
 import { App, Notice, TFile } from "obsidian";
 import { UserMessage } from "@/messages/user-message";
@@ -35,7 +35,7 @@ export class AgentViewLogic {
   }
 
   // 业务逻辑方法
-  async sendMessage(content: string, context: Context): Promise<void> {
+  async sendMessage(userMessage: UserMessage): Promise<void> {
     // 设置加载状态
     const store = agentStore.getState();
     if (!store.sessionId) {
@@ -47,9 +47,8 @@ export class AgentViewLogic {
     agentStore.getState().setAbortController(abortController);
 
     try {
-      this.setTitleIfNewChat(content);
+      this.setTitleIfNewChat(userMessage.content);
       // 添加用户消息
-      const userMessage = new UserMessage(content, context);
       agentStore.getState().addMessage(userMessage);
       const currentStore = agentStore.getState();
       const newModelMessages = await AIAgent.getInstance().query(

@@ -2,8 +2,9 @@ import { useAgentStore } from '../state/agent-state-impl';
 import { AgentViewLogic } from '../logic/agent-view-logic';
 import { FileReviewLogic } from '../logic/file-review-logic';
 import { App } from 'obsidian';
-import { Context, ModelConfig, ModelVariant } from '../types';
+import { ModelConfig, ModelVariant } from '../types';
 import { useShallow } from 'zustand/react/shallow';
+import { UserMessage } from '@/messages/user-message';
 
 // 导出 store hook，组件可以直接使用
 export { useAgentStore };
@@ -28,7 +29,7 @@ export function useAgentLogic() {
   const fileReviewLogic = FileReviewLogic.getInstance();
 
   return {
-    sendMessage: (content: string, context: Context) => agentLogic.sendMessage(content, context),
+    sendMessage: (message: UserMessage) => agentLogic.sendMessage(message),
     stopLoading: () => agentLogic.stopLoading(),
     resetForNewChat: (app: App | undefined) => agentLogic.resetForNewChat(app),
     finalizePendingReviews: () => agentLogic.finalizePendingReviews(),
