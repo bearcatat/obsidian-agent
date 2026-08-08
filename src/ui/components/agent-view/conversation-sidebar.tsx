@@ -84,11 +84,11 @@ export const ConversationSidebar: React.FC = () => {
   return (
     <aside className="tw-m-0 tw-flex tw-h-full tw-w-full tw-min-w-0 tw-flex-col">
       <div className="tw-flex tw-items-center tw-justify-between tw-px-2 tw-py-1">
-        <span style={{ fontSize: 'var(--nav-item-size)', fontWeight: 'var(--nav-item-weight)' }}>CHATS</span>
+        <span style={{ fontSize: 'var(--nav-item-size, var(--font-ui-small))', fontWeight: 'var(--nav-item-weight, 400)' }}>CHATS</span>
         <Button
           variant="ghost2"
           size="fit"
-          style={{ fontSize: 'var(--nav-item-size)', fontWeight: 'var(--nav-item-weight)' }}
+          style={{ fontSize: 'var(--nav-item-size, var(--font-ui-small))', fontWeight: 'var(--nav-item-weight, 400)' }}
           onClick={() => void createConversation()}
         >
           <MessageSquarePlus className="tw-mr-1 tw-size-4" />New Chat
@@ -101,37 +101,35 @@ export const ConversationSidebar: React.FC = () => {
           return (
             <Tooltip key={item.id}>
               <TooltipTrigger asChild>
-                <div
-                  role="button"
-                  tabIndex={0}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`nav-file-title tw-group tw-m-0 tw-flex tw-items-center tw-gap-2 hover:tw-bg-[var(--nav-item-background-hover)] hover:tw-text-[var(--nav-item-color-hover)] ${isActive ? 'is-active' : ''}`}
-                  style={isActive ? {
-                    backgroundColor: 'var(--nav-item-background-active)',
-                    color: 'var(--nav-item-color-active)',
-                  } : undefined}
-                  onClick={() => void openConversation(item.id)}
-                >
-                  <div className="nav-file-title-content tw-min-w-0 tw-flex-1 tw-truncate">{item.title}</div>
-                  <span className="tw-flex tw-size-3.5 tw-shrink-0 tw-items-center tw-justify-center group-hover:tw-hidden">
-                    {live?.isLoading ? (
-                      <LoaderCircle className="tw-size-3.5 tw-animate-spin tw-text-accent" />
-                    ) : (live?.hasUnread ?? item.hasUnread) ? (
-                      <span className="tw-size-2 tw-rounded-full" style={{ backgroundColor: 'var(--interactive-accent)' }} />
-                    ) : null}
-                  </span>
-                  <Button
-                    variant="ghost2"
-                    size="icon"
-                    className="tw-hidden !tw-size-3.5 !tw-min-h-0 !tw-min-w-0 tw-shrink-0 tw-p-0 group-hover:tw-flex"
-                    aria-label={`Delete ${item.title}`}
-                    onClick={event => {
-                      event.stopPropagation();
-                      void deleteConversation(item.id);
-                    }}
+                <div className="tree-item nav-file">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`tree-item-self is-clickable nav-file-title tappable tw-group tw-gap-2 ${isActive ? 'is-active' : ''}`}
+                    onClick={() => void openConversation(item.id)}
                   >
-                    <Trash2 className="tw-size-3" />
-                  </Button>
+                    <div className="tree-item-inner nav-file-title-content tw-min-w-0 tw-flex-1 tw-truncate">{item.title}</div>
+                    <span className="tw-flex tw-size-3.5 tw-shrink-0 tw-items-center tw-justify-center group-hover:tw-hidden">
+                      {live?.isLoading ? (
+                        <LoaderCircle className="tw-size-3.5 tw-animate-spin tw-text-accent" />
+                      ) : (live?.hasUnread ?? item.hasUnread) ? (
+                        <span className="tw-size-2 tw-rounded-full" style={{ backgroundColor: 'var(--interactive-accent)' }} />
+                      ) : null}
+                    </span>
+                    <Button
+                      variant="ghost2"
+                      size="icon"
+                      className="tw-hidden !tw-size-3.5 !tw-min-h-0 !tw-min-w-0 tw-shrink-0 tw-p-0 group-hover:tw-flex"
+                      aria-label={`Delete ${item.title}`}
+                      onClick={event => {
+                        event.stopPropagation();
+                        void deleteConversation(item.id);
+                      }}
+                    >
+                      <Trash2 className="tw-size-3" />
+                    </Button>
+                  </div>
                 </div>
               </TooltipTrigger>
               <TooltipContent side="right">Updated {new Date(item.updatedAt).toLocaleString()}</TooltipContent>
