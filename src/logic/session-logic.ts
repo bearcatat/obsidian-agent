@@ -9,6 +9,7 @@ import { AssistantMessage } from "@/messages/assistant-message";
 import { v4 as uuidv4 } from 'uuid';
 import { renderHistoricalToolMessage } from "@/ui/components/agent-view/messages/message/historical-tool-renderer";
 import { SnapshotLogic } from "@/logic/snapshot-logic";
+import MemoryJobQueue from "@/logic/memory-job-queue";
 
 export interface SnapshotData {
   snapshotId: string;
@@ -21,6 +22,7 @@ export interface TurnData {
   modelMessages: ModelMessage[]; // The LLM history for this turn
   assistantMessages: any[]; // Serialized Assistant/Tool messages
   snapshots: Record<string, SnapshotData>;
+  memoryRefs?: string[];
 }
 
 export interface SessionData {
@@ -138,6 +140,11 @@ export class SessionLogic {
 
       const filePath = `${this.SESSIONS_DIR}/${sessionId}.json`;
       await this.app.vault.adapter.write(filePath, JSON.stringify(sessionData, null, 2));
+      try {
+        await MemoryJobQueue.getInstance().markSessionDirty(sessionId, state.updatedAt, state.updatedAt);
+      } catch (memoryError) {
+        console.error("Failed to mark session for memory extraction", memoryError);
+      }
     } catch (e) {
       console.error("Failed to save session", e);
     }
@@ -218,6 +225,18 @@ export class SessionLogic {
 
     } catch (e) {
       console.error("Failed to load session", e);
+      return null;
+    }
+  }
+
+  async readSessionData(sessionId: string): Promise<SessionData | null> {
+    const filePath = `${this.SESSIONS_DIR}/${sessionId}.json`;
+    const adapter = this.app.vault.adapter;
+    if (!(await adapter.exists(filePath))) return null;
+    try {
+      return JSON.parse(await adapter.read(filePath)) as SessionData;
+    } catch (error) {
+      console.error(`Failed to read session data ${sessionId}`, error);
       return null;
     }
   }
@@ -321,7 +340,8 @@ export class SessionLogic {
           userMessage: this.serializeUserMessage(msg as UserMessage),
           modelMessages: turnModelMessages,
           assistantMessages: [],
-          snapshots: {} 
+          snapshots: {},
+          memoryRefs: this.extractMemoryRefs(turnModelMessages),
         };
       } else if (currentTurn) {
         currentTurn.assistantMessages.push(this.serializeMessage(msg));
@@ -416,5 +436,10 @@ export class SessionLogic {
     const msg = new UserMessage(data.content, context);
     msg.id = data.id; // Restore ID
     return msg;
+  }
+
+  private extractMemoryRefs(messages: ModelMessage[]): string[] {
+    const matches = JSON.stringify(messages).match(/mem-[0-9a-f]{8}-[0-9a-f-]{27}/gi) ?? [];
+    return Array.from(new Set(matches));
   }
 }

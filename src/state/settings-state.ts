@@ -1,4 +1,4 @@
-import { ModelConfig, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig } from '../types';
+import { ModelConfig, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings } from '../types';
 import { getDefaultBuiltinTools } from '../tool/BuiltinTools';
 
 export interface ISettingsState {
@@ -12,6 +12,7 @@ export interface ISettingsState {
   readonly bochaSearchConfig: BochaSearchConfig;
   readonly telegramFeedbackConfig: TelegramFeedbackConfig;
   readonly bashPermissions: BashPermissionConfig;
+  readonly memorySettings: MemorySettings;
 }
 
 export function clone(settingsState: ISettingsState): ISettingsState {
@@ -26,6 +27,7 @@ export function clone(settingsState: ISettingsState): ISettingsState {
     bochaSearchConfig: settingsState.bochaSearchConfig || { apiKey: "", enabled: false },
     telegramFeedbackConfig: settingsState.telegramFeedbackConfig || createDefaultTelegramFeedbackConfig(),
     bashPermissions: settingsState.bashPermissions || { default: "ask", rules: [] },
+    memorySettings: settingsState.memorySettings || createDefaultMemorySettings(),
   };
 }
 
@@ -40,4 +42,5 @@ export interface SettingsStateData {
   bochaSearchConfig: BochaSearchConfig;
   telegramFeedbackConfig: TelegramFeedbackConfig;
   bashPermissions: BashPermissionConfig;
+  memorySettings: MemorySettings;
 }

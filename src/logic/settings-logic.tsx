@@ -1,4 +1,4 @@
-import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig } from "../types";
+import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, MemorySettings, normalizeMemoryIdleHours } from "../types";
 import { settingsStore } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
 import AIToolManager from "@/tool/ToolManager";
@@ -6,6 +6,7 @@ import { normalizeBuiltinTools } from "@/tool/BuiltinTools";
 import { ToolSet } from "ai";
 import { setSettingsPlugin } from "./settings-persistence";
 import TelegramFeedbackRuntime from "@/tool/TelegramFeedback/TelegramFeedbackRuntime";
+import MemoryJobQueue from "@/logic/memory-job-queue";
 
 export class SettingsLogic {
     private static instance: SettingsLogic;
@@ -245,6 +246,7 @@ export class SettingsLogic {
                 bochaSearchConfig: state.bochaSearchConfig,
                 telegramFeedbackConfig: state.telegramFeedbackConfig,
                 bashPermissions: state.bashPermissions,
+                memorySettings: state.memorySettings,
             };
             await this.plugin?.saveData(stateData);
         } catch (error) {
@@ -367,6 +369,23 @@ export class SettingsLogic {
     async updateBashPermissions(config: BashPermissionConfig): Promise<void> {
         const state = settingsStore.getState();
         state.setBashPermissions(config);
+        await this.saveSettings();
+    }
+
+    async updateMemorySettings(config: MemorySettings): Promise<void> {
+        const normalized: MemorySettings = {
+            ...config,
+            idleHours: normalizeMemoryIdleHours(config.idleHours),
+            indexMaxLines: Math.min(200, Math.max(20, config.indexMaxLines)),
+            indexMaxBytes: Math.min(25 * 1024, Math.max(1024, config.indexMaxBytes)),
+            dailyCallLimit: Number.isFinite(config.dailyCallLimit) ? Math.max(0, Math.floor(config.dailyCallLimit)) : 0,
+            maxRetries: Math.min(5, Math.max(0, config.maxRetries)),
+            minMessages: Math.max(2, config.minMessages),
+            minTextChars: Math.max(100, config.minTextChars),
+        };
+        settingsStore.getState().setMemorySettings(normalized);
+        await AIToolManager.getInstance().refreshMemoryTools();
+        await MemoryJobQueue.getInstance().configure();
         await this.saveSettings();
     }
 }

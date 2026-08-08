@@ -27,6 +27,7 @@ export async function persistSettingsStore(): Promise<void> {
     bochaSearchConfig: state.bochaSearchConfig,
     telegramFeedbackConfig: state.telegramFeedbackConfig,
     bashPermissions: state.bashPermissions,
+    memorySettings: state.memorySettings,
   };
 
   await settingsPlugin.saveData(stateData);

@@ -9,6 +9,7 @@ import TelegramFeedbackToolProvider from "./providers/TelegramFeedbackToolProvid
 import MCPToolProvider from "./providers/MCPToolProvider";
 import SubAgentToolProvider from "./providers/SubAgentToolProvider";
 import { ToolProvider } from "./ToolProvider";
+import MemoryToolProvider from "./providers/MemoryToolProvider";
 
 
 export default class AIToolManager {
@@ -20,6 +21,7 @@ export default class AIToolManager {
   private readonly exaSearchToolProvider = new ExaSearchToolProvider();
   private readonly bochaSearchToolProvider = new BochaSearchToolProvider();
   private readonly telegramFeedbackToolProvider = new TelegramFeedbackToolProvider();
+  private readonly memoryToolProvider = new MemoryToolProvider();
   private readonly baseProviders: ToolProvider[] = [
     this.builtinToolProvider,
     this.mcpToolProvider,
@@ -80,6 +82,10 @@ export default class AIToolManager {
     return this.mainAgentEnableTools;
   }
 
+  async refreshMemoryTools(): Promise<void> {
+    await this.refreshTools();
+  }
+
   private async refreshTools(): Promise<void> {
     const allTools = mergeToolSets(
       await Promise.all(this.baseProviders.map((provider) => provider.getAllTools?.({ allTools: {} }) ?? {}))
@@ -89,9 +95,11 @@ export default class AIToolManager {
       await Promise.all(this.baseProviders.map((provider) => provider.getEnabledTools({ allTools })))
     );
 
+    const memoryTools = await this.memoryToolProvider.getEnabledTools({ allTools });
     this.mainAgentEnableTools = {
       ...enabledBaseTools,
       ...this.subAgentToolProvider.getEnabledTools({ allTools }),
+      ...memoryTools,
     };
   }
 

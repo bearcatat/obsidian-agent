@@ -1,7 +1,7 @@
 import { useSettingsStore, settingsStore } from '../state/settings-state-impl';
 import { SettingsLogic } from '../logic/settings-logic';
 import { useShallow } from 'zustand/react/shallow';
-import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig } from '../types';
+import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, MemorySettings } from '../types';
 
 export { useSettingsStore };
 
@@ -18,6 +18,7 @@ export function useSettingsState() {
       bochaSearchConfig: state.bochaSearchConfig,
       telegramFeedbackConfig: state.telegramFeedbackConfig,
       bashPermissions: state.bashPermissions,
+      memorySettings: state.memorySettings,
     }))
   );
 }
@@ -68,6 +69,8 @@ export function useSettingsLogic() {
 
     updateBashPermissions: async (config: BashPermissionConfig) =>
       await settingsLogic.updateBashPermissions(config),
+    updateMemorySettings: async (config: MemorySettings) =>
+      await settingsLogic.updateMemorySettings(config),
   };
 }
 

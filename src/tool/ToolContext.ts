@@ -10,4 +10,6 @@ export interface AgentToolContext {
   model: import('@/types').ModelConfig;
   variant: import('@/types').ModelVariant | null;
   activateSkill: (name: string) => boolean;
+  currentTurnId?: string;
+  currentUserText?: string;
 }

@@ -433,3 +433,46 @@ export interface RuleConfig {
   filePath: string;       // Source file path
   enabled: boolean;       // Whether rule is enabled
 }
+
+export interface MemorySettings {
+  enabled: boolean;
+  idleHours: number;
+  indexMaxLines: number;
+  indexMaxBytes: number;
+  extractModelId: string;
+  extractModelVariant: ModelVariant | null;
+  consolidationModelId: string;
+  consolidationModelVariant: ModelVariant | null;
+  dailyCallLimit: number;
+  maxRetries: number;
+  minMessages: number;
+  minTextChars: number;
+  keepTombstones: boolean;
+}
+
+export const MEMORY_IDLE_HOUR_OPTIONS = [0.5, 1, 2, 4] as const;
+
+export function normalizeMemoryIdleHours(value: number): number {
+  const candidate = Number.isFinite(value) ? value : 1;
+  return MEMORY_IDLE_HOUR_OPTIONS.reduce((closest, option) =>
+    Math.abs(option - candidate) < Math.abs(closest - candidate) ? option : closest
+  );
+}
+
+export function createDefaultMemorySettings(): MemorySettings {
+  return {
+    enabled: false,
+    idleHours: 1,
+    indexMaxLines: 200,
+    indexMaxBytes: 25 * 1024,
+    extractModelId: "",
+    extractModelVariant: null,
+    consolidationModelId: "",
+    consolidationModelVariant: null,
+    dailyCallLimit: 20,
+    maxRetries: 3,
+    minMessages: 4,
+    minTextChars: 400,
+    keepTombstones: true,
+  };
+}

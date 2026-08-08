@@ -8,6 +8,7 @@ import { CHAT_TITLE_MAX_LENGTH } from "@/llm/title-constants";
 import { SessionLogic } from "./session-logic";
 import { FileReviewLogic } from "./file-review-logic";
 import SkillLogic from "./skill-logic";
+import MemoryLogic from "./memory-logic";
 
 export class AgentViewLogic {
   private static instance: AgentViewLogic;
@@ -48,6 +49,9 @@ export class AgentViewLogic {
       const titlePromise = this.setTitleIfNewChat(userMessage.content, targetId);
       agentStore.getState().addMessage(userMessage, targetId);
       const current = agentStore.getState().conversations[targetId];
+      const memoryContext = current.modelMessages.length === 0
+        ? await MemoryLogic.getInstance().loadCompactMemoryIndex()
+        : null;
       const newModelMessages = await AIAgent.getInstance().query(
         userMessage,
         current.modelMessages,
@@ -59,6 +63,7 @@ export class AgentViewLogic {
           variant,
           activeSkills: current.activeSkills,
           activateSkill: name => this.activateSkill(name, targetId),
+          memoryContext,
         },
       );
       agentStore.getState().setModelMessages(newModelMessages, targetId);

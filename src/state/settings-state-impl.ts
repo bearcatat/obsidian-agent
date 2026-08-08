@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { ModelConfig, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig } from '../types';
+import { ModelConfig, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings, normalizeMemoryIdleHours } from '../types';
 import { getDefaultBuiltinTools, normalizeBuiltinTools } from '../tool/BuiltinTools';
 import AIModelManager from '../llm/ModelManager';
 import { SettingsStateData } from './settings-state';
@@ -28,6 +28,7 @@ interface SettingsStore extends SettingsStateData {
   updateTelegramFeedbackEnabled: (enabled: boolean) => void;
 
   setBashPermissions: (config: BashPermissionConfig) => void;
+  setMemorySettings: (config: MemorySettings) => void;
 
   setAllData: (data: SettingsStateData) => void;
 }
@@ -70,6 +71,7 @@ const initialState: SettingsStateData = {
       { pattern: "format *", permission: "deny" },
     ],
   },
+  memorySettings: createDefaultMemorySettings(),
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -213,6 +215,11 @@ export const useSettingsStore = create<SettingsStore>()(
         state.bashPermissions = config;
       }),
 
+    setMemorySettings: (config: MemorySettings) =>
+      set((state) => {
+        state.memorySettings = config;
+      }),
+
     setAllData: (data: SettingsStateData) =>
       set((state) => {
         state.models = data.models || [];
@@ -236,6 +243,19 @@ export const useSettingsStore = create<SettingsStore>()(
         };
         state.telegramFeedbackConfig = data.telegramFeedbackConfig || createDefaultTelegramFeedbackConfig();
         state.bashPermissions = data.bashPermissions || initialState.bashPermissions;
+        const savedMemorySettings = { ...(data.memorySettings || {}) } as Partial<MemorySettings> & {
+          startupBatchLimit?: number;
+          useMemories?: boolean;
+          generateMemories?: boolean;
+        };
+        delete savedMemorySettings.startupBatchLimit;
+        delete savedMemorySettings.useMemories;
+        delete savedMemorySettings.generateMemories;
+        state.memorySettings = {
+          ...createDefaultMemorySettings(),
+          ...savedMemorySettings,
+          idleHours: normalizeMemoryIdleHours(savedMemorySettings.idleHours ?? createDefaultMemorySettings().idleHours),
+        };
       }),
   }))
 );

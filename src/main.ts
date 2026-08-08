@@ -23,6 +23,8 @@ import { subAgentStore } from './state/subagent-state';
 import { ruleStore } from './state/rule-state';
 import TelegramFeedbackRuntime from './tool/TelegramFeedback/TelegramFeedbackRuntime';
 import { SessionLogic } from './logic/session-logic';
+import MemoryLogic from './logic/memory-logic';
+import MemoryJobQueue from './logic/memory-job-queue';
 
 export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgentPlugin {
 	private uiManager!: UIManager;
@@ -104,6 +106,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			}
 
 			await AgentViewLogic.getInstance().finalizePendingReviews();
+			await MemoryJobQueue.getInstance().shutdown();
 
 			// 2. 清理 UI 管理器
 			if (this.uiManager) {
@@ -113,6 +116,8 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			// 3. 重置单例实例
 			AgentViewLogic.resetInstance();
 			SessionLogic.resetInstance();
+			MemoryLogic.resetInstance();
+			MemoryJobQueue.resetInstance();
 			FileReviewDriftMonitor.resetInstance();
 			FileReviewLogic.resetInstance();
 			SettingsLogic.resetInstance();
@@ -395,6 +400,8 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			if (telegramFeedbackConfig) {
 				await aiToolManager.updateTelegramFeedbackConfig(telegramFeedbackConfig);
 			}
+
+			await MemoryJobQueue.getInstance().start();
 		} catch (error) {
 			console.error('Failed to initialize tools:', error);
 		}
