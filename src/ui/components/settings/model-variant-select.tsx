@@ -18,6 +18,7 @@ interface ModelVariantSelectProps {
   variant: ModelVariant | null;
   fallbackModel: ModelConfig | null;
   fallbackLabel: string;
+  showVariants?: boolean;
   onChange: (modelId: string | null, variant: ModelVariant | null) => void | Promise<void>;
 }
 
@@ -28,13 +29,14 @@ export const ModelVariantSelect: React.FC<ModelVariantSelectProps> = ({
   variant,
   fallbackModel,
   fallbackLabel,
+  showVariants = true,
   onChange,
 }) => {
   const configuredModel = selectedModelId
     ? models.find((model) => model.id === selectedModelId) ?? null
     : null;
   const selectedModel = configuredModel ?? fallbackModel;
-  const selectedVariant = selectedModel ? resolveModelVariant(selectedModel, variant) : null;
+  const selectedVariant = selectedModel && showVariants ? resolveModelVariant(selectedModel, variant) : null;
   const selectedVariantLabel = selectedModel
     ? getAvailableVariants(selectedModel)?.find((option) => option.value === selectedVariant)?.label
     : undefined;
@@ -48,7 +50,7 @@ export const ModelVariantSelect: React.FC<ModelVariantSelectProps> = ({
     model: ModelConfig,
     itemLabel = model.id,
   ) => {
-    const variants = getAvailableVariants(model);
+    const variants = showVariants ? getAvailableVariants(model) : null;
     if (!variants) {
       return (
         <DropdownMenuItem key={key} onSelect={() => void onChange(modelId, null)}>

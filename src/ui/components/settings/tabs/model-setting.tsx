@@ -78,9 +78,10 @@ export const ModelSetting: React.FC = () => {
             variant={titleModelVariant}
             fallbackModel={defaultAgentModel ?? models[0] ?? null}
             fallbackLabel="Default agent model"
-            onChange={(modelId, variant) => setTitleModel(
+            showVariants={false}
+            onChange={(modelId) => setTitleModel(
               modelId ? models.find((model) => model.id === modelId) ?? null : null,
-              variant,
+              null,
             )}
           />
           <ModelVariantSelect
@@ -90,9 +91,10 @@ export const ModelSetting: React.FC = () => {
             variant={imageModelVariant}
             fallbackModel={defaultAgentModel ?? models[0] ?? null}
             fallbackLabel="Default agent model"
-            onChange={(modelId, variant) => setImageModel(
+            showVariants={false}
+            onChange={(modelId) => setImageModel(
               modelId ? models.find((model) => model.id === modelId) ?? null : null,
-              variant,
+              null,
             )}
           />
         </div>

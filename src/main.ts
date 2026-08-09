@@ -359,12 +359,12 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			if (settingsState.titleModel) {
 				AgentViewLogic.getInstance().setTitleModel(
 					settingsState.titleModel,
-					resolveModelVariant(settingsState.titleModel, settingsState.titleModelVariant),
+					null,
 				);
 			} else {
 				AgentViewLogic.getInstance().setTitleModel(
 					defaultModel,
-					resolveModelVariant(defaultModel, settingsState.titleModelVariant),
+					null,
 				);
 			}
 		}

@@ -1,5 +1,6 @@
 import { App } from "obsidian";
-import { generateText } from "ai";
+import { Output, ToolLoopAgent } from "ai";
+import { z } from "zod";
 import { getGlobalApp } from "@/utils";
 import { settingsStore } from "@/state/settings-state-impl";
 import { getAvailableVariants, getDefaultVariant, ModelConfig, ModelVariant } from "@/types";
@@ -17,6 +18,27 @@ import {
 const JOBS_PATH = `${MEMORY_DIR}/jobs.json`;
 const TICK_INTERVAL_MS = 60_000;
 const BACKGROUND_BATCH_LIMIT = 16;
+
+const extractionOutputSchema = z.object({
+  entries: z.array(z.object({
+    kind: z.enum(["semantic", "episodic"]),
+    topic: z.enum(["preferences", "corrections", "projects", "episodes"]),
+    turnId: z.string().nullable(),
+    content: z.string().min(1),
+  }).strict()).max(12),
+}).strict();
+
+const consolidationOutputSchema = z.object({
+  operations: z.array(z.object({
+    operation: z.enum(["ADD", "UPDATE", "SUPERSEDE", "NOOP", "FORGET"]),
+    targetId: z.string().nullable(),
+    kind: z.enum(["semantic", "episodic"]).nullable(),
+    topic: z.enum(["preferences", "corrections", "projects", "episodes"]).nullable(),
+    content: z.string().nullable(),
+    sourceSessionId: z.string().nullable(),
+    sourceTurnId: z.string().nullable(),
+  }).strict()).max(64),
+}).strict();
 
 export default class MemoryJobQueue {
   private static instance: MemoryJobQueue;
@@ -75,6 +97,7 @@ export default class MemoryJobQueue {
       existing.eligibleAt = eligibleAt;
       existing.attempts = 0;
       existing.status = "pending";
+      existing.forceExtraction = undefined;
       existing.error = undefined;
     } else {
       this.state!.jobs.push({
@@ -100,6 +123,7 @@ export default class MemoryJobQueue {
       if (!sessionIds.includes(job.sessionId)) continue;
       job.excludedRevisions = Array.from(new Set([...(job.excludedRevisions ?? []), job.revision]));
       job.status = "done";
+      job.forceExtraction = undefined;
       job.error = undefined;
     }
     await this.persist();
@@ -111,6 +135,94 @@ export default class MemoryJobQueue {
     this.state = this.emptyState();
     const adapter = this.app.vault.adapter;
     if (await adapter.exists(JOBS_PATH)) await adapter.remove(JOBS_PATH);
+  }
+
+  async retryFailedJobs(): Promise<number> {
+    if (!settingsStore.getState().memorySettings.enabled) return 0;
+    await this.load();
+    const retryableJobs = this.state!.jobs.filter((job) =>
+      Boolean(job.error) && (job.status === "pending" || job.status === "extracted" || job.status === "failed")
+    );
+    if (retryableJobs.length === 0) return 0;
+
+    const now = Date.now();
+    for (const job of retryableJobs) {
+      const hasRawExtraction = await this.app.vault.adapter.exists(this.rawPath(job));
+      job.status = hasRawExtraction ? "extracted" : "pending";
+      if (!hasRawExtraction && job.lastExtractedRevision === job.revision) {
+        job.lastExtractedRevision = undefined;
+      }
+      job.attempts = 0;
+      job.eligibleAt = now;
+      job.error = undefined;
+    }
+
+    await this.persist();
+    await MemoryLogic.getInstance().clearError();
+    this.schedule(0);
+    return retryableJobs.length;
+  }
+
+  async triggerSessionExtraction(sessionId: string): Promise<void> {
+    if (!__DEV__) {
+      throw new Error("Debug extraction is only available in development builds");
+    }
+    if (!settingsStore.getState().memorySettings.enabled) {
+      throw new Error("Memory is disabled");
+    }
+
+    const session = await SessionLogic.getInstance().readSessionData(sessionId);
+    if (!session || session.turns.length === 0) {
+      throw new Error("Saved session is empty or unavailable");
+    }
+
+    await this.load();
+    if (this.running) {
+      throw new Error("Memory background processing is running; try again shortly");
+    }
+    this.stopTimer();
+    const revision = session.updatedAt;
+    const existing = this.state!.jobs.find((job) => job.sessionId === sessionId);
+    if (existing?.excludedRevisions?.includes(revision)) {
+      throw new Error("This session revision was explicitly excluded from memory");
+    }
+    if (existing?.status === "running") {
+      throw new Error("This session is already being extracted");
+    }
+
+    const adapter = this.app.vault.adapter;
+    const rawFiles = await adapter.exists(RAW_DIR) ? (await adapter.list(RAW_DIR)).files : [];
+    for (const path of rawFiles) {
+      if (path.startsWith(`${RAW_DIR}/${sessionId}-`) && await adapter.exists(path)) {
+        await adapter.remove(path);
+      }
+    }
+
+    const now = Date.now();
+    if (existing) {
+      existing.revision = revision;
+      existing.lastActivityAt = session.updatedAt;
+      existing.eligibleAt = now;
+      existing.attempts = 0;
+      existing.status = "pending";
+      existing.forceExtraction = true;
+      existing.error = undefined;
+      existing.lastExtractedRevision = undefined;
+    } else {
+      this.state!.jobs.push({
+        sessionId,
+        revision,
+        lastActivityAt: session.updatedAt,
+        eligibleAt: now,
+        attempts: 0,
+        status: "pending",
+        forceExtraction: true,
+      });
+    }
+
+    await this.persist();
+    await MemoryLogic.getInstance().clearError();
+    this.schedule(0);
   }
 
   private async tick(): Promise<void> {
@@ -171,13 +283,17 @@ export default class MemoryJobQueue {
       if (!session || job.excludedRevisions?.includes(job.revision)) {
         job.status = "done";
         job.lastExtractedRevision = job.revision;
+        job.forceExtraction = undefined;
         return;
       }
       const transcript = this.sessionTranscript(session);
       const messageCount = session.turns.reduce((count, turn) => count + 1 + (turn.assistantMessages?.length ?? 0), 0);
-      if (messageCount < settings.minMessages || transcript.length < settings.minTextChars || this.containsSensitiveData(transcript)) {
+      const belowContentThreshold = messageCount < settings.minMessages || transcript.length < settings.minTextChars;
+      const forceExtraction = __DEV__ && job.forceExtraction;
+      if ((!forceExtraction && belowContentThreshold) || this.containsSensitiveData(transcript)) {
         job.status = "done";
         job.lastExtractedRevision = job.revision;
+        job.forceExtraction = undefined;
         return;
       }
 
@@ -185,24 +301,28 @@ export default class MemoryJobQueue {
       if (!model) throw new Error("No model is configured for memory extraction");
       const variant = this.resolveVariant(model, settings.extractModelVariant);
       const agentConfig = AIModelManager.getInstance().buildAgentConfig(model, variant ?? undefined);
-      const { text } = await generateText({
+      const agent = new ToolLoopAgent({
         ...agentConfig,
-        system: `Extract durable memory from a completed session. Return JSON only: {"entries":[{"kind":"semantic|episodic","topic":"preferences|corrections|projects|episodes","confidence":"model-inferred","turnId":"optional","content":"atomic memory"}]}. Return {"entries":[]} when nothing is worth remembering. Never save secrets, credentials, reasoning, long quotes, tool output, or facts that can be read from current files/settings. Prefer stable preferences, explicit corrections, durable agreements, and compact reusable task outcomes.`,
-        prompt: transcript.slice(0, 60_000),
-        abortSignal: this.abortController?.signal,
+        instructions: `Extract durable memory from a completed session. Output JSON only and match the provided JSON schema exactly. Use this shape: {"entries":[{"kind":"semantic|episodic","topic":"preferences|corrections|projects|episodes","turnId":"turn id or null","content":"atomic memory"}]}. Return {"entries":[]} when nothing is worth remembering. Do not include Markdown fences or prose outside the JSON object. Never save secrets, credentials, reasoning, long quotes, tool output, or facts that can be read from current files/settings. Prefer stable preferences, explicit corrections, durable agreements, and compact reusable task outcomes.`,
+        output: Output.object({
+          schema: extractionOutputSchema,
+          name: "memory_extraction",
+          description: "Durable memory entries extracted from one completed session",
+        }),
         maxRetries: 1,
       });
+      const result = await agent.generate({
+        prompt: transcript.slice(0, 60_000),
+        abortSignal: this.abortController?.signal,
+      });
       this.consumeBudget();
-      const parsed = this.parseJson(text) as { entries?: RawMemory["entries"] };
-      const entries = (parsed.entries ?? []).filter((entry) =>
-        (entry.kind === "semantic" || entry.kind === "episodic") &&
-        ["preferences", "corrections", "projects", "episodes"].includes(entry.topic) &&
-        typeof entry.content === "string" && entry.content.trim().length > 0 &&
-        !this.containsSensitiveData(entry.content)
-      ).slice(0, 12);
+      const entries = result.output.entries
+        .filter((entry) => !this.containsSensitiveData(entry.content))
+        .map((entry) => ({ ...entry, turnId: entry.turnId ?? undefined }));
       job.lastExtractedRevision = job.revision;
       if (entries.length === 0) {
         job.status = "done";
+        job.forceExtraction = undefined;
         return;
       }
       const raw: RawMemory = {
@@ -246,25 +366,34 @@ export default class MemoryJobQueue {
     const existing = (await MemoryLogic.getInstance().listEntries()).slice(0, 256);
     const variant = this.resolveVariant(model, settings.consolidationModelVariant);
     const agentConfig = AIModelManager.getInstance().buildAgentConfig(model, variant ?? undefined);
-    const { text } = await generateText({
+    const agent = new ToolLoopAgent({
       ...agentConfig,
-      system: `Consolidate raw memories into durable memory operations. Return JSON only: {"operations":[{"operation":"ADD|UPDATE|SUPERSEDE|NOOP|FORGET","targetId":"required for update/supersede/forget","kind":"semantic|episodic","topic":"preferences|corrections|projects|episodes","confidence":"model-inferred","content":"atomic memory","sourceSessionId":"session id","sourceTurnId":"optional"}]}. Deduplicate aggressively. Preserve user-explicit and user-corrected entries unless a newer explicit correction requires replacement. Do not invent facts. Prefer NOOP over low-value memory.`,
-      prompt: JSON.stringify({ existing, raw: raws }).slice(0, 80_000),
-      abortSignal: this.abortController?.signal,
+      instructions: `Consolidate raw memories into durable memory operations. Output JSON only and match the provided JSON schema exactly. Use this shape: {"operations":[{"operation":"ADD|UPDATE|SUPERSEDE|NOOP|FORGET","targetId":"memory id or null","kind":"semantic|episodic or null","topic":"preferences|corrections|projects|episodes or null","content":"atomic memory or null","sourceSessionId":"session id or null","sourceTurnId":"turn id or null"}]}. Use null for fields that do not apply. Do not include Markdown fences or prose outside the JSON object. Deduplicate aggressively. Preserve user-explicit and user-corrected entries unless a newer explicit correction requires replacement. Do not invent facts. Prefer NOOP over low-value memory.`,
+      output: Output.object({
+        schema: consolidationOutputSchema,
+        name: "memory_consolidation",
+        description: "Validated operations for consolidating durable memory",
+      }),
       maxRetries: 1,
     });
+    const result = await agent.generate({
+      prompt: JSON.stringify({ existing, raw: raws }).slice(0, 80_000),
+      abortSignal: this.abortController?.signal,
+    });
     this.consumeBudget();
-    const parsed = this.parseJson(text) as { operations?: MemoryOperation[] };
     const sourceIds = new Set(raws.map((raw) => raw.sessionId));
     const fallbackSourceId = raws[0].sessionId;
-    const operations = (parsed.operations ?? []).filter((operation) =>
-      ["ADD", "UPDATE", "SUPERSEDE", "NOOP", "FORGET"].includes(operation.operation)
-    ).slice(0, 64).map((operation) => ({
-      ...operation,
+    const operations: MemoryOperation[] = result.output.operations.map((operation) => ({
+      operation: operation.operation,
+      targetId: operation.targetId ?? undefined,
+      kind: operation.kind ?? undefined,
+      topic: operation.topic ?? undefined,
       confidence: "model-inferred" as const,
+      content: operation.content ?? undefined,
       sourceSessionId: operation.sourceSessionId && sourceIds.has(operation.sourceSessionId)
         ? operation.sourceSessionId
         : fallbackSourceId,
+      sourceTurnId: operation.sourceTurnId ?? undefined,
     }));
     const changes = await MemoryLogic.getInstance().applyOperations(operations);
     for (const path of rawFiles.slice(0, BACKGROUND_BATCH_LIMIT)) {
@@ -274,6 +403,7 @@ export default class MemoryJobQueue {
       const job = this.state!.jobs.find((item) => item.sessionId === raw.sessionId && item.revision === raw.revision);
       if (job) {
         job.status = "done";
+        job.forceExtraction = undefined;
         job.error = undefined;
       }
     }
@@ -357,11 +487,6 @@ export default class MemoryJobQueue {
     const variants = getAvailableVariants(model);
     if (!variants) return null;
     return variants.some((option) => option.value === variant) ? variant : getDefaultVariant(model);
-  }
-
-  private parseJson(text: string): unknown {
-    const trimmed = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-    return JSON.parse(trimmed);
   }
 
   private scheduleNext(): void {

@@ -106,7 +106,7 @@ export class SettingsLogic {
         if (!state.titleModel && effectiveModel) {
             AgentViewLogic.getInstance().setTitleModel(
                 effectiveModel,
-                resolveModelVariant(effectiveModel, state.titleModelVariant),
+                null,
             );
         }
         await this.saveSettings();
@@ -123,10 +123,9 @@ export class SettingsLogic {
         }
 
         const effectiveModel = model ?? state.defaultAgentModel ?? state.models[0] ?? null;
-        const nextVariant = effectiveModel ? resolveModelVariant(effectiveModel, variant) : null;
-        state.setTitleModel(model, nextVariant);
+        state.setTitleModel(model, null);
         if (effectiveModel) {
-            AgentViewLogic.getInstance().setTitleModel(effectiveModel, nextVariant);
+            AgentViewLogic.getInstance().setTitleModel(effectiveModel, null);
         }
         await this.saveSettings();
     }
@@ -140,8 +139,7 @@ export class SettingsLogic {
             }
         }
 
-        const effectiveModel = model ?? state.defaultAgentModel ?? state.models[0] ?? null;
-        state.setImageModel(model, effectiveModel ? resolveModelVariant(effectiveModel, variant) : null);
+        state.setImageModel(model, null);
         await this.saveSettings();
     }
 

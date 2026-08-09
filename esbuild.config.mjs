@@ -145,6 +145,7 @@ const context = await esbuild.context({
 	},
 	// 添加全局变量定义
 	define: {
+		"__DEV__": prod ? "false" : "true",
 		"process.env.NODE_ENV": prod ? '"production"' : '"development"',
 		"global": "globalThis",
 		"process": "process",

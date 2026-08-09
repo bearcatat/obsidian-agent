@@ -103,22 +103,22 @@ export const useSettingsStore = create<SettingsStore>()(
           state.defaultAgentModelVariant = resolveModelVariant(model, state.defaultAgentModelVariant);
           modelManager.setAgent(model, state.defaultAgentModelVariant);
           if (!state.titleModel) {
-            state.titleModelVariant = resolveModelVariant(model, state.titleModelVariant);
-            modelManager.setTitle(model, state.titleModelVariant);
+            state.titleModelVariant = null;
+            modelManager.setTitle(model, null);
           }
         }
 
         // Check if this model is the title model
         if (state.titleModel?.id === targetId) {
           state.titleModel = model;
-          state.titleModelVariant = resolveModelVariant(model, state.titleModelVariant);
-          modelManager.setTitle(model, state.titleModelVariant);
+          state.titleModelVariant = null;
+          modelManager.setTitle(model, null);
         }
 
         // Check if this model is the image model
         if (state.imageModel?.id === targetId) {
           state.imageModel = model;
-          state.imageModelVariant = resolveModelVariant(model, state.imageModelVariant);
+          state.imageModelVariant = null;
         }
       }),
 
@@ -155,13 +155,13 @@ export const useSettingsStore = create<SettingsStore>()(
     setTitleModel: (model: ModelConfig | null, variant: ModelVariant | null) =>
       set((state) => {
         state.titleModel = model;
-        state.titleModelVariant = variant;
+        state.titleModelVariant = null;
       }),
 
     setImageModel: (model: ModelConfig | null, variant: ModelVariant | null) =>
       set((state) => {
         state.imageModel = model;
-        state.imageModelVariant = variant;
+        state.imageModelVariant = null;
       }),
     addOrUpdateMCPServer: (server: MCPServerConfig, originalName?: string) =>
       set((state) => {
@@ -242,9 +242,9 @@ export const useSettingsStore = create<SettingsStore>()(
         state.defaultAgentModel = data.defaultAgentModel || null;
         state.defaultAgentModelVariant = data.defaultAgentModelVariant ?? null;
         state.titleModel = data.titleModel || null;
-        state.titleModelVariant = data.titleModelVariant ?? null;
+        state.titleModelVariant = null;
         state.imageModel = data.imageModel || null;
-        state.imageModelVariant = data.imageModelVariant ?? null;
+        state.imageModelVariant = null;
         state.mcpServers = data.mcpServers || [];
         state.builtinTools = normalizeBuiltinTools(data.builtinTools);
         state.exaSearchConfig = data.exaSearchConfig || {

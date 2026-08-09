@@ -46,7 +46,7 @@ export default class AIModelManager {
 
     setTitle(modelConfig: ModelConfig, variant?: ModelVariant | null) {
         this.titleModelConfig = modelConfig
-        this.titleModelVariant = variant ?? null
+        this.titleModelVariant = null
     }
 
     buildAgentConfig(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings {
@@ -66,7 +66,7 @@ export default class AIModelManager {
             throw new Error("title model not configured")
         }
 
-        return this.buildAgentConfig(this.titleModelConfig, this.titleModelVariant ?? undefined)
+        return this.buildAgentConfig(this.titleModelConfig)
     }
 
     normalizeMessages(

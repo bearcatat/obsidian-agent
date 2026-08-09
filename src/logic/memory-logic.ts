@@ -263,17 +263,20 @@ export default class MemoryLogic {
 
   async getStats(): Promise<MemoryStats> {
     const settings = settingsStore.getState().memorySettings;
-    if (!settings.enabled) return { enabled: false, entryCount: 0, pendingJobs: 0 };
+    if (!settings.enabled) return { enabled: false, entryCount: 0, pendingJobs: 0, retryableJobs: 0 };
     const cache = await this.readJson<MemoryCache>(CACHE_PATH, {
       schemaVersion: MEMORY_SCHEMA_VERSION,
       entryCount: 0,
       topicHashes: {},
     });
-    const jobs = await this.readJson<{ jobs?: Array<{ status: string }> }>(`${MEMORY_DIR}/jobs.json`, {});
+    const jobs = await this.readJson<{ jobs?: Array<{ status: string; error?: string }> }>(`${MEMORY_DIR}/jobs.json`, {});
     return {
       enabled: true,
       entryCount: cache.entryCount ?? (await this.listEntries()).length,
       pendingJobs: (jobs.jobs ?? []).filter((job) => job.status === "pending" || job.status === "running" || job.status === "extracted").length,
+      retryableJobs: (jobs.jobs ?? []).filter((job) =>
+        Boolean(job.error) && (job.status === "pending" || job.status === "extracted" || job.status === "failed")
+      ).length,
       lastConsolidatedAt: cache.lastConsolidatedAt,
       lastError: cache.lastError,
     };
@@ -293,6 +296,18 @@ export default class MemoryLogic {
     } catch (error) {
       console.error("[Memory] Failed to persist error status", error);
     }
+  }
+
+  async clearError(): Promise<void> {
+    if (!settingsStore.getState().memorySettings.enabled) return;
+    const cache = await this.readJson<MemoryCache>(CACHE_PATH, {
+      schemaVersion: MEMORY_SCHEMA_VERSION,
+      entryCount: 0,
+      topicHashes: {},
+    });
+    if (!cache.lastError) return;
+    cache.lastError = undefined;
+    await this.writeJson(CACHE_PATH, cache);
   }
 
   private async upsertEntries(newEntries: MemoryEntry[]): Promise<void> {

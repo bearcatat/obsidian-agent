@@ -63,6 +63,7 @@ export interface MemoryJob {
   status: "pending" | "running" | "extracted" | "done" | "failed";
   lastExtractedRevision?: number;
   excludedRevisions?: number[];
+  forceExtraction?: boolean;
   error?: string;
 }
 
@@ -85,6 +86,7 @@ export interface MemoryStats {
   enabled: boolean;
   entryCount: number;
   pendingJobs: number;
+  retryableJobs: number;
   lastConsolidatedAt?: string;
   lastError?: string;
 }

@@ -1,5 +1,5 @@
 import { Bot } from "gramio";
-import { ModelConfig, ModelVariant, TelegramFeedbackConfig, TelegramFeedbackProgress, TelegramFeedbackReply, TelegramFeedbackRequest, TelegramFeedbackResult, createDefaultTelegramFeedbackConfig, resolveModelVariant } from "@/types";
+import { ModelConfig, ModelVariant, TelegramFeedbackConfig, TelegramFeedbackProgress, TelegramFeedbackReply, TelegramFeedbackRequest, TelegramFeedbackResult, createDefaultTelegramFeedbackConfig } from "@/types";
 import TelegramApiClient, { TelegramApiUpdate } from "./TelegramApiClient";
 import { settingsStore } from "@/state/settings-state-impl";
 import { persistSettingsStore } from "@/logic/settings-persistence";
@@ -506,20 +506,12 @@ export default class TelegramFeedbackRuntime {
     if (!modelConfig) {
       return "Image analysis skipped because no agent model is configured.";
     }
-    const variant = settingsModel
-      ? resolveModelVariant(settingsModel, settings.imageModelVariant)
-      : requestModel
-        ? resolveModelVariant(requestModel, requestVariant)
-        : agentState.model
-          ? resolveModelVariant(agentState.model, agentState.variant)
-          : resolveModelVariant(modelConfig, modelManager.currentVariant);
-
     const subAgent = new SubAgent(
       this.config.imageAnalysisSubagentName,
       IMAGE_ANALYSIS_SYSTEM_PROMPT,
       "Analyze Telegram feedback images",
       modelConfig,
-      variant,
+      null,
     );
 
     const summaryPrompt = collectedText.trim().length > 0
