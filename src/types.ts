@@ -196,19 +196,68 @@ export enum MCPTransportTypes {
   SSE = "sse",
 }
 
-// 权限级别
-export type PermissionLevel = "allow" | "ask" | "deny";
+export type BashExecutionPolicy = "direct" | "rules" | "ai";
+export type BashRulePermission = "allow" | "ask" | "deny";
 
 // 权限规则
 export interface PermissionRule {
   pattern: string;
-  permission: PermissionLevel;
+  permission: BashRulePermission;
 }
 
 // Bash 工具权限配置
 export interface BashPermissionConfig {
-  default: PermissionLevel;
+  policy: BashExecutionPolicy;
   rules: PermissionRule[];
+}
+
+export type BashApprovalRisk = "low" | "medium" | "high" | "critical";
+export type BashApprovalAuthorization = "explicit" | "implied" | "unclear" | "conflicts";
+export type BashAuthorizationSource = "hard-block" | "direct" | "rule" | "ai" | "human";
+
+export interface BashApprovalTextItem {
+  role: "user" | "assistant";
+  text: string;
+  truncated?: boolean;
+}
+
+export interface BashApprovalConstraintItem {
+  source: "rule" | "skill";
+  name: string;
+  text: string;
+}
+
+export interface BashApprovalActionItem {
+  toolName: string;
+  argumentsSummary: string;
+  status: "completed" | "failed" | "unknown";
+}
+
+export interface BashApprovalContext {
+  conversationId: string;
+  currentTurnId?: string;
+  currentUser: BashApprovalTextItem;
+  priorUserMessages: BashApprovalTextItem[];
+  recentAssistantUpdates: BashApprovalTextItem[];
+  currentTurnActions: BashApprovalActionItem[];
+  activeConstraints: BashApprovalConstraintItem[];
+  cwdScope: "vault-root";
+  authorizationContextTruncated: boolean;
+}
+
+export interface BashApprovalReview {
+  risk: BashApprovalRisk;
+  authorization: BashApprovalAuthorization;
+  reason: string;
+}
+
+export interface BashAuthorizationSummary {
+  policy: BashExecutionPolicy;
+  source: BashAuthorizationSource;
+  risk?: BashApprovalRisk | "unknown";
+  authorization?: BashApprovalAuthorization;
+  reason?: string;
+  isolation: "none" | "sandbox";
 }
 
 // 内置工具配置

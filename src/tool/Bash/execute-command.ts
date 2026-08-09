@@ -12,7 +12,7 @@ type ShellConfig = {
   encoding: BufferEncoding;
 };
 
-type ExecuteResult = {
+export type ExecuteResult = {
   output: string;
   exitCode: number;
   error: string;
@@ -58,8 +58,23 @@ function getWindowsCmdConfig(): ShellConfig {
   return { shell: 'cmd.exe', args: ['/u', '/c'], encoding: 'utf16le' };
 }
 
-async function runWithShell(command: string, cwd: string, timeoutMs: number, config: ShellConfig): Promise<ExecuteResult | { enotent: true }> {
+export interface BashExecutionRequest {
+  command: string;
+  cwd: string;
+  timeout?: number;
+}
+
+export interface BashExecutor {
+  readonly isolation: "none" | "sandbox";
+  execute(request: BashExecutionRequest, signal?: AbortSignal): Promise<ExecuteResult>;
+}
+
+async function runWithShell(command: string, cwd: string, timeoutMs: number, config: ShellConfig, signal?: AbortSignal): Promise<ExecuteResult | { enotent: true }> {
   return await new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve({ output: "Command cancelled", exitCode: 130, error: "Cancelled" });
+      return;
+    }
     const child = spawn(config.shell, [...config.args, command], {
       cwd: cwd || undefined,
       shell: false,
@@ -78,7 +93,17 @@ async function runWithShell(command: string, cwd: string, timeoutMs: number, con
         clearTimeout(timeoutHandle);
         timeoutHandle = null;
       }
+      signal?.removeEventListener('abort', handleAbort);
     };
+
+    const handleAbort = () => {
+      try {
+        child.kill('SIGKILL');
+      } catch (e) {
+        // Ignore kill errors during cancellation.
+      }
+    };
+    signal?.addEventListener('abort', handleAbort, { once: true });
 
     if (timeoutMs > 0) {
       timeoutHandle = setTimeout(() => {
@@ -106,7 +131,9 @@ async function runWithShell(command: string, cwd: string, timeoutMs: number, con
         errorOutput = errorOutput.substring(0, MAX_OUTPUT_SIZE) + '\n... (error truncated)';
       }
 
-      if (code === null) {
+      if (signal?.aborted) {
+        resolve({ output: 'Command cancelled', exitCode: 130, error: 'Cancelled' });
+      } else if (code === null) {
         resolve({ output: 'Command timed out', exitCode: 124, error: 'Timeout' });
       } else {
         resolve({ output, exitCode: code || 0, error: errorOutput });
@@ -124,22 +151,27 @@ async function runWithShell(command: string, cwd: string, timeoutMs: number, con
   });
 }
 
-export async function executeCommand(command: string, cwd: string, timeout?: number): Promise<ExecuteResult> {
+export async function executeCommand(command: string, cwd: string, timeout?: number, signal?: AbortSignal): Promise<ExecuteResult> {
   const timeoutMs = timeout ?? DEFAULT_TIMEOUT;
 
   if (process.platform !== 'win32') {
     const cfg = getUnixShellConfig();
-    const result = await runWithShell(command, cwd, timeoutMs, cfg);
+    const result = await runWithShell(command, cwd, timeoutMs, cfg, signal);
     return 'enotent' in result ? { output: '', exitCode: 1, error: 'Shell not found' } : result;
   }
 
   const bashCfg = getWindowsGitBashConfig();
-  const bashResult = await runWithShell(command, cwd, timeoutMs, bashCfg);
+  const bashResult = await runWithShell(command, cwd, timeoutMs, bashCfg, signal);
   if (!('enotent' in bashResult)) {
     return bashResult;
   }
 
   const cmdCfg = getWindowsCmdConfig();
-  const cmdResult = await runWithShell(command, cwd, timeoutMs, cmdCfg);
+  const cmdResult = await runWithShell(command, cwd, timeoutMs, cmdCfg, signal);
   return 'enotent' in cmdResult ? { output: '', exitCode: 1, error: 'Shell not found' } : cmdResult;
 }
+
+export const localBashExecutor: BashExecutor = {
+  isolation: "none",
+  execute: ({ command, cwd, timeout }, signal) => executeCommand(command, cwd, timeout, signal),
+};

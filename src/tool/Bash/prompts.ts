@@ -30,9 +30,10 @@ Usage:
 - Use appropriate commands for your platform
 - Some dangerous commands are blocked by default
 
-Default policy:
-- Most commands require user confirmation (ask)
-- Safe commands like 'git status', 'npm *' may be auto-allowed
+Execution policy:
+- The user can choose direct execution, rule approval, or AI approval
+- All policies still pass through a non-overridable hard guard
+- The current executor is not sandboxed
 
 Blocked commands (cannot be overridden):
 - Commands that attempt to escape the vault directory
@@ -40,4 +41,4 @@ Blocked commands (cannot be overridden):
 
 Notes:
 - Do not use this tool to move or rename Obsidian Markdown notes. Use the note move tool instead so Obsidian can maintain internal links/backlinks.
-- This tool only works within the Obsidian vault.`;
+- The working directory is the Vault root, but the unsandboxed shell can access resources outside it.`;

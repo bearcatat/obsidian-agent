@@ -10,6 +10,16 @@ import RuleLogic from "@/logic/rule-logic";
 import { CHAT_TITLE_MAX_LENGTH } from "./title-constants";
 import { mergeTools } from "./agent-utils";
 import { runStreamingTurn } from "./AgentRuntime";
+import { buildBashApprovalContext } from "@/tool/Bash/bash-approval-context";
+import { getGlobalApp } from "@/utils";
+
+function getVaultPathForApproval(): string {
+    try {
+        return (getGlobalApp().vault.adapter as { basePath?: string }).basePath ?? "";
+    } catch {
+        return "";
+    }
+}
 
 export default class AIAgent {
     private static instance: AIAgent
@@ -78,6 +88,23 @@ export default class AIAgent {
         const builtinTools = agentConfig.tools;
         const mergedTools = mergeTools(userTools, builtinTools, "[Agent]");
         const rawHistory = [...history, message.toModelMessage()];
+        const skillLogic = SkillLogic.getInstance();
+        const activeSkillConfigs = Array.from(new Map([
+            ...skillLogic.getEnabledSkills(),
+            ...options.activeSkills.map((name) => skillLogic.getSkillByName(name)).filter((skill): skill is NonNullable<typeof skill> => Boolean(skill)),
+        ].map((skill) => [skill.name, skill])).values());
+        const bashApprovalVaultPath = getVaultPathForApproval();
+        const bashApprovalContext = buildBashApprovalContext({
+            conversationId: options.conversationId,
+            currentTurnId: message.id,
+            currentUserText: message.content,
+            history,
+            vaultPath: bashApprovalVaultPath,
+            constraints: [
+                ...RuleLogic.getInstance().getRulesForMainAgent().map((rule) => ({ source: "rule" as const, name: rule.name, text: rule.body })),
+                ...activeSkillConfigs.map((skill) => ({ source: "skill" as const, name: skill.name, text: skill.body })),
+            ],
+        });
         const { normalizedMessages, responseMessages } = await runStreamingTurn({
             agentConfig,
             instructions: this.buildSystemPrompt(options.activeSkills, options.memoryContext),
@@ -94,6 +121,8 @@ export default class AIAgent {
                 activateSkill: options.activateSkill,
                 currentTurnId: message.id,
                 currentUserText: message.content,
+                bashApprovalContext,
+                bashApprovalVaultPath,
             },
             maxRetries: 3,
         });

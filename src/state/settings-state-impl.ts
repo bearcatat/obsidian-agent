@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { ModelConfig, ModelVariant, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings, normalizeMemoryIdleHours, resolveModelVariant } from '../types';
-import { getDefaultBuiltinTools, normalizeBuiltinTools } from '../tool/BuiltinTools';
+import { cloneDefaultBashPermissions, getDefaultBuiltinTools, normalizeBashPermissionConfig, normalizeBuiltinTools } from '../tool/BuiltinTools';
 import AIModelManager from '../llm/ModelManager';
 import { SettingsStateData } from './settings-state';
 
@@ -57,23 +57,7 @@ const initialState: SettingsStateData = {
     freshness: "noLimit",
   },
   telegramFeedbackConfig: createDefaultTelegramFeedbackConfig(),
-  bashPermissions: {
-    default: "ask",
-    rules: [
-      { pattern: "git status*", permission: "allow" },
-      { pattern: "git log*", permission: "allow" },
-      { pattern: "git diff*", permission: "allow" },
-      { pattern: "git *", permission: "ask" },
-      { pattern: "npm *", permission: "allow" },
-      { pattern: "node *", permission: "allow" },
-      { pattern: "pnpm *", permission: "allow" },
-      { pattern: "yarn *", permission: "allow" },
-      { pattern: "rm *", permission: "deny" },
-      { pattern: "del *", permission: "deny" },
-      { pattern: "rmdir *", permission: "deny" },
-      { pattern: "format *", permission: "deny" },
-    ],
-  },
+  bashPermissions: cloneDefaultBashPermissions(),
   memorySettings: createDefaultMemorySettings(),
 };
 
@@ -261,7 +245,7 @@ export const useSettingsStore = create<SettingsStore>()(
           freshness: "noLimit",
         };
         state.telegramFeedbackConfig = data.telegramFeedbackConfig || createDefaultTelegramFeedbackConfig();
-        state.bashPermissions = data.bashPermissions || initialState.bashPermissions;
+        state.bashPermissions = normalizeBashPermissionConfig(data.bashPermissions);
         const savedMemorySettings = { ...(data.memorySettings || {}) } as Partial<MemorySettings> & {
           startupBatchLimit?: number;
           useMemories?: boolean;

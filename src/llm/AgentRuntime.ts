@@ -30,6 +30,28 @@ export async function runStreamingTurn({
     responseMessages: ModelMessage[];
     text: string;
 }> {
+    const recordApprovalActions = (step: any) => {
+        const actions = context.bashApprovalContext?.currentTurnActions;
+        if (!actions || !Array.isArray(step?.toolCalls)) return;
+        const results = new Map<string, any>((Array.isArray(step.toolResults) ? step.toolResults : [])
+            .map((result: any) => [String(result?.toolCallId ?? ""), result]));
+        for (const call of step.toolCalls) {
+            const result = results.get(String(call?.toolCallId ?? ""));
+            let argumentsSummary = "";
+            try {
+                argumentsSummary = JSON.stringify(call?.input ?? call?.args ?? {}).slice(0, 500);
+            } catch {
+                argumentsSummary = "[unserializable arguments]";
+            }
+            actions.push({
+                toolName: String(call?.toolName ?? "unknown"),
+                argumentsSummary,
+                status: result?.error ? "failed" : result ? "completed" : "unknown",
+            });
+        }
+        if (actions.length > 16) actions.splice(0, actions.length - 16);
+    };
+    const existingOnStepFinish = agentConfig.onStepFinish;
     const agentOptions: ToolLoopAgentSettings = {
         ...agentConfig,
         instructions,
@@ -37,6 +59,10 @@ export async function runStreamingTurn({
         toolChoice: "auto",
         experimental_context: context,
         stopWhen: [],
+        onStepFinish: async (step: any) => {
+            recordApprovalActions(step);
+            await existingOnStepFinish?.(step);
+        },
     };
 
     if (maxRetries !== undefined) {

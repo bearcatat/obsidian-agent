@@ -1,5 +1,5 @@
 import { ModelConfig, ModelVariant, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings } from '../types';
-import { getDefaultBuiltinTools } from '../tool/BuiltinTools';
+import { cloneDefaultBashPermissions, getDefaultBuiltinTools } from '../tool/BuiltinTools';
 
 export interface ISettingsState {
   readonly models: ModelConfig[];
@@ -32,7 +32,7 @@ export function clone(settingsState: ISettingsState): ISettingsState {
     exaSearchConfig: settingsState.exaSearchConfig || { apiKey: "", enabled: false },
     bochaSearchConfig: settingsState.bochaSearchConfig || { apiKey: "", enabled: false },
     telegramFeedbackConfig: settingsState.telegramFeedbackConfig || createDefaultTelegramFeedbackConfig(),
-    bashPermissions: settingsState.bashPermissions || { default: "ask", rules: [] },
+    bashPermissions: settingsState.bashPermissions || cloneDefaultBashPermissions(),
     memorySettings: settingsState.memorySettings || createDefaultMemorySettings(),
   };
 }

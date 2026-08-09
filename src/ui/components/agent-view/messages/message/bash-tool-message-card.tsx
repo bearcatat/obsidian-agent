@@ -2,7 +2,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui/elemen
 import { Button } from "@/ui/elements/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/ui/elements/dropdown-menu";
 import React from "react";
-import { BashCommand } from "@/types";
+import { BashAuthorizationSummary, BashCommand } from "@/types";
 import { ChevronsUpDown, Check, X, Terminal, AlertTriangle, ChevronDown } from "lucide-react";
 
 type Decision = "apply" | "reject" | "allow" | "deny" | null;
@@ -11,6 +11,8 @@ type Props = {
     origin_answered_state: boolean;
     bashCommand: BashCommand;
     decision: Decision;
+    authorization?: BashAuthorizationSummary;
+    pendingLabel?: string;
     onApply?: () => void;
     onReject?: () => void;
     onAlwaysAllow?: () => void;
@@ -19,10 +21,18 @@ type Props = {
     onAlwaysDenyGroup?: () => void;
 }
 
-export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decision, onApply, onReject, onAlwaysAllow, onAlwaysDeny, onAlwaysAllowGroup, onAlwaysDenyGroup }: Props) => {
+export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decision, authorization, pendingLabel, onApply, onReject, onAlwaysAllow, onAlwaysDeny, onAlwaysAllowGroup, onAlwaysDenyGroup }: Props) => {
     const [isOpen, setIsOpen] = React.useState(!origin_answered_state);
     const [isAnswered, setIsAnswered] = React.useState(origin_answered_state);
     const [isRememberDropdownOpen, setIsRememberDropdownOpen] = React.useState(false);
+    const answered = origin_answered_state || isAnswered;
+
+    React.useEffect(() => {
+        setIsAnswered(origin_answered_state);
+        if (origin_answered_state) {
+            setIsOpen(false);
+        }
+    }, [origin_answered_state]);
 
     const handleApply = () => {
         setIsOpen(false);
@@ -61,17 +71,25 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
     };
 
     const getStatusText = () => {
-        if (isAnswered) {
+        if (answered) {
             if (decision === "apply" || decision === "allow") {
                 return bashCommand.exitCode === 0 ? "Executed successfully" : "Execution failed";
             }
             if (decision === "deny") {
-                return "Denied (remembered)";
+                return authorization?.source === "hard-block" ? "Blocked by hard guard" : "Denied";
             }
             return decision === "reject" ? "Rejected" : "Processed";
         }
-        return "Pending confirmation";
+        return pendingLabel || "Pending confirmation";
     };
+
+    const sourceLabel = authorization ? ({
+        "hard-block": "Hard guard",
+        direct: "Direct policy",
+        rule: "Rule approval",
+        ai: "AI approval",
+        human: "Human approval",
+    } as const)[authorization.source] : null;
 
     const isDangerous = React.useMemo(() => {
         const cmd = bashCommand.command.toLowerCase();
@@ -97,7 +115,7 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
                         <AlertTriangle className="tw-size-4 tw-text-orange-500" />
                     )}
                 </div>
-                {isAnswered && (
+                {answered && (
                     <CollapsibleTrigger asChild>
                         <Button variant="ghost" size="icon" className="size-8">
                             <ChevronsUpDown className="tw-size-4" />
@@ -129,6 +147,13 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
                     </div>
                 )}
 
+                {authorization && (
+                    <div className="tw-mt-2 tw-rounded tw-bg-muted/40 tw-px-2 tw-py-1.5 tw-text-xs tw-text-muted-foreground">
+                        <div>{sourceLabel} · {authorization.isolation === "none" ? "Unsandboxed" : "Sandboxed"}{authorization.risk ? ` · Risk: ${authorization.risk}` : ""}{authorization.authorization ? ` · Authorization: ${authorization.authorization}` : ""}</div>
+                        {authorization.reason && <div className="tw-mt-1 tw-break-words">{authorization.reason}</div>}
+                    </div>
+                )}
+
                 {bashCommand.error && bashCommand.error !== 'User rejected' && (
                     <div className="tw-w-full tw-mt-2 tw-rounded tw-border tw-border-border tw-overflow-hidden tw-bg-red-900/10 dark:tw-bg-red-900/20">
                         <div className="tw-font-mono tw-text-xs tw-leading-relaxed tw-max-h-32 tw-overflow-y-auto">
@@ -147,7 +172,7 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
                     </div>
                 )}
 
-                {!isAnswered && (
+                {!answered && onApply && onReject && (
                     <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-mt-2 tw-px-2">
                         <Button 
                             variant="ghost" 
@@ -167,6 +192,7 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
                             <X className="tw-size-4 tw-mr-1" />
                             Deny
                         </Button>
+                        {onAlwaysAllow && onAlwaysDeny && onAlwaysAllowGroup && onAlwaysDenyGroup && <>
                         <div className="tw-w-px tw-h-6 tw-bg-border" />
                         <DropdownMenu open={isRememberDropdownOpen} onOpenChange={setIsRememberDropdownOpen}>
                             <DropdownMenuTrigger asChild>
@@ -190,6 +216,7 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
+                        </>}
                     </div>
                 )}
             </CollapsibleContent>

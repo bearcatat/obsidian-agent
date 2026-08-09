@@ -57,6 +57,7 @@ export function renderHistoricalToolMessage(toolName: string, contentJson: strin
           <BashToolMessageCard
             bashCommand={data.bashCommand}
             decision={data.decision}
+            authorization={data.authorization}
             origin_answered_state={true}
           />
         );

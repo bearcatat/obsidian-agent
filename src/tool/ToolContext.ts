@@ -12,4 +12,7 @@ export interface AgentToolContext {
   activateSkill: (name: string) => boolean;
   currentTurnId?: string;
   currentUserText?: string;
+  bashApprovalContext?: Readonly<import('@/types').BashApprovalContext>;
+  /** Host-only path used to sanitize approval data; never sent to a Provider. */
+  bashApprovalVaultPath?: string;
 }

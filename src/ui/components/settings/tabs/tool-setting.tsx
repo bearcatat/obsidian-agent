@@ -40,7 +40,7 @@ export const ToolSetting: React.FC = () => {
       </section>
 
       <section>
-        <div className="tw-mb-3 tw-text-xl tw-font-bold">Bash Permissions</div>
+        <div className="tw-mb-3 tw-text-xl tw-font-bold">Bash 执行策略</div>
         <BashPermissionSettings />
       </section>
 

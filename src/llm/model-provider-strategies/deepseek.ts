@@ -13,6 +13,9 @@ export default class DeepSeekProviderStrategy implements ModelProviderStrategy {
             name: 'deepseek',
             baseURL: modelConfig.baseUrl || "https://api.deepseek.com/v1",
             apiKey: modelConfig.apiKey,
+            // DeepSeek exposes JSON mode, not the JSON Schema response format
+            // used by providers with native structured-output support.
+            supportsStructuredOutputs: false,
         }).chatModel(modelConfig.name)
     }
 

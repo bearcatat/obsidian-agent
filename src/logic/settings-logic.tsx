@@ -2,7 +2,7 @@ import { ModelConfig, ModelVariant, MCPServerConfig, ExaSearchConfig, BochaSearc
 import { settingsStore } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
 import AIToolManager from "@/tool/ToolManager";
-import { normalizeBuiltinTools } from "@/tool/BuiltinTools";
+import { normalizeBashPermissionConfig, normalizeBuiltinTools } from "@/tool/BuiltinTools";
 import { ToolSet } from "ai";
 import { setSettingsPlugin } from "./settings-persistence";
 import TelegramFeedbackRuntime from "@/tool/TelegramFeedback/TelegramFeedbackRuntime";
@@ -232,7 +232,9 @@ export class SettingsLogic {
             if (savedData) {
                 settingsStore.getState().setAllData(savedData);
                 const normalizedBuiltinTools = normalizeBuiltinTools(savedData.builtinTools);
-                if (JSON.stringify(savedData.builtinTools || []) !== JSON.stringify(normalizedBuiltinTools)) {
+                const normalizedBashPermissions = normalizeBashPermissionConfig(savedData.bashPermissions);
+                if (JSON.stringify(savedData.builtinTools || []) !== JSON.stringify(normalizedBuiltinTools)
+                    || JSON.stringify(savedData.bashPermissions) !== JSON.stringify(normalizedBashPermissions)) {
                     await this.saveSettings();
                 }
             }
@@ -384,7 +386,7 @@ export class SettingsLogic {
 
     async updateBashPermissions(config: BashPermissionConfig): Promise<void> {
         const state = settingsStore.getState();
-        state.setBashPermissions(config);
+        state.setBashPermissions(normalizeBashPermissionConfig(config));
         await this.saveSettings();
     }
 
