@@ -1,5 +1,5 @@
 import { Plugin, TFile, TAbstractFile } from 'obsidian';
-import { IObsidianAgentPlugin } from './types';
+import { IObsidianAgentPlugin, resolveModelVariant } from './types';
 import { UIManager } from './ui/ui-manager';
 import { settingsStore } from './state/settings-state-impl';
 import { SettingsLogic } from './logic/settings-logic';
@@ -350,13 +350,22 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 		if (modelConfigs.length > 0) {
 			// 优先使用设置的默认模型，如果没有设置则使用第一个模型
 			const defaultModel = settingsState.defaultAgentModel || modelConfigs[0];
-			AgentViewLogic.getInstance().setModel(defaultModel);
+			AgentViewLogic.getInstance().setModel(
+				defaultModel,
+				resolveModelVariant(defaultModel, settingsState.defaultAgentModelVariant),
+			);
 
 			// 设置标题模型（如果有设置的话）
 			if (settingsState.titleModel) {
-				AgentViewLogic.getInstance().setTitleModel(settingsState.titleModel);
+				AgentViewLogic.getInstance().setTitleModel(
+					settingsState.titleModel,
+					resolveModelVariant(settingsState.titleModel, settingsState.titleModelVariant),
+				);
 			} else {
-				AgentViewLogic.getInstance().setTitleModel(defaultModel);
+				AgentViewLogic.getInstance().setTitleModel(
+					defaultModel,
+					resolveModelVariant(defaultModel, settingsState.titleModelVariant),
+				);
 			}
 		}
 

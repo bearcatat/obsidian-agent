@@ -1,5 +1,5 @@
 import { Bot } from "gramio";
-import { ModelConfig, TelegramFeedbackConfig, TelegramFeedbackProgress, TelegramFeedbackReply, TelegramFeedbackRequest, TelegramFeedbackResult, createDefaultTelegramFeedbackConfig } from "@/types";
+import { ModelConfig, ModelVariant, TelegramFeedbackConfig, TelegramFeedbackProgress, TelegramFeedbackReply, TelegramFeedbackRequest, TelegramFeedbackResult, createDefaultTelegramFeedbackConfig, resolveModelVariant } from "@/types";
 import TelegramApiClient, { TelegramApiUpdate } from "./TelegramApiClient";
 import { settingsStore } from "@/state/settings-state-impl";
 import { persistSettingsStore } from "@/logic/settings-persistence";
@@ -16,6 +16,7 @@ interface BeginFeedbackRequestParams {
   toolCallId?: string;
   onUpdate?: (update: TelegramFeedbackProgress) => void | Promise<void>;
   model?: ModelConfig;
+  variant?: ModelVariant | null;
 }
 
 interface PendingFeedbackRequest {
@@ -26,6 +27,7 @@ interface PendingFeedbackRequest {
   reject: (error: Error) => void;
   notifyUpdate?: (update: TelegramFeedbackProgress) => void | Promise<void>;
   model?: ModelConfig;
+  variant?: ModelVariant | null;
 }
 
 interface FeedbackAwaiter {
@@ -172,6 +174,7 @@ export default class TelegramFeedbackRuntime {
         reject,
         notifyUpdate: params.onUpdate,
         model: params.model,
+        variant: params.variant,
       });
     });
 
@@ -434,7 +437,7 @@ export default class TelegramFeedbackRuntime {
     }
 
     const imageAnalysis = images.length > 0
-      ? await this.analyzeImages(images, combinedText, active.model)
+      ? await this.analyzeImages(images, combinedText, active.model, active.variant)
       : imageFileIds.length > 0
       ? "Image analysis skipped because Telegram images could not be downloaded."
       : undefined;
@@ -481,25 +484,42 @@ export default class TelegramFeedbackRuntime {
     active.reject(error);
   }
 
-  private async analyzeImages(images: string[], collectedText: string, requestModel?: ModelConfig): Promise<string | undefined> {
+  private async analyzeImages(
+    images: string[],
+    collectedText: string,
+    requestModel?: ModelConfig,
+    requestVariant?: ModelVariant | null,
+  ): Promise<string | undefined> {
     if (images.length === 0) {
       return undefined;
     }
 
+    const settings = settingsStore.getState();
+    const settingsModel = settings.imageModel ?? settings.defaultAgentModel ?? settings.models[0] ?? null;
+    const agentState = agentStore.getState();
+    const modelManager = AIModelManager.getInstance();
     const modelConfig =
-      settingsStore.getState().imageModel ??
+      settingsModel ??
       requestModel ??
-      agentStore.getState().model ??
-      AIModelManager.getInstance().agentModelConfig;
+      agentState.model ??
+      modelManager.agentModelConfig;
     if (!modelConfig) {
       return "Image analysis skipped because no agent model is configured.";
     }
+    const variant = settingsModel
+      ? resolveModelVariant(settingsModel, settings.imageModelVariant)
+      : requestModel
+        ? resolveModelVariant(requestModel, requestVariant)
+        : agentState.model
+          ? resolveModelVariant(agentState.model, agentState.variant)
+          : resolveModelVariant(modelConfig, modelManager.currentVariant);
 
     const subAgent = new SubAgent(
       this.config.imageAnalysisSubagentName,
       IMAGE_ANALYSIS_SYSTEM_PROMPT,
       "Analyze Telegram feedback images",
       modelConfig,
+      variant,
     );
 
     const summaryPrompt = collectedText.trim().length > 0

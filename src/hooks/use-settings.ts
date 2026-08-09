@@ -1,7 +1,7 @@
 import { useSettingsStore, settingsStore } from '../state/settings-state-impl';
 import { SettingsLogic } from '../logic/settings-logic';
 import { useShallow } from 'zustand/react/shallow';
-import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, MemorySettings } from '../types';
+import { ModelConfig, ModelVariant, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, MemorySettings } from '../types';
 
 export { useSettingsStore };
 
@@ -10,8 +10,11 @@ export function useSettingsState() {
     useShallow((state) => ({
       models: state.models,
       defaultAgentModel: state.defaultAgentModel,
+      defaultAgentModelVariant: state.defaultAgentModelVariant,
       titleModel: state.titleModel,
+      titleModelVariant: state.titleModelVariant,
       imageModel: state.imageModel,
+      imageModelVariant: state.imageModelVariant,
       mcpServers: state.mcpServers,
       builtinTools: state.builtinTools,
       exaSearchConfig: state.exaSearchConfig,
@@ -32,10 +35,12 @@ export function useSettingsLogic() {
     removeModel: async (modelId: string) => await settingsLogic.removeModel(modelId),
     reorderModels: async (newModels: ModelConfig[]) => await settingsLogic.reorderModels(newModels),
 
-    setDefaultAgentModel: async (model: ModelConfig | null) =>
-      await settingsLogic.setDefaultAgentModel(model),
-    setTitleModel: async (model: ModelConfig | null) => await settingsLogic.setTitleModel(model),
-    setImageModel: async (model: ModelConfig | null) => await settingsLogic.setImageModel(model),
+    setDefaultAgentModel: async (model: ModelConfig | null, variant: ModelVariant | null = null) =>
+      await settingsLogic.setDefaultAgentModel(model, variant),
+    setTitleModel: async (model: ModelConfig | null, variant: ModelVariant | null = null) =>
+      await settingsLogic.setTitleModel(model, variant),
+    setImageModel: async (model: ModelConfig | null, variant: ModelVariant | null = null) =>
+      await settingsLogic.setImageModel(model, variant),
     addOrUpdateMCPServer: async (server: MCPServerConfig, originalName?: string) =>
       await settingsLogic.addOrUpdateMCPServer(server, originalName),
     removeMCPServer: async (serverName: string) => await settingsLogic.removeMCPServer(serverName),

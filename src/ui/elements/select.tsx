@@ -3,6 +3,7 @@ import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
 import { cn } from "./utils";
+import { usePortalContainer } from "@/hooks/PortalContainerContext";
 
 const Select = SelectPrimitive.Root;
 
@@ -66,33 +67,37 @@ const SelectContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & {
     container?: HTMLElement | null;
   }
->(({ className, children, position = "popper", container, ...props }, ref) => (
-  <SelectPrimitive.Portal container={container}>
-    <SelectPrimitive.Content
-      ref={ref}
-      className={cn(
-        "tw-relative tw-z-modal tw-max-h-96 tw-min-w-32 tw-overflow-hidden tw-rounded-md tw-border tw-bg-primary tw-text-normal tw-shadow-md data-[state=open]:tw-animate-in data-[state=closed]:tw-animate-out data-[state=closed]:tw-fade-out-0 data-[state=open]:tw-fade-in-0 data-[state=closed]:tw-zoom-out-95 data-[state=open]:tw-zoom-in-95 data-[side=bottom]:tw-slide-in-from-top-2 data-[side=left]:tw-slide-in-from-right-2 data-[side=right]:tw-slide-in-from-left-2 data-[side=top]:tw-slide-in-from-bottom-2",
-        position === "popper" &&
-          "data-[side=bottom]:tw-translate-y-1 data-[side=left]:-tw-translate-x-1 data-[side=right]:tw-translate-x-1 data-[side=top]:-tw-translate-y-1",
-        className
-      )}
-      position={position}
-      {...props}
-    >
-      <SelectScrollUpButton />
-      <SelectPrimitive.Viewport
+>(({ className, children, position = "popper", container, ...props }, ref) => {
+  const portalContainer = usePortalContainer();
+
+  return (
+    <SelectPrimitive.Portal container={container ?? portalContainer ?? undefined}>
+      <SelectPrimitive.Content
+        ref={ref}
         className={cn(
-          "tw-p-1",
+          "tw-relative tw-z-modal tw-max-h-96 tw-min-w-32 tw-overflow-hidden tw-rounded-md tw-border tw-bg-primary tw-text-normal tw-shadow-md data-[state=open]:tw-animate-in data-[state=closed]:tw-animate-out data-[state=closed]:tw-fade-out-0 data-[state=open]:tw-fade-in-0 data-[state=closed]:tw-zoom-out-95 data-[state=open]:tw-zoom-in-95 data-[side=bottom]:tw-slide-in-from-top-2 data-[side=left]:tw-slide-in-from-right-2 data-[side=right]:tw-slide-in-from-left-2 data-[side=top]:tw-slide-in-from-bottom-2",
           position === "popper" &&
-            "tw-h-[var(--radix-select-trigger-height)] tw-w-full tw-min-w-[var(--radix-select-trigger-width)]"
+            "data-[side=bottom]:tw-translate-y-1 data-[side=left]:-tw-translate-x-1 data-[side=right]:tw-translate-x-1 data-[side=top]:-tw-translate-y-1",
+          className
         )}
+        position={position}
+        {...props}
       >
-        {children}
-      </SelectPrimitive.Viewport>
-      <SelectScrollDownButton />
-    </SelectPrimitive.Content>
-  </SelectPrimitive.Portal>
-));
+        <SelectScrollUpButton />
+        <SelectPrimitive.Viewport
+          className={cn(
+            "tw-p-1",
+            position === "popper" &&
+              "tw-h-[var(--radix-select-trigger-height)] tw-w-full tw-min-w-[var(--radix-select-trigger-width)]"
+          )}
+        >
+          {children}
+        </SelectPrimitive.Viewport>
+        <SelectScrollDownButton />
+      </SelectPrimitive.Content>
+    </SelectPrimitive.Portal>
+  );
+});
 SelectContent.displayName = SelectPrimitive.Content.displayName;
 
 const SelectLabel = React.forwardRef<

@@ -3,6 +3,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { cn } from "./utils";
+import { usePortalContainer } from "@/hooks/PortalContainerContext";
 
 const Dialog = DialogPrimitive.Root;
 
@@ -33,25 +34,29 @@ const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
     container?: HTMLElement | null;
   }
->(({ className, children, container, ...props }, ref) => (
-  <DialogPortal container={container}>
-    <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "tw-fixed tw-left-1/2 tw-top-1/2 tw-z-modal tw-grid tw-w-full tw-max-w-lg -tw-translate-x-1/2 -tw-translate-y-1/2 tw-gap-1 tw-border tw-bg-primary tw-p-6 tw-shadow-lg tw-duration-200 data-[state=open]:tw-animate-in data-[state=closed]:tw-animate-out data-[state=closed]:tw-fade-out-0 data-[state=open]:tw-fade-in-0 data-[state=closed]:tw-zoom-out-95 data-[state=open]:tw-zoom-in-95 data-[state=closed]:tw-slide-out-to-left-1/2 data-[state=closed]:tw-slide-out-to-top-[48%] data-[state=open]:tw-slide-in-from-left-1/2 data-[state=open]:tw-slide-in-from-top-[48%] sm:tw-rounded-lg",
-        className
-      )}
-      {...props}
-    >
-      {children}
-      <DialogPrimitive.Close className="clickable-icon tw-absolute tw-right-4 tw-top-4 tw-border-none tw-bg-transparent tw-text-faint tw-outline-none hover:tw-bg-transparent hover:tw-bg-opacity-100 hover:tw-text-normal focus-visible:tw-text-normal focus-visible:tw-outline-none focus-visible:tw-ring-0">
-        <X className="tw-size-4" />
-        <span className="tw-sr-only">Close</span>
-      </DialogPrimitive.Close>
-    </DialogPrimitive.Content>
-  </DialogPortal>
-));
+>(({ className, children, container, ...props }, ref) => {
+  const portalContainer = usePortalContainer();
+
+  return (
+    <DialogPortal container={container ?? portalContainer ?? undefined}>
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          "tw-fixed tw-left-1/2 tw-top-1/2 tw-z-modal tw-grid tw-w-full tw-max-w-lg -tw-translate-x-1/2 -tw-translate-y-1/2 tw-gap-1 tw-border tw-bg-primary tw-p-6 tw-shadow-lg tw-duration-200 data-[state=open]:tw-animate-in data-[state=closed]:tw-animate-out data-[state=closed]:tw-fade-out-0 data-[state=open]:tw-fade-in-0 data-[state=closed]:tw-zoom-out-95 data-[state=open]:tw-zoom-in-95 data-[state=closed]:tw-slide-out-to-left-1/2 data-[state=closed]:tw-slide-out-to-top-[48%] data-[state=open]:tw-slide-in-from-left-1/2 data-[state=open]:tw-slide-in-from-top-[48%] sm:tw-rounded-lg",
+          className
+        )}
+        {...props}
+      >
+        {children}
+        <DialogPrimitive.Close className="clickable-icon tw-absolute tw-right-4 tw-top-4 tw-border-none tw-bg-transparent tw-text-faint tw-outline-none hover:tw-bg-transparent hover:tw-bg-opacity-100 hover:tw-text-normal focus-visible:tw-text-normal focus-visible:tw-outline-none focus-visible:tw-ring-0">
+          <X className="tw-size-4" />
+          <span className="tw-sr-only">Close</span>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  );
+});
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (

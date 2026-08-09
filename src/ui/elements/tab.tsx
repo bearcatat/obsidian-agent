@@ -91,7 +91,7 @@ export const TabContent: React.FC<TabContentProps> = ({ id, children, isSelected
       id={`tabpanel-${id}`}
       aria-labelledby={`tab-${id}`}
       className={cn(
-        "tw-pt-4",
+        "tw-min-w-0 tw-max-w-full tw-pt-4",
         "tw-transition-all tw-duration-200 tw-ease-in-out",
         isSelected ? "tw-translate-y-0 tw-opacity-100" : "tw-translate-y-2 tw-opacity-0"
       )}

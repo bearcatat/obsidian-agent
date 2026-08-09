@@ -43,8 +43,8 @@ const SettingsContent: React.FC = () => {
   const { selectedTab, setSelectedTab } = useTab();
 
   return (
-    <div className="tw-flex tw-flex-col">
-      <div className="tw-inline-flex tw-rounded-lg">
+    <div className="tw-flex tw-min-w-0 tw-max-w-full tw-flex-col">
+      <div className="tw-inline-flex tw-max-w-full tw-overflow-x-auto tw-rounded-lg">
         {tabs.map((tab, index) => (
           <TabItem
             key={tab.id}
@@ -58,7 +58,7 @@ const SettingsContent: React.FC = () => {
       </div>
       <div className="tw-w-full tw-border tw-border-solid" />
 
-      <div>
+      <div className="tw-min-w-0 tw-max-w-full">
         {TAB_IDS.map((id) => {
           const Component = components[id];
           return (
@@ -77,7 +77,7 @@ interface SettingsProps {
 
 export const Settings: React.FC<SettingsProps> = () => {
   return (
-    <div>
+    <div className="tw-min-w-0 tw-max-w-full tw-overflow-x-hidden">
       <div className="tw-flex tw-flex-col tw-gap-2">
         <h1 className="tw-flex tw-flex-col tw-gap-2 sm:tw-flex-row sm:tw-items-center sm:tw-justify-between">
           <div className="tw-flex tw-items-center tw-gap-2">

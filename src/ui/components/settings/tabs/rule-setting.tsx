@@ -22,19 +22,19 @@ export const RuleSetting: React.FC = () => {
   };
 
   return (
-    <div className="tw-space-y-6">
-      <div className="tw-text-sm tw-text-muted-foreground">
-        New rules are stored as markdown files in <code className="tw-px-1 tw-py-0.5 tw-bg-muted tw-rounded">obsidian-agent/rules/{'{name}'}.md</code>. Legacy folders like <code className="tw-px-1 tw-py-0.5 tw-bg-muted tw-rounded">obsidian-agent/rules/{'{name}'}/RULE.md</code> are still supported.
+    <div className="tw-min-w-0 tw-max-w-full tw-space-y-6 tw-overflow-hidden">
+      <div className="tw-min-w-0 tw-break-words tw-text-sm tw-text-muted-foreground">
+        New rules are stored as markdown files in <code className="tw-whitespace-normal tw-break-all tw-rounded tw-bg-muted tw-px-1 tw-py-0.5">obsidian-agent/rules/{'{name}'}.md</code>. Legacy folders like <code className="tw-whitespace-normal tw-break-all tw-rounded tw-bg-muted tw-px-1 tw-py-0.5">obsidian-agent/rules/{'{name}'}/RULE.md</code> are still supported.
       </div>
 
-      <section>
+      <section className="tw-min-w-0 tw-max-w-full">
         <div className="tw-flex tw-items-center tw-gap-2 tw-mb-3">
           <ShieldCheck className="tw-size-5" />
           <span className="tw-text-lg tw-font-bold">Rules</span>
         </div>
 
         {rules.length === 0 ? (
-          <div className="tw-border tw-rounded-lg tw-p-8 tw-text-center tw-text-muted-foreground">
+          <div className="tw-min-w-0 tw-max-w-full tw-break-words tw-rounded-lg tw-border tw-p-8 tw-text-center tw-text-muted-foreground">
             <ShieldCheck className="tw-size-12 tw-mx-auto tw-mb-4 tw-opacity-50" />
             <p className="tw-mb-2">No rules found</p>
             <p className="tw-text-sm">
@@ -42,8 +42,8 @@ export const RuleSetting: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="tw-border tw-rounded-lg tw-overflow-hidden">
-            <Table>
+          <div className="tw-min-w-0 tw-max-w-full tw-overflow-hidden tw-rounded-lg tw-border">
+            <Table className="tw-table-fixed">
               <TableHeader>
                 <TableRow>
                   <TableHead className="tw-w-20">Status</TableHead>
@@ -61,15 +61,15 @@ export const RuleSetting: React.FC = () => {
                         onCheckedChange={(enabled) => handleToggleRule(rule, enabled)}
                       />
                     </TableCell>
-                    <TableCell>
-                      <code className="tw-px-1 tw-py-0.5 tw-rounded tw-bg-orange-500/20 tw-text-orange-600 dark:tw-text-orange-400">
+                    <TableCell className="tw-break-all">
+                      <code className="tw-whitespace-normal tw-break-all tw-rounded tw-bg-orange-500/20 tw-px-1 tw-py-0.5 tw-text-orange-600 dark:tw-text-orange-400">
                         {rule.name}
                       </code>
                     </TableCell>
                     <TableCell className="tw-w-32">
                       <span className="tw-text-xs tw-text-muted-foreground">{scopeLabel(rule.scope)}</span>
                     </TableCell>
-                    <TableCell className="tw-text-muted-foreground">
+                    <TableCell className="tw-break-words tw-text-muted-foreground">
                       {rule.description}
                     </TableCell>
                   </TableRow>
@@ -80,7 +80,7 @@ export const RuleSetting: React.FC = () => {
         )}
       </section>
 
-      <div className="tw-text-sm tw-text-muted-foreground tw-space-y-2">
+      <div className="tw-min-w-0 tw-max-w-full tw-space-y-2 tw-break-words tw-text-sm tw-text-muted-foreground">
         <p className="tw-font-medium">About Rules:</p>
         <ul className="tw-list-disc tw-list-inside tw-space-y-1 tw-text-xs">
           <li><strong>Always active:</strong> Enabled rules are automatically injected into agent system prompts — no per-session activation needed</li>
@@ -91,7 +91,7 @@ export const RuleSetting: React.FC = () => {
         </ul>
 
         <p className="tw-font-medium tw-mt-4">Example rule file:</p>
-        <pre className="tw-bg-muted tw-p-3 tw-rounded-lg tw-overflow-x-auto tw-text-xs">
+        <pre className="tw-max-w-full tw-whitespace-pre-wrap tw-break-words tw-rounded-lg tw-bg-muted tw-p-3 tw-text-xs">
 {`---
 name: no-delete-without-confirm
 description: Never delete files without explicit user confirmation
@@ -101,7 +101,7 @@ enabled: true
 
 Never delete, remove, or permanently destroy any file, note, or folder without first asking the user for explicit confirmation. Always describe what will be deleted and wait for the user to confirm before proceeding.`}
         </pre>
-        <p className="tw-text-xs">Suggested path: <code className="tw-px-1 tw-py-0.5 tw-bg-muted tw-rounded">obsidian-agent/rules/no-delete-without-confirm.md</code></p>
+        <p className="tw-text-xs">Suggested path: <code className="tw-whitespace-normal tw-break-all tw-rounded tw-bg-muted tw-px-1 tw-py-0.5">obsidian-agent/rules/no-delete-without-confirm.md</code></p>
       </div>
     </div>
   );

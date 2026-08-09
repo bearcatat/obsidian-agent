@@ -3,6 +3,7 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { Check, ChevronRight, Circle } from "lucide-react";
 
 import { cn } from "./utils";
+import { usePortalContainer } from "@/hooks/PortalContainerContext";
 
 const DropdownMenu = DropdownMenuPrimitive.Root;
 
@@ -57,20 +58,24 @@ const DropdownMenuContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content> & {
     container?: HTMLElement | null;
   }
->(({ className, sideOffset = 4, container, ...props }, ref) => (
-  <DropdownMenuPrimitive.Portal container={container ?? activeDocument.body}>
-    <DropdownMenuPrimitive.Content
-      ref={ref}
-      sideOffset={sideOffset}
-      className={cn(
-        "tw-z-[50] tw-min-w-32 tw-overflow-hidden tw-rounded-md tw-border tw-border-solid tw-border-border tw-bg-primary tw-p-1 tw-text-normal tw-shadow-md",
-        "data-[state=open]:tw-animate-in data-[state=closed]:tw-animate-out data-[state=closed]:tw-fade-out-0 data-[state=open]:tw-fade-in-0 data-[state=closed]:tw-zoom-out-95 data-[state=open]:tw-zoom-in-95 data-[side=bottom]:tw-slide-in-from-top-2 data-[side=left]:tw-slide-in-from-right-2 data-[side=right]:tw-slide-in-from-left-2 data-[side=top]:tw-slide-in-from-bottom-2",
-        className
-      )}
-      {...props}
-    />
-  </DropdownMenuPrimitive.Portal>
-));
+>(({ className, sideOffset = 4, container, ...props }, ref) => {
+  const portalContainer = usePortalContainer();
+
+  return (
+    <DropdownMenuPrimitive.Portal container={container ?? portalContainer ?? activeDocument.body}>
+      <DropdownMenuPrimitive.Content
+        ref={ref}
+        sideOffset={sideOffset}
+        className={cn(
+          "tw-z-[50] tw-min-w-32 tw-overflow-hidden tw-rounded-md tw-border tw-border-solid tw-border-border tw-bg-primary tw-p-1 tw-text-normal tw-shadow-md",
+          "data-[state=open]:tw-animate-in data-[state=closed]:tw-animate-out data-[state=closed]:tw-fade-out-0 data-[state=open]:tw-fade-in-0 data-[state=closed]:tw-zoom-out-95 data-[state=open]:tw-zoom-in-95 data-[side=bottom]:tw-slide-in-from-top-2 data-[side=left]:tw-slide-in-from-right-2 data-[side=right]:tw-slide-in-from-left-2 data-[side=top]:tw-slide-in-from-bottom-2",
+          className
+        )}
+        {...props}
+      />
+    </DropdownMenuPrimitive.Portal>
+  );
+});
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
 
 const DropdownMenuItem = React.forwardRef<

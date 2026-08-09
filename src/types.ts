@@ -153,6 +153,17 @@ export function getDefaultVariant(modelConfig: ModelConfig): ModelVariant | null
     return nonOffVariants[idx].value;
 }
 
+export function resolveModelVariant(
+  modelConfig: ModelConfig,
+  variant: ModelVariant | null | undefined,
+): ModelVariant | null {
+  const variants = getAvailableVariants(modelConfig);
+  if (!variants) return null;
+  return variant && variants.some((option) => option.value === variant)
+    ? variant
+    : getDefaultVariant(modelConfig);
+}
+
 export interface ModelProviderStrategy {
   readonly provider: ModelProviders;
   buildAgentConfig(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings;

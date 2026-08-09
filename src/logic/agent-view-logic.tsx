@@ -147,8 +147,9 @@ export class AgentViewLogic {
     AIModelManager.getInstance().setAgent(model, nextVariant);
   }
 
-  setTitleModel(model: ModelConfig): void {
-    AIModelManager.getInstance().setTitle(model);
+  setTitleModel(model: ModelConfig, variant?: ModelVariant | null): void {
+    const nextVariant = variant === undefined ? getDefaultVariant(model) : variant;
+    AIModelManager.getInstance().setTitle(model, nextVariant);
   }
 
   activateSkill(name: string, conversationId?: string): boolean {

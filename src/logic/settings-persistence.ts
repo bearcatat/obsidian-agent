@@ -19,8 +19,11 @@ export async function persistSettingsStore(): Promise<void> {
   const stateData = {
     models: state.models,
     defaultAgentModel: state.defaultAgentModel,
+    defaultAgentModelVariant: state.defaultAgentModelVariant,
     titleModel: state.titleModel,
+    titleModelVariant: state.titleModelVariant,
     imageModel: state.imageModel,
+    imageModelVariant: state.imageModelVariant,
     mcpServers: state.mcpServers,
     builtinTools: normalizeBuiltinTools(state.builtinTools),
     exaSearchConfig: state.exaSearchConfig,

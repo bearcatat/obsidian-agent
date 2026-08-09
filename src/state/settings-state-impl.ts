@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { ModelConfig, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings, normalizeMemoryIdleHours } from '../types';
+import { ModelConfig, ModelVariant, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings, normalizeMemoryIdleHours, resolveModelVariant } from '../types';
 import { getDefaultBuiltinTools, normalizeBuiltinTools } from '../tool/BuiltinTools';
 import AIModelManager from '../llm/ModelManager';
 import { SettingsStateData } from './settings-state';
@@ -9,9 +9,9 @@ interface SettingsStore extends SettingsStateData {
   addOrUpdateModel: (model: ModelConfig, originalId?: string) => void;
   removeModel: (modelId: string) => void;
   reorderModels: (newModels: ModelConfig[]) => void;
-  setDefaultAgentModel: (model: ModelConfig | null) => void;
-  setTitleModel: (model: ModelConfig | null) => void;
-  setImageModel: (model: ModelConfig | null) => void;
+  setDefaultAgentModel: (model: ModelConfig | null, variant: ModelVariant | null) => void;
+  setTitleModel: (model: ModelConfig | null, variant: ModelVariant | null) => void;
+  setImageModel: (model: ModelConfig | null, variant: ModelVariant | null) => void;
   addOrUpdateMCPServer: (server: MCPServerConfig, originalName?: string) => void;
   removeMCPServer: (serverName: string) => void;
   reorderMCPServers: (newServers: MCPServerConfig[]) => void;
@@ -30,14 +30,17 @@ interface SettingsStore extends SettingsStateData {
   setBashPermissions: (config: BashPermissionConfig) => void;
   setMemorySettings: (config: MemorySettings) => void;
 
-  setAllData: (data: SettingsStateData) => void;
+  setAllData: (data: Partial<SettingsStateData>) => void;
 }
 
 const initialState: SettingsStateData = {
   models: [],
   defaultAgentModel: null,
+  defaultAgentModelVariant: null,
   titleModel: null,
+  titleModelVariant: null,
   imageModel: null,
+  imageModelVariant: null,
   mcpServers: [],
   builtinTools: getDefaultBuiltinTools(),
   exaSearchConfig: {
@@ -97,18 +100,25 @@ export const useSettingsStore = create<SettingsStore>()(
         // Check if this model is the default agent model
         if (state.defaultAgentModel?.id === targetId) {
           state.defaultAgentModel = model;
-          modelManager.setAgent(model);
+          state.defaultAgentModelVariant = resolveModelVariant(model, state.defaultAgentModelVariant);
+          modelManager.setAgent(model, state.defaultAgentModelVariant);
+          if (!state.titleModel) {
+            state.titleModelVariant = resolveModelVariant(model, state.titleModelVariant);
+            modelManager.setTitle(model, state.titleModelVariant);
+          }
         }
 
         // Check if this model is the title model
         if (state.titleModel?.id === targetId) {
           state.titleModel = model;
-          modelManager.setTitle(model);
+          state.titleModelVariant = resolveModelVariant(model, state.titleModelVariant);
+          modelManager.setTitle(model, state.titleModelVariant);
         }
 
         // Check if this model is the image model
         if (state.imageModel?.id === targetId) {
           state.imageModel = model;
+          state.imageModelVariant = resolveModelVariant(model, state.imageModelVariant);
         }
       }),
 
@@ -119,12 +129,15 @@ export const useSettingsStore = create<SettingsStore>()(
         // 如果删除的模型是默认模型或标题模型，则清空对应设置
         if (state.defaultAgentModel?.id === modelId) {
           state.defaultAgentModel = null;
+          state.defaultAgentModelVariant = null;
         }
         if (state.titleModel?.id === modelId) {
           state.titleModel = null;
+          state.titleModelVariant = null;
         }
         if (state.imageModel?.id === modelId) {
           state.imageModel = null;
+          state.imageModelVariant = null;
         }
       }),
 
@@ -133,19 +146,22 @@ export const useSettingsStore = create<SettingsStore>()(
         state.models = newModels;
       }),
 
-    setDefaultAgentModel: (model: ModelConfig | null) =>
+    setDefaultAgentModel: (model: ModelConfig | null, variant: ModelVariant | null) =>
       set((state) => {
         state.defaultAgentModel = model;
+        state.defaultAgentModelVariant = variant;
       }),
 
-    setTitleModel: (model: ModelConfig | null) =>
+    setTitleModel: (model: ModelConfig | null, variant: ModelVariant | null) =>
       set((state) => {
         state.titleModel = model;
+        state.titleModelVariant = variant;
       }),
 
-    setImageModel: (model: ModelConfig | null) =>
+    setImageModel: (model: ModelConfig | null, variant: ModelVariant | null) =>
       set((state) => {
         state.imageModel = model;
+        state.imageModelVariant = variant;
       }),
     addOrUpdateMCPServer: (server: MCPServerConfig, originalName?: string) =>
       set((state) => {
@@ -224,8 +240,11 @@ export const useSettingsStore = create<SettingsStore>()(
       set((state) => {
         state.models = data.models || [];
         state.defaultAgentModel = data.defaultAgentModel || null;
+        state.defaultAgentModelVariant = data.defaultAgentModelVariant ?? null;
         state.titleModel = data.titleModel || null;
+        state.titleModelVariant = data.titleModelVariant ?? null;
         state.imageModel = data.imageModel || null;
+        state.imageModelVariant = data.imageModelVariant ?? null;
         state.mcpServers = data.mcpServers || [];
         state.builtinTools = normalizeBuiltinTools(data.builtinTools);
         state.exaSearchConfig = data.exaSearchConfig || {

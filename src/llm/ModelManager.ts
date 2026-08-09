@@ -14,6 +14,7 @@ export default class AIModelManager {
     public agentModelConfig: ModelConfig | null = null;
     public currentVariant: ModelVariant | null = null;
     public titleModelConfig: ModelConfig | null = null;
+    public titleModelVariant: ModelVariant | null = null;
     private providerRegistry = new ModelProviderRegistry([
         new DeepSeekProviderStrategy(),
         new AnthropicProviderStrategy(),
@@ -43,8 +44,9 @@ export default class AIModelManager {
         this.currentVariant = variant
     }
 
-    setTitle(modelConfig: ModelConfig) {
+    setTitle(modelConfig: ModelConfig, variant?: ModelVariant | null) {
         this.titleModelConfig = modelConfig
+        this.titleModelVariant = variant ?? null
     }
 
     buildAgentConfig(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings {
@@ -64,7 +66,7 @@ export default class AIModelManager {
             throw new Error("title model not configured")
         }
 
-        return this.buildAgentConfig(this.titleModelConfig)
+        return this.buildAgentConfig(this.titleModelConfig, this.titleModelVariant ?? undefined)
     }
 
     normalizeMessages(

@@ -960,3 +960,26 @@ If your plugin does not need CSS, delete this file.
   background-color: var(--background-modifier-hover);
   color: var(--text-normal);
 }
+
+.obsidian-agent-settings-host {
+  user-select: text;
+}
+
+.setting-item.obsidian-agent-settings-host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.obsidian-agent-settings-react-root {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}

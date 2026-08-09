@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ModelTable } from "./model-table";
 import { ModelConfig } from "@/types";
 import { useSettingsState, useSettingsLogic } from "@/hooks/use-settings";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/elements/select";
+import { ModelVariantSelect } from "../model-variant-select";
 
 export const ModelSetting: React.FC = () => {
   const _initialModel = {
@@ -21,11 +21,19 @@ export const ModelSetting: React.FC = () => {
   const [initialModel, setInitialModel] = useState<ModelConfig>(_initialModel);
   const [isUpdate, setIsUpdate] = useState(false);
   
-  const { models, defaultAgentModel, titleModel, imageModel } = useSettingsState();
+  const {
+    models,
+    defaultAgentModel,
+    defaultAgentModelVariant,
+    titleModel,
+    titleModelVariant,
+    imageModel,
+    imageModelVariant,
+  } = useSettingsState();
   const { setDefaultAgentModel, setTitleModel, setImageModel } = useSettingsLogic();
   
   return (
-    <div className="tw-space-y-6">
+    <div className="tw-min-w-0 tw-max-w-full tw-space-y-6">
       <section>
         <div className="tw-mb-3 tw-text-xl tw-font-bold">Chat Models</div>
         <ModelTable
@@ -51,74 +59,42 @@ export const ModelSetting: React.FC = () => {
       <section>
         <div className="tw-mb-3 tw-text-xl tw-font-bold">Model Settings</div>
         <div className="tw-space-y-4">
-          <div className="tw-flex tw-items-center tw-gap-4">
-            <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-w-64">Default Agent Model</label>
-            <Select 
-              value={defaultAgentModel?.id || "none"} 
-              onValueChange={(value) => {
-                const model = value === "none" ? null : models.find(m => m.id === value) || null;
-                setDefaultAgentModel(model);
-              }}
-            >
-              <SelectTrigger className="tw-w-48">
-                <SelectValue placeholder="Select default agent model" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None (use first available)</SelectItem>
-                {models.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    {model.id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="tw-flex tw-items-center tw-gap-4">
-            <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-w-64">Title Generation Model</label>
-            <Select 
-              value={titleModel?.id || "default"} 
-              onValueChange={(value) => {
-                const model = value === "default" ? null : models.find(m => m.id === value) || null;
-                setTitleModel(model);
-              }}
-            >
-              <SelectTrigger className="tw-w-48">
-                <SelectValue placeholder="Select title generation model" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">Use default agent model</SelectItem>
-                {models.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    {model.id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="tw-flex tw-items-center tw-gap-4">
-            <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-w-64">Image Analysis Model</label>
-            <Select
-              value={imageModel?.id || "default"}
-              onValueChange={(value) => {
-                const model = value === "default" ? null : models.find(m => m.id === value) || null;
-                setImageModel(model);
-              }}
-            >
-              <SelectTrigger className="tw-w-48">
-                <SelectValue placeholder="Select image analysis model" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">Use default agent model</SelectItem>
-                {models.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    {model.id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <ModelVariantSelect
+            label="Default Agent Model"
+            models={models}
+            selectedModelId={defaultAgentModel?.id ?? null}
+            variant={defaultAgentModelVariant}
+            fallbackModel={models[0] ?? null}
+            fallbackLabel="First available model"
+            onChange={(modelId, variant) => setDefaultAgentModel(
+              modelId ? models.find((model) => model.id === modelId) ?? null : null,
+              variant,
+            )}
+          />
+          <ModelVariantSelect
+            label="Title Generation Model"
+            models={models}
+            selectedModelId={titleModel?.id ?? null}
+            variant={titleModelVariant}
+            fallbackModel={defaultAgentModel ?? models[0] ?? null}
+            fallbackLabel="Default agent model"
+            onChange={(modelId, variant) => setTitleModel(
+              modelId ? models.find((model) => model.id === modelId) ?? null : null,
+              variant,
+            )}
+          />
+          <ModelVariantSelect
+            label="Image Analysis Model"
+            models={models}
+            selectedModelId={imageModel?.id ?? null}
+            variant={imageModelVariant}
+            fallbackModel={defaultAgentModel ?? models[0] ?? null}
+            fallbackLabel="Default agent model"
+            onChange={(modelId, variant) => setImageModel(
+              modelId ? models.find((model) => model.id === modelId) ?? null : null,
+              variant,
+            )}
+          />
         </div>
       </section>
     </div>

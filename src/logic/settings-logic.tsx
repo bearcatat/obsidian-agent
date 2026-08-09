@@ -1,4 +1,4 @@
-import { ModelConfig, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, MemorySettings, normalizeMemoryIdleHours } from "../types";
+import { ModelConfig, ModelVariant, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, MemorySettings, normalizeMemoryIdleHours, resolveModelVariant } from "../types";
 import { settingsStore } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
 import AIToolManager from "@/tool/ToolManager";
@@ -7,6 +7,7 @@ import { ToolSet } from "ai";
 import { setSettingsPlugin } from "./settings-persistence";
 import TelegramFeedbackRuntime from "@/tool/TelegramFeedback/TelegramFeedbackRuntime";
 import MemoryJobQueue from "@/logic/memory-job-queue";
+import { AgentViewLogic } from "@/logic/agent-view-logic";
 
 export class SettingsLogic {
     private static instance: SettingsLogic;
@@ -89,7 +90,7 @@ export class SettingsLogic {
         await this.saveSettings();
     }
 
-    async setDefaultAgentModel(model: ModelConfig | null): Promise<void> {
+    async setDefaultAgentModel(model: ModelConfig | null, variant: ModelVariant | null = null): Promise<void> {
         const state = settingsStore.getState();
         // 如果设置了模型，验证模型是否存在
         if (model) {
@@ -99,11 +100,19 @@ export class SettingsLogic {
             }
         }
 
-        state.setDefaultAgentModel(model);
+        const effectiveModel = model ?? state.models[0] ?? null;
+        const nextVariant = effectiveModel ? resolveModelVariant(effectiveModel, variant) : null;
+        state.setDefaultAgentModel(model, nextVariant);
+        if (!state.titleModel && effectiveModel) {
+            AgentViewLogic.getInstance().setTitleModel(
+                effectiveModel,
+                resolveModelVariant(effectiveModel, state.titleModelVariant),
+            );
+        }
         await this.saveSettings();
     }
 
-    async setTitleModel(model: ModelConfig | null): Promise<void> {
+    async setTitleModel(model: ModelConfig | null, variant: ModelVariant | null = null): Promise<void> {
         const state = settingsStore.getState();
         // 如果设置了模型，验证模型是否存在
         if (model) {
@@ -113,11 +122,16 @@ export class SettingsLogic {
             }
         }
 
-        state.setTitleModel(model);
+        const effectiveModel = model ?? state.defaultAgentModel ?? state.models[0] ?? null;
+        const nextVariant = effectiveModel ? resolveModelVariant(effectiveModel, variant) : null;
+        state.setTitleModel(model, nextVariant);
+        if (effectiveModel) {
+            AgentViewLogic.getInstance().setTitleModel(effectiveModel, nextVariant);
+        }
         await this.saveSettings();
     }
 
-    async setImageModel(model: ModelConfig | null): Promise<void> {
+    async setImageModel(model: ModelConfig | null, variant: ModelVariant | null = null): Promise<void> {
         const state = settingsStore.getState();
         if (model) {
             const existingModel = state.models.find((m: ModelConfig) => m.id === model.id);
@@ -126,7 +140,8 @@ export class SettingsLogic {
             }
         }
 
-        state.setImageModel(model);
+        const effectiveModel = model ?? state.defaultAgentModel ?? state.models[0] ?? null;
+        state.setImageModel(model, effectiveModel ? resolveModelVariant(effectiveModel, variant) : null);
         await this.saveSettings();
     }
 
@@ -238,8 +253,11 @@ export class SettingsLogic {
             const stateData = {
                 models: state.models,
                 defaultAgentModel: state.defaultAgentModel,
+                defaultAgentModelVariant: state.defaultAgentModelVariant,
                 titleModel: state.titleModel,
+                titleModelVariant: state.titleModelVariant,
                 imageModel: state.imageModel,
+                imageModelVariant: state.imageModelVariant,
                 mcpServers: state.mcpServers,
                 builtinTools: normalizeBuiltinTools(state.builtinTools),
                 exaSearchConfig: state.exaSearchConfig,

@@ -44,6 +44,7 @@ export const TelegramFeedbackTool = tool({
         toolCallId,
         onUpdate: updateProgress,
         model: context.model,
+        variant: context.variant,
       });
 
       updateProgress({ ...progress, requestId: awaiter.requestId });

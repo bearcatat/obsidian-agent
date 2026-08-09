@@ -74,7 +74,7 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
   return (
     <Dialog open={open} onOpenChange={(open) => !open && close()}>
       <DialogContent
-        className="sm:tw-max-w-[425px]"
+        className="tw-max-h-[calc(100vh-2rem)] tw-grid-rows-[auto_minmax(0,1fr)_auto] tw-overflow-hidden sm:tw-max-w-[425px]"
         container={modalContainer}
         ref={(el: HTMLDivElement | null) => setDialogElement(el)}
       >
@@ -82,8 +82,10 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
           <DialogTitle>{isUpdate ? "Update Model" : "Add Model"}</DialogTitle>
           <DialogDescription>{isUpdate ? "Update existing model in your collection." : "Add a new model to your collection."}</DialogDescription>
         </DialogHeader>
-        <CommonModelConfig model={model} setModel={setModel} dialogElement={dialogElement}></CommonModelConfig>
-        <ProviderModelConfig model={model} debouncedSetModel={debouncedSetModel} setModel={setModel}></ProviderModelConfig>
+        <div className="tw-min-h-0 tw-overflow-y-auto tw-pr-2">
+          <CommonModelConfig model={model} setModel={setModel} dialogElement={dialogElement}></CommonModelConfig>
+          <ProviderModelConfig model={model} debouncedSetModel={debouncedSetModel} setModel={setModel}></ProviderModelConfig>
+        </div>
 
         <div className="tw-flex tw-items-center tw-justify-end tw-gap-4">
           <div className="tw-flex tw-gap-2">

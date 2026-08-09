@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from "react";
+import React, { createContext, useContext, useState } from "react";
 
 interface TabContextType {
   selectedTab: string;
@@ -8,18 +8,13 @@ interface TabContextType {
 
 const TabContext = createContext<TabContextType | undefined>(undefined);
 
-export const TabProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [selectedTab, setSelectedTab] = useState("model");
-  const [modalContainer, setModalContainer] = useState<HTMLElement | null>(null);
-  const hasInitialized = useRef(false);
+interface TabProviderProps {
+  children: React.ReactNode;
+  modalContainer?: HTMLElement | null;
+}
 
-  useEffect(() => {
-    if (!hasInitialized.current) {
-      const modal = document.querySelector(".modal-container") as HTMLElement;
-      setModalContainer(modal);
-      hasInitialized.current = true;
-    }
-  }, []);
+export const TabProvider: React.FC<TabProviderProps> = ({ children, modalContainer = null }) => {
+  const [selectedTab, setSelectedTab] = useState("model");
 
   return (
     <TabContext.Provider value={{ selectedTab, setSelectedTab, modalContainer }}>

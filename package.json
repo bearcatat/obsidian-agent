@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-agent",
-	"version": "0.22.0",
+	"version": "0.23.0",
 	"description": "AI agent plugin for Obsidian",
 	"main": "main.js",
 	"scripts": {
@@ -30,7 +30,7 @@
 		"chokidar": "^3.6.0",
 		"esbuild": "^0.25.9",
 		"npm-run-all": "^4.1.5",
-		"obsidian": "latest",
+		"obsidian": "^1.13.0",
 		"postcss": "^8.5.6",
 		"process": "^0.11.10",
 		"stream-browserify": "^3.0.0",
