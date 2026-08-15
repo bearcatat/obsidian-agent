@@ -12,6 +12,7 @@ interface SettingsStore extends SettingsStateData {
   setDefaultAgentModel: (model: ModelConfig | null, variant: ModelVariant | null) => void;
   setTitleModel: (model: ModelConfig | null, variant: ModelVariant | null) => void;
   setImageModel: (model: ModelConfig | null, variant: ModelVariant | null) => void;
+  setAutoContextCompaction: (enabled: boolean) => void;
   addOrUpdateMCPServer: (server: MCPServerConfig, originalName?: string) => void;
   removeMCPServer: (serverName: string) => void;
   reorderMCPServers: (newServers: MCPServerConfig[]) => void;
@@ -41,6 +42,7 @@ const initialState: SettingsStateData = {
   titleModelVariant: null,
   imageModel: null,
   imageModelVariant: null,
+  autoContextCompaction: true,
   mcpServers: [],
   builtinTools: getDefaultBuiltinTools(),
   exaSearchConfig: {
@@ -147,6 +149,11 @@ export const useSettingsStore = create<SettingsStore>()(
         state.imageModel = model;
         state.imageModelVariant = null;
       }),
+
+    setAutoContextCompaction: (enabled: boolean) =>
+      set((state) => {
+        state.autoContextCompaction = enabled;
+      }),
     addOrUpdateMCPServer: (server: MCPServerConfig, originalName?: string) =>
       set((state) => {
         const existingIndex = state.mcpServers.findIndex(
@@ -229,6 +236,7 @@ export const useSettingsStore = create<SettingsStore>()(
         state.titleModelVariant = null;
         state.imageModel = data.imageModel || null;
         state.imageModelVariant = null;
+        state.autoContextCompaction = data.autoContextCompaction ?? true;
         state.mcpServers = data.mcpServers || [];
         state.builtinTools = normalizeBuiltinTools(data.builtinTools);
         state.exaSearchConfig = data.exaSearchConfig || {

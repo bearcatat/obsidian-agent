@@ -9,6 +9,7 @@ export interface ISettingsState {
   readonly titleModelVariant: ModelVariant | null;
   readonly imageModel: ModelConfig | null;
   readonly imageModelVariant: ModelVariant | null;
+  readonly autoContextCompaction: boolean;
   readonly mcpServers: MCPServerConfig[];
   readonly builtinTools: BuiltinToolConfig[];
   readonly exaSearchConfig: ExaSearchConfig;
@@ -27,6 +28,7 @@ export function clone(settingsState: ISettingsState): ISettingsState {
     titleModelVariant: settingsState.titleModelVariant ?? null,
     imageModel: settingsState.imageModel ?? null,
     imageModelVariant: settingsState.imageModelVariant ?? null,
+    autoContextCompaction: settingsState.autoContextCompaction ?? true,
     mcpServers: settingsState.mcpServers || [],
     builtinTools: settingsState.builtinTools,
     exaSearchConfig: settingsState.exaSearchConfig || { apiKey: "", enabled: false },
@@ -45,6 +47,7 @@ export interface SettingsStateData {
   titleModelVariant: ModelVariant | null;
   imageModel: ModelConfig | null;
   imageModelVariant: ModelVariant | null;
+  autoContextCompaction: boolean;
   mcpServers: MCPServerConfig[];
   builtinTools: BuiltinToolConfig[];
   exaSearchConfig: ExaSearchConfig;

@@ -4,6 +4,7 @@ import { ModelTable } from "./model-table";
 import { ModelConfig } from "@/types";
 import { useSettingsState, useSettingsLogic } from "@/hooks/use-settings";
 import { ModelVariantSelect } from "../model-variant-select";
+import { SettingSwitch } from "@/ui/elements/setting-switch";
 
 export const ModelSetting: React.FC = () => {
   const _initialModel = {
@@ -29,8 +30,9 @@ export const ModelSetting: React.FC = () => {
     titleModelVariant,
     imageModel,
     imageModelVariant,
+    autoContextCompaction,
   } = useSettingsState();
-  const { setDefaultAgentModel, setTitleModel, setImageModel } = useSettingsLogic();
+  const { setDefaultAgentModel, setTitleModel, setImageModel, setAutoContextCompaction } = useSettingsLogic();
   
   return (
     <div className="tw-min-w-0 tw-max-w-full tw-space-y-6">
@@ -59,6 +61,18 @@ export const ModelSetting: React.FC = () => {
       <section>
         <div className="tw-mb-3 tw-text-xl tw-font-bold">Model Settings</div>
         <div className="tw-space-y-4">
+          <div className="tw-flex tw-items-start tw-justify-between tw-gap-4 tw-rounded-lg tw-border tw-border-solid tw-border-border tw-p-3">
+            <div className="tw-min-w-0">
+              <div className="tw-text-sm tw-font-medium">Automatically compact context</div>
+              <div className="tw-text-xs tw-text-muted-foreground">
+                Near a configured Context Window, summarize older turns with the current Provider before continuing. This adds one model request when triggered. Manual /compact remains available when disabled.
+              </div>
+            </div>
+            <SettingSwitch
+              checked={autoContextCompaction}
+              onCheckedChange={setAutoContextCompaction}
+            />
+          </div>
           <ModelVariantSelect
             label="Default Agent Model"
             models={models}

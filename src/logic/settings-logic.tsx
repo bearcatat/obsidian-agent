@@ -8,6 +8,7 @@ import { setSettingsPlugin } from "./settings-persistence";
 import TelegramFeedbackRuntime from "@/tool/TelegramFeedback/TelegramFeedbackRuntime";
 import MemoryJobQueue from "@/logic/memory-job-queue";
 import { AgentViewLogic } from "@/logic/agent-view-logic";
+import { agentStore } from "@/state/agent-state-impl";
 
 export class SettingsLogic {
     private static instance: SettingsLogic;
@@ -39,6 +40,15 @@ export class SettingsLogic {
 
     // 模型管理业务逻辑
     async addOrUpdateModel(model: ModelConfig, originalId?: string): Promise<void> {
+        if (model.contextWindow !== undefined
+            && (!Number.isFinite(model.contextWindow) || model.contextWindow <= 0)) {
+            throw new Error('Context window must be a positive number');
+        }
+        if (model.contextWindow !== undefined
+            && model.maxTokens !== undefined
+            && model.contextWindow <= model.maxTokens) {
+            throw new Error('Context window must be larger than Max Output Tokens');
+        }
         const state = settingsStore.getState();
         if (originalId) {
             // 编辑操作：检查原模型是否存在
@@ -55,6 +65,13 @@ export class SettingsLogic {
         }
 
         state.addOrUpdateModel(model, originalId);
+        const selectedAgentModel = agentStore.getState().model;
+        if (selectedAgentModel && (selectedAgentModel.id === (originalId ?? model.id))) {
+            AgentViewLogic.getInstance().setModel(
+                model,
+                resolveModelVariant(model, agentStore.getState().variant),
+            );
+        }
         await this.saveSettings();
     }
 
@@ -140,6 +157,11 @@ export class SettingsLogic {
         }
 
         state.setImageModel(model, null);
+        await this.saveSettings();
+    }
+
+    async setAutoContextCompaction(enabled: boolean): Promise<void> {
+        settingsStore.getState().setAutoContextCompaction(enabled);
         await this.saveSettings();
     }
 
@@ -258,6 +280,7 @@ export class SettingsLogic {
                 titleModelVariant: state.titleModelVariant,
                 imageModel: state.imageModel,
                 imageModelVariant: state.imageModelVariant,
+                autoContextCompaction: state.autoContextCompaction,
                 mcpServers: state.mcpServers,
                 builtinTools: normalizeBuiltinTools(state.builtinTools),
                 exaSearchConfig: state.exaSearchConfig,

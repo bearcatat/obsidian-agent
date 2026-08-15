@@ -12,6 +12,7 @@ import { UserMessage } from '@/messages/user-message';
 import SkillLogic from '@/logic/skill-logic';
 import { AgentViewLogic } from '@/logic/agent-view-logic';
 import { useAgentStore } from '@/state/agent-state-impl';
+import { Notice } from 'obsidian';
 
 export const Input = () => {
   const emptyContext: Context = {
@@ -45,12 +46,22 @@ export const Input = () => {
   }, [message]);
 
   const onSend = async () => {
-    if (!message.trim() || isLoading) return;
+    if (!message.trim()) return;
     const conversationId = useAgentStore.getState().activeConversationId ?? undefined;
+    const commandLogic = CommandLogic.getInstance();
+    const parsedCommand = commandLogic.parseInput(message.trim());
+    if (parsedCommand?.commandName === 'compact') {
+      void AgentViewLogic.getInstance().requestContextCompaction(parsedCommand.args, conversationId);
+      clear();
+      return;
+    }
+    if (isLoading) {
+      new Notice('The current turn is still running. Only /compact can be queued right now.');
+      return;
+    }
     const contextLogic = ContextLogic.getInstance();
     const finalContext = contextLogic.getContext(context);
 
-    const commandLogic = CommandLogic.getInstance();
     const parsedSkill = SkillLogic.getInstance().parseSkillCommand(message.trim());
     if (parsedSkill?.skillName) AgentViewLogic.getInstance().activateSkill(parsedSkill.skillName, conversationId);
     const processed = await commandLogic.processCommand(message.trim());
@@ -88,7 +99,7 @@ export const Input = () => {
         value={message}
         onChange={setMessage}
         onSend={onSend}
-        disabled={isLoading}
+        disabled={false}
         onPasteImages={handlePasteImages}
       />
       <InputButtom onSend={onSend} onAddImages={handlePasteImages} />

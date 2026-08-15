@@ -15,6 +15,7 @@ export function useSettingsState() {
       titleModelVariant: state.titleModelVariant,
       imageModel: state.imageModel,
       imageModelVariant: state.imageModelVariant,
+      autoContextCompaction: state.autoContextCompaction,
       mcpServers: state.mcpServers,
       builtinTools: state.builtinTools,
       exaSearchConfig: state.exaSearchConfig,
@@ -41,6 +42,8 @@ export function useSettingsLogic() {
       await settingsLogic.setTitleModel(model, variant),
     setImageModel: async (model: ModelConfig | null, variant: ModelVariant | null = null) =>
       await settingsLogic.setImageModel(model, variant),
+    setAutoContextCompaction: async (enabled: boolean) =>
+      await settingsLogic.setAutoContextCompaction(enabled),
     addOrUpdateMCPServer: async (server: MCPServerConfig, originalName?: string) =>
       await settingsLogic.addOrUpdateMCPServer(server, originalName),
     removeMCPServer: async (serverName: string) => await settingsLogic.removeMCPServer(serverName),

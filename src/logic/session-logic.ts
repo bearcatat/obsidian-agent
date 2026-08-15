@@ -1,7 +1,7 @@
 import { App } from "obsidian";
 import { ConversationState } from "@/state/agent-state";
 import { getGlobalApp } from "@/utils";
-import { FileReviewEntry, MessageV2 } from "@/types";
+import { ContextCheckpoint, ContextUsageCalibration, FileReviewEntry, MessageV2 } from "@/types";
 import { ModelMessage } from "ai";
 import { UserMessage } from "@/messages/user-message";
 import { ToolMessage } from "@/messages/tool-message";
@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { renderHistoricalToolMessage } from "@/ui/components/agent-view/messages/message/historical-tool-renderer";
 import { SnapshotLogic } from "@/logic/snapshot-logic";
 import MemoryJobQueue from "@/logic/memory-job-queue";
+import { validateContextCheckpoint, validateContextUsageCalibration } from "@/llm/ContextCompaction";
 
 export interface SnapshotData {
   snapshotId: string;
@@ -34,6 +35,8 @@ export interface SessionData {
   activeSkills: string[];
   fileReviews: FileReviewEntry[];
   hasUnread?: boolean;
+  contextCheckpoint?: ContextCheckpoint;
+  contextUsageCalibration?: ContextUsageCalibration;
 }
 
 export interface SessionMetadata {
@@ -136,6 +139,8 @@ export class SessionLogic {
         activeSkills: state.activeSkills,
         fileReviews: state.fileReviews || [],
         hasUnread: state.hasUnread,
+        contextCheckpoint: state.contextCheckpoint,
+        contextUsageCalibration: state.contextUsageCalibration,
       };
 
       const filePath = `${this.SESSIONS_DIR}/${sessionId}.json`;
@@ -206,6 +211,10 @@ export class SessionLogic {
           }
       }
 
+      const turnIds = sessionData.turns.map(turn => turn.id);
+      const contextCheckpoint = validateContextCheckpoint(sessionData.contextCheckpoint, turnIds);
+      const contextUsageCalibration = validateContextUsageCalibration(sessionData.contextUsageCalibration);
+
       return {
           sessionId: sessionId,
           title: sessionData.title,
@@ -221,6 +230,9 @@ export class SessionLogic {
           updatedAt: sessionData.updatedAt || Date.now(),
           status: 'idle',
           hasUnread: sessionData.hasUnread ?? false,
+          contextCheckpoint,
+          contextUsageCalibration,
+          contextRuntimeState: { status: 'idle' },
       };
 
     } catch (e) {

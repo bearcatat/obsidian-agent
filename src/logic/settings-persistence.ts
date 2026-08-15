@@ -25,6 +25,7 @@ export async function persistSettingsStore(overrides: Partial<SettingsStateData>
     titleModelVariant: overrides.titleModelVariant ?? state.titleModelVariant,
     imageModel: overrides.imageModel ?? state.imageModel,
     imageModelVariant: overrides.imageModelVariant ?? state.imageModelVariant,
+    autoContextCompaction: overrides.autoContextCompaction ?? state.autoContextCompaction,
     mcpServers: overrides.mcpServers ?? state.mcpServers,
     builtinTools: normalizeBuiltinTools(overrides.builtinTools ?? state.builtinTools),
     exaSearchConfig: overrides.exaSearchConfig ?? state.exaSearchConfig,

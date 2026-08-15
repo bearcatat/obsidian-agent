@@ -1,4 +1,4 @@
-import { FileReviewEntry, MessageV2, ModelConfig, ModelVariant } from '../types';
+import { ContextCheckpoint, ContextRuntimeState, ContextUsageCalibration, FileReviewEntry, MessageV2, ModelConfig, ModelVariant } from '../types';
 import { ModelMessage } from 'ai';
 
 export interface IAgentState {
@@ -12,6 +12,9 @@ export interface IAgentState {
   readonly abortController: AbortController | null;
   readonly fileReviews: FileReviewEntry[];
   readonly variant: ModelVariant | null;
+  readonly contextCheckpoint?: ContextCheckpoint;
+  readonly contextUsageCalibration?: ContextUsageCalibration;
+  readonly contextRuntimeState: ContextRuntimeState;
 }
 
 export function clone(agentState: IAgentState): IAgentState {
@@ -25,6 +28,9 @@ export function clone(agentState: IAgentState): IAgentState {
     abortController: agentState.abortController,
     fileReviews: agentState.fileReviews,
     variant: agentState.variant,
+    contextCheckpoint: agentState.contextCheckpoint,
+    contextUsageCalibration: agentState.contextUsageCalibration,
+    contextRuntimeState: agentState.contextRuntimeState,
   };
 }
 
@@ -39,6 +45,9 @@ export interface AgentStateData {
   abortController: AbortController | null;
   fileReviews: FileReviewEntry[];
   variant: ModelVariant | null;
+  contextCheckpoint?: ContextCheckpoint;
+  contextUsageCalibration?: ContextUsageCalibration;
+  contextRuntimeState: ContextRuntimeState;
   activeSkills?: string[];
 }
 

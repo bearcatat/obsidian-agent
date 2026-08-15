@@ -24,6 +24,8 @@ const SETTING_SEARCH_ALIASES = [
   "API key",
   "Temperature",
   "Max output tokens",
+  "Context window",
+  "Automatically compact context",
   "Top P",
   "Frequency penalty",
   "Presence penalty",

@@ -49,6 +49,8 @@ export interface ModelConfig {
   apiKey?: string;
   temperature?: number;
   maxTokens?: number;
+  /** Total input + output context window for preflight compaction. */
+  contextWindow?: number;
   topP?: number;
   frequencyPenalty?: number;
   presencePenalty?: number;
@@ -66,6 +68,49 @@ export enum ModelProviders {
 }
 // Model Variant for thinking mode
 export type ModelVariant = 'off' | 'low' | 'medium' | 'high' | 'max';
+
+export type ContextCompactionReason = 'manual' | 'preflight' | 'overflow' | 'step-growth';
+
+export interface ContextCheckpoint {
+  version: 1;
+  summary: string;
+  coveredThroughTurnId: string;
+  createdAt: number;
+  sourceModelId: string;
+  sourceProvider: string;
+  reason: ContextCompactionReason;
+  focus?: string;
+  estimatedTokensBefore?: number;
+  estimatedTokensAfter?: number;
+}
+
+export interface ContextUsageCalibration {
+  version: 1;
+  modelConfigId: string;
+  provider: string;
+  modelId: string;
+  variant: ModelVariant | null;
+  factor: number;
+  sampleCount: number;
+  lastInputTokens: number;
+  lastHeuristicTokens: number;
+  updatedAt: number;
+}
+
+export interface ContextRuntimeState {
+  status: 'idle' | 'estimating' | 'compacting' | 'error';
+  lastError?: string;
+  retryable?: boolean;
+  heuristicInputTokens?: number;
+  estimatedInputTokens?: number;
+  contextWindow?: number;
+  retainedTurnCount?: number;
+  lastCompactedAt?: number;
+  lastReason?: ContextCompactionReason;
+  message?: string;
+  /** Runtime-only queue. It is deliberately excluded from session JSON. */
+  pendingFocus?: string;
+}
 
 export interface ModelVariantOption {
   label: string;

@@ -4,6 +4,7 @@ import { ModelName } from "../ModelConfigField/ModelName"
 import { BaseUrl } from "../ModelConfigField/BaseURL"
 import { ApiKey } from "../ModelConfigField/ApiKey"
 import { Provider } from "../ModelConfigField/Provider"
+import { ContextWindow } from "../ModelConfigField/ContextWindow"
 
 export const CommonModelConfig = ({ model, setModel, dialogElement }: {
     model: ModelConfig
@@ -17,6 +18,7 @@ export const CommonModelConfig = ({ model, setModel, dialogElement }: {
             <Provider model={model} setModel={setModel} dialogElement={dialogElement}></Provider>
             <BaseUrl model={model} setModel={setModel}></BaseUrl>
             <ApiKey model={model} setModel={setModel}></ApiKey>
+            <ContextWindow model={model} setModel={setModel} />
         </div>
     )
 }

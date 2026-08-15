@@ -1,4 +1,4 @@
-import { ArrowUp, ChevronDown, Loader2, StopCircle, Image, Activity } from "lucide-react";
+import { ArrowUp, ChevronDown, Loader2, StopCircle, Image, Activity, RotateCcw, Copy, Settings2 } from "lucide-react";
 import { Button } from "../../../elements/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "../../../elements/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../../elements/tooltip";
@@ -54,11 +54,17 @@ interface InputButtomGenerateProps {
 const InputButtomGenerate: React.FC<InputButtomGenerateProps> = ({
   onStopGenerating = () => { },
 }) => {
+  const { contextRuntimeState } = useAgentState();
+  const statusLabel = contextRuntimeState.status === 'compacting'
+    ? '正在压缩上下文'
+    : contextRuntimeState.status === 'estimating'
+      ? '正在估算上下文'
+      : contextRuntimeState.message || 'Generating...';
   return (
     <div className="tw-flex tw-h-6 tw-justify-between tw-gap-1 tw-px-1">
       <div className="tw-flex tw-items-center tw-gap-1 tw-px-1 tw-text-sm tw-text-faint">
         <Loader2 className="tw-size-3 tw-animate-spin" />
-        <span>Generating...</span>
+        <span>{statusLabel}</span>
       </div>
       <Button
         variant="ghost2"
@@ -83,11 +89,16 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
   onAddImages,
 }) => {
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
-  const { model, messages, variant } = useAgentState();
-  const { setModel } = useAgentLogic();
+  const { model, messages, variant, contextRuntimeState, contextCheckpoint } = useAgentState();
+  const { setModel, retryContextCompaction } = useAgentLogic();
   const { models } = useSettingsState();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const app = useApp();
+  const contextWindow = model?.contextWindow;
+  const estimatedContextTokens = contextRuntimeState.estimatedInputTokens;
+  const contextPercent = contextWindow && estimatedContextTokens
+    ? Math.min(999, Math.round((estimatedContextTokens / contextWindow) * 100))
+    : undefined;
 
   const assistantMessages = messages.filter(m => m.role === 'assistant' && (m as any).usage);
   
@@ -132,8 +143,41 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
     }
   };
 
+  const openModelSettings = () => {
+    const setting = (app as any)?.setting;
+    setting?.open?.();
+    setting?.openTabById?.('obsidian-agent');
+  };
+
+  const copyContextError = async () => {
+    if (!contextRuntimeState.lastError) return;
+    await navigator.clipboard.writeText(contextRuntimeState.lastError);
+    new Notice('Context error copied.');
+  };
+
   return (
-    <div className="tw-flex tw-h-6 tw-justify-between tw-gap-1 tw-px-1">
+    <div className="tw-flex tw-flex-col tw-gap-1">
+      {contextRuntimeState.status === 'error' && contextRuntimeState.lastError && (
+        <div className="tw-flex tw-min-w-0 tw-flex-wrap tw-items-center tw-justify-between tw-gap-1 tw-rounded tw-bg-error/10 tw-px-2 tw-py-1 tw-text-xs tw-text-error">
+          <span className="tw-min-w-0 tw-flex-1 tw-truncate" title={contextRuntimeState.lastError}>
+            {contextRuntimeState.message || '压缩失败'}: {contextRuntimeState.lastError}
+          </span>
+          <span className="tw-flex tw-shrink-0 tw-items-center tw-gap-1">
+            {contextRuntimeState.retryable && (
+              <Button variant="ghost2" size="fit" onClick={() => void retryContextCompaction()}>
+                <RotateCcw className="tw-size-3" /> Retry
+              </Button>
+            )}
+            <Button variant="ghost2" size="fit" onClick={openModelSettings}>
+              <Settings2 className="tw-size-3" /> Settings
+            </Button>
+            <Button variant="ghost2" size="fit" onClick={() => void copyContextError()} aria-label="Copy context error">
+              <Copy className="tw-size-3" />
+            </Button>
+          </span>
+        </div>
+      )}
+      <div className="tw-flex tw-h-6 tw-justify-between tw-gap-1 tw-px-1">
       <input
         ref={fileInputRef}
         type="file"
@@ -183,7 +227,7 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
         </DropdownMenu>
       </div>
       <div className="tw-flex tw-items-center">
-        {lastUsage && lastUsage.totalTokens && (
+        {(model || (lastUsage && lastUsage.totalTokens)) && (
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -197,6 +241,26 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
               </TooltipTrigger>
               <TooltipContent side="top">
                 <div className="tw-flex tw-flex-col tw-gap-1.5 tw-text-xs">
+                  <div className="tw-flex tw-justify-between tw-items-center tw-gap-8 group">
+                    <span className="tw-text-muted">Active context</span>
+                    <span className="tw-font-mono" title={estimatedContextTokens?.toString()}>
+                      {contextWindow
+                        ? `${estimatedContextTokens ? formatTokens(estimatedContextTokens) : '—'} / ${formatTokens(contextWindow)}${contextPercent !== undefined ? ` (${contextPercent}%)` : ''}`
+                        : 'Context window not configured'}
+                    </span>
+                  </div>
+                  {contextRuntimeState.message && (
+                    <div className="tw-max-w-[320px] tw-text-muted">{contextRuntimeState.message}</div>
+                  )}
+                  {contextCheckpoint && (
+                    <div className="tw-flex tw-justify-between tw-items-center tw-gap-8 group">
+                      <span className="tw-text-muted">Last compacted</span>
+                      <span>{new Date(contextCheckpoint.createdAt).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {lastUsage && lastUsage.totalTokens && <div className="tw-h-px tw-w-full tw-bg-border tw-my-1" />}
+                  {lastUsage && lastUsage.totalTokens && (
+                    <>
                   <div className="tw-flex tw-justify-between tw-items-center tw-gap-8 group">
                     <span className="tw-text-muted">Input</span>
                     <span className="tw-font-mono" title={(lastUsage.inputTokens || 0).toString()}>{formatTokens(lastUsage.inputTokens || 0)}</span>
@@ -222,6 +286,8 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
                     <span className="tw-text-muted">Total</span>
                     <span className="tw-font-mono tw-font-medium" title={totalSessionTokens.toString()}>{formatTokens(totalSessionTokens)}</span>
                   </div>
+                    </>
+                  )}
                 </div>
               </TooltipContent>
             </Tooltip>
@@ -246,6 +312,7 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
         >
           <ArrowUp className="!tw-size-4" />
         </Button>
+      </div>
       </div>
     </div>
   )

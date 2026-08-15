@@ -3,11 +3,21 @@ import { MessageV2 } from "@/types";
 import { ModelMessage, ToolLoopAgent, ToolSet, TextStreamPart, StreamTextResult, GenerateTextResult } from "ai";
 import { v4 as uuidv4 } from 'uuid';
 
+export interface StreamingExecutionEvidence {
+    hasAssistantOutput: boolean;
+    hasToolCall: boolean;
+    hasToolResult: boolean;
+}
 
 export default class Streamer {
     private agent: ToolLoopAgent;
     private assistantMessage: AssistantMessage = AssistantMessage.createEmpty("");
     private addMessage: (message: MessageV2) => void;
+    private executionEvidence: StreamingExecutionEvidence = {
+        hasAssistantOutput: false,
+        hasToolCall: false,
+        hasToolResult: false,
+    };
 
     constructor(agent: ToolLoopAgent, addMessage: (message: MessageV2) => void) {
         this.agent = agent
@@ -29,6 +39,18 @@ export default class Streamer {
     }
 
     async handleChunk(chunk: TextStreamPart<{}>) {
+        const chunkType = (chunk as any).type as string;
+        if ((chunkType === 'text-delta' && Boolean((chunk as any).text))
+            || (chunkType === 'reasoning-delta' && Boolean((chunk as any).text))) {
+            this.executionEvidence.hasAssistantOutput = true;
+        }
+        if (chunkType === 'tool-call' || chunkType === 'tool-input-start' || chunkType === 'tool-input-end') {
+            this.executionEvidence.hasToolCall = true;
+        }
+        if (chunkType === 'tool-result' || chunkType === 'tool-error' || chunkType === 'tool-output') {
+            this.executionEvidence.hasToolResult = true;
+        }
+
         switch (chunk.type) {
             case "start-step":
                 this.assistantMessage = AssistantMessage.createEmpty(uuidv4());
@@ -80,6 +102,10 @@ export default class Streamer {
                 this.addMessage(this.assistantMessage);
                 break;
         }
+    }
+
+    getExecutionEvidence(): StreamingExecutionEvidence {
+        return { ...this.executionEvidence };
     }
 
     async generate(

@@ -22,6 +22,8 @@ export function useAgentState() {
       abortController: state.abortController,
       fileReviews: state.fileReviews,
       variant: state.variant,
+      contextCheckpoint: state.contextCheckpoint,
+      contextRuntimeState: state.contextRuntimeState,
     }))
   );
 }
@@ -42,6 +44,8 @@ export function useAgentLogic() {
     resetForNewChat: (app: App | undefined) => agentLogic.resetForNewChat(app),
     finalizePendingReviews: () => agentLogic.finalizePendingReviews(),
     setModel: (model: ModelConfig, variant?: ModelVariant | null) => agentLogic.setModel(model, variant),
+    requestContextCompaction: (focus?: string) => agentLogic.requestContextCompaction(focus),
+    retryContextCompaction: () => agentLogic.retryContextCompaction(),
     applyFileReview: async (filePath: string) => {
       const id = getActiveConversationId();
       fileReviewLogic.applyFile(filePath, id);

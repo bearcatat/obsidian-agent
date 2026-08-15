@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { Notice, TFile, normalizePath } from 'obsidian';
-import { ModelConfig, ModelVariant } from '../types';
+import { ContextCheckpoint, ContextRuntimeState, ContextUsageCalibration, ModelConfig, ModelVariant } from '../types';
 import { FileReviewEntry, MessageV2 } from '@/types';
 import { AgentStateData, ConversationState } from './agent-state';
 import { ModelMessage } from 'ai';
@@ -10,6 +10,7 @@ import { hashReviewContent } from '@/logic/file-review-utils';
 import { ToolMessage } from '@/messages/tool-message';
 import { getGlobalApp } from '@/utils';
 import { SessionLogic } from '@/logic/session-logic';
+import { updateContextRuntimeForModelChange } from '@/llm/ContextCompaction';
 
 export interface AgentStore extends AgentStateData {
   conversations: Record<string, ConversationState>;
@@ -32,6 +33,9 @@ export interface AgentStore extends AgentStateData {
   upsertFileReview: (fileReview: FileReviewEntry, conversationId?: string) => void;
   removeFileReview: (filePath: string, conversationId?: string) => void;
   setActiveSkills: (skills: string[], conversationId?: string) => void;
+  setContextCheckpoint: (checkpoint: ContextCheckpoint | undefined, conversationId?: string) => void;
+  setContextUsageCalibration: (calibration: ContextUsageCalibration | undefined, conversationId?: string) => void;
+  setContextRuntimeState: (runtimeState: ContextRuntimeState, conversationId?: string) => void;
   setUnread: (hasUnread: boolean, conversationId?: string) => void;
   setUpdatedAt: (updatedAt: number, conversationId?: string) => void;
   resetForNewChat: () => void;
@@ -49,6 +53,9 @@ const initialState: AgentStateData = {
   abortController: null,
   fileReviews: [],
   variant: null,
+  contextCheckpoint: undefined,
+  contextUsageCalibration: undefined,
+  contextRuntimeState: { status: 'idle' },
   activeSkills: [],
 };
 
@@ -237,6 +244,9 @@ function syncActiveConversation(state: any): void {
   state.abortController = source.abortController;
   state.fileReviews = source.fileReviews;
   state.activeSkills = source.activeSkills ?? [];
+  state.contextCheckpoint = source.contextCheckpoint;
+  state.contextUsageCalibration = source.contextUsageCalibration;
+  state.contextRuntimeState = source.contextRuntimeState ?? { status: 'idle' };
 }
 
 function updateConversation(state: any, conversationId: string | undefined, update: (conversation: ConversationState) => void): void {
@@ -251,6 +261,8 @@ function createConversationState(id: string, title: string, model: ModelConfig |
   return {
     sessionId: id, messages: [], modelMessages: [], isLoading: false, title,
     model, variant, abortController: null, fileReviews: [], activeSkills: [],
+    contextCheckpoint: undefined, contextUsageCalibration: undefined,
+    contextRuntimeState: { status: 'idle', contextWindow: model?.contextWindow },
     createdAt: now, updatedAt: now, status: 'idle', hasUnread: false,
   };
 }
@@ -268,6 +280,10 @@ export const useAgentStore = create<AgentStore>()(
 
     upsertConversation: (conversation: ConversationState) =>
       set((state) => {
+        conversation.contextRuntimeState = {
+          ...(conversation.contextRuntimeState ?? { status: 'idle' }),
+          contextWindow: conversation.model?.contextWindow,
+        };
         state.conversations[conversation.sessionId] = conversation as any;
         if (!state.activeConversationId) state.activeConversationId = conversation.sessionId;
         if (state.activeConversationId === conversation.sessionId) syncActiveConversation(state);
@@ -405,6 +421,14 @@ export const useAgentStore = create<AgentStore>()(
         }
         
         current.modelMessages = current.modelMessages.slice(0, truncateIndex) as any;
+        const retainedTurnIds = new Set(current.messages.filter(message => message.role === 'user').map(message => message.id));
+        if (current.contextCheckpoint && !retainedTurnIds.has(current.contextCheckpoint.coveredThroughTurnId)) {
+          current.contextCheckpoint = undefined;
+        }
+        current.contextRuntimeState = {
+          status: 'idle',
+          contextWindow: current.model?.contextWindow,
+        };
         current.isLoading = false;
         current.status = 'idle';
         current.fileReviews = nextFileReviews;
@@ -426,12 +450,34 @@ export const useAgentStore = create<AgentStore>()(
     setModel: (model: ModelConfig) =>
       set((state) => {
         state.model = model;
-        for (const conversation of Object.values(state.conversations)) conversation.model = model;
+        state.contextRuntimeState = updateContextRuntimeForModelChange(
+          state.contextRuntimeState,
+          model.contextWindow,
+        );
+        for (const conversation of Object.values(state.conversations)) {
+          conversation.model = model;
+          conversation.contextRuntimeState = updateContextRuntimeForModelChange(
+            conversation.contextRuntimeState,
+            model.contextWindow,
+          );
+        }
+        if (state.activeConversationId) syncActiveConversation(state);
       }),
     setVariant: (variant: ModelVariant | null) =>
       set((state) => {
         state.variant = variant;
-        for (const conversation of Object.values(state.conversations)) conversation.variant = variant;
+        state.contextRuntimeState = updateContextRuntimeForModelChange(
+          state.contextRuntimeState,
+          state.model?.contextWindow,
+        );
+        for (const conversation of Object.values(state.conversations)) {
+          conversation.variant = variant;
+          conversation.contextRuntimeState = updateContextRuntimeForModelChange(
+            conversation.contextRuntimeState,
+            conversation.model?.contextWindow,
+          );
+        }
+        if (state.activeConversationId) syncActiveConversation(state);
       }),
     setAbortController: (abortController: AbortController | null, conversationId?: string) =>
       set((state) => {
@@ -462,6 +508,21 @@ export const useAgentStore = create<AgentStore>()(
     setActiveSkills: (skills: string[], conversationId?: string) =>
       set((state) => {
         updateConversation(state, conversationId, conversation => { conversation.activeSkills = skills; });
+      }),
+
+    setContextCheckpoint: (checkpoint: ContextCheckpoint | undefined, conversationId?: string) =>
+      set((state) => {
+        updateConversation(state, conversationId, conversation => { conversation.contextCheckpoint = checkpoint as any; });
+      }),
+
+    setContextUsageCalibration: (calibration: ContextUsageCalibration | undefined, conversationId?: string) =>
+      set((state) => {
+        updateConversation(state, conversationId, conversation => { conversation.contextUsageCalibration = calibration as any; });
+      }),
+
+    setContextRuntimeState: (runtimeState: ContextRuntimeState, conversationId?: string) =>
+      set((state) => {
+        updateConversation(state, conversationId, conversation => { conversation.contextRuntimeState = runtimeState as any; });
       }),
 
     setUnread: (hasUnread: boolean, conversationId?: string) =>

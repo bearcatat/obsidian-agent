@@ -14,6 +14,7 @@ import { debounce } from "@/ui/components/utils";
 import { useSettingsLogic } from "@/hooks/use-settings";
 import { CommonModelConfig } from "./ProviderModelConfig/CommonModelConfig";
 import { ProviderModelConfig } from "./ProviderModelConfig/ProviderModelConfig";
+import { Notice } from "obsidian";
 
 
 interface ModelAddOrUpdateDialogProps {
@@ -53,6 +54,12 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
 
   const onSave = async () => {
     const cleanedModel = getCleanedModel(model);
+    if (cleanedModel.contextWindow !== undefined
+      && cleanedModel.maxTokens !== undefined
+      && cleanedModel.contextWindow <= cleanedModel.maxTokens) {
+      new Notice('Context window must be larger than Max Output Tokens.');
+      return;
+    }
     try {
       if (isUpdate) {
         // 更新模式：传递原始ID
