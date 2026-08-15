@@ -7,6 +7,7 @@ import { FileReviewEntry } from "@/types";
 import { Button } from "@/ui/elements/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/ui/elements/dialog";
 import { cn } from "@/ui/elements/utils";
+import { formatNumber, t } from "../../../i18n";
 
 type DiffLine = {
   type: "equal" | "delete" | "add";
@@ -336,7 +337,7 @@ function UnifiedDiffRowActions({
             onClick={() => onAccept(block)}
           >
             <Check className="tw-size-4" />
-            Accept
+            {t('common:accept')}
           </Button>
           <Button
             variant="ghost"
@@ -345,7 +346,7 @@ function UnifiedDiffRowActions({
             onClick={() => onReject(block)}
           >
             <Undo2 className="tw-size-4" />
-            Reject
+            {t('common:reject')}
           </Button>
         </div>
       ))}
@@ -524,17 +525,17 @@ export function FileReviewDialog({
         <DialogHeader className="tw-pr-8">
           <DialogTitle className="tw-flex tw-items-center tw-gap-2 tw-text-base tw-mb-0">
             <FilePenLine className="tw-size-4 tw-flex-shrink-0" />
-            <span>Review Files</span>
+            <span>{t('common:reviewFiles')}</span>
           </DialogTitle>
         </DialogHeader>
         <div className="tw-flex tw-items-center tw-justify-center tw-gap-2">
           <Button variant="ghost" size="sm" onClick={onPrev} disabled={currentIndex === 0}>
             <ChevronLeft className="tw-size-4" />
-            Prev
+            {t('common:previous')}
           </Button>
-          <span className="tw-text-xs tw-text-muted-foreground tw-min-w-[4ch] tw-text-center">{currentIndex + 1} / {totalCount}</span>
+          <span className="tw-text-xs tw-text-muted-foreground tw-min-w-[4ch] tw-text-center">{formatNumber(currentIndex + 1)} / {formatNumber(totalCount)}</span>
           <Button variant="ghost" size="sm" onClick={onNext} disabled={currentIndex === totalCount - 1}>
-            Next
+            {t('common:next')}
             <ChevronRight className="tw-size-4" />
           </Button>
         </div>
@@ -547,15 +548,15 @@ export function FileReviewDialog({
               <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-1">
                 <Button variant="ghost" size="sm" className="tw-text-accent" onClick={() => onApplyFile(displayReview.filePath)}>
                   <Check className="tw-size-4" />
-                  Apply File
+                  {t('common:applyFile')}
                 </Button>
                 <Button variant="ghost" size="sm" className="tw-text-[#82071e] dark:tw-text-[#ffa198]" onClick={() => { void onRejectFile(displayReview.filePath); }}>
                   <Undo2 className="tw-size-4" />
-                  Reject File
+                  {t('common:rejectFile')}
                 </Button>
               </div>
               ) : displayReview.status === 'conflicted' ? (
-                <span className="tw-text-[#82071e] dark:tw-text-[#ffa198]">Modified by another conversation</span>
+                <span className="tw-text-[#82071e] dark:tw-text-[#ffa198]">{t('common:modifiedByAnotherConversation')}</span>
               ) : null}
             </div>
           </div>

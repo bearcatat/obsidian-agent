@@ -1,3 +1,5 @@
+import { t } from "../../../../../i18n";
+
 type Props = {
   content: string;
   errorDetails?: Record<string, any>;
@@ -11,13 +13,13 @@ export const ErrorToolMessageCard = ({
 }: Props) => {
   const getErrorTypeLabel = (type?: string) => {
     switch (type) {
-      case "validation": return "Validation Error";
-      case "runtime": return "Runtime Error";
-      case "permission": return "Permission Error";
-      case "network": return "Network Error";
-      case "configuration": return "Configuration Error";
-      case "not_found": return "Resource Not Found";
-      default: return "Tool Error";
+      case "validation": return t('agent:validationError');
+      case "runtime": return t('agent:runtimeError');
+      case "permission": return t('agent:permissionError');
+      case "network": return t('agent:networkError');
+      case "configuration": return t('agent:configurationError');
+      case "not_found": return t('agent:resourceNotFound');
+      default: return t('agent:toolError');
     }
   };
 
@@ -47,7 +49,7 @@ export const ErrorToolMessageCard = ({
 
         {errorDetails && Object.keys(errorDetails).length > 0 && (
           <div className="tw-mt-2 tw-border tw-border-muted tw-rounded tw-p-2 tw-bg-muted/10">
-            <div className="tw-text-xs tw-text-muted tw-font-medium tw-mb-1">Error Details:</div>
+            <div className="tw-text-xs tw-text-muted tw-font-medium tw-mb-1">{t('common:errorDetails')}</div>
             <pre className="tw-text-xs tw-overflow-auto tw-max-h-40 tw-whitespace-pre-wrap">
               {JSON.stringify(errorDetails, null, 2)}
             </pre>

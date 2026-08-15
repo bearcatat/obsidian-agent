@@ -8,6 +8,7 @@ import { GripVertical, Pencil, Plus, Trash2, Settings } from "lucide-react";
 import React from "react";
 import { MCPServerConfig } from "@/types";
 import { useSettingsLogic, useSettingsState } from "@/hooks/use-settings";
+import { formatNumber, t } from "../../../../i18n";
 
 const MCPServerTableRow: React.FC<{
   server: MCPServerConfig;
@@ -66,7 +67,10 @@ const MCPServerTableRow: React.FC<{
           )}
           {server.tools && server.tools.length > 0 && (
             <div className="tw-text-xs tw-text-blue-500 tw-mt-1">
-              Tools: {server.tools.filter(t => t.enabled).length}/{server.tools.length} enabled
+              {t('common:toolsEnabled', {
+                enabled: formatNumber(server.tools.filter(t => t.enabled).length),
+                total: formatNumber(server.tools.length),
+              })}
             </div>
           )}
         </div>
@@ -78,7 +82,7 @@ const MCPServerTableRow: React.FC<{
             size="icon"
             onClick={() => onManageTools(server)}
             className="tw-shadow-sm tw-transition-shadow hover:tw-shadow-md"
-            title="Manage Tools"
+            title={t('common:manageTools')}
           >
             <Settings className="tw-size-4" />
           </Button>
@@ -183,10 +187,10 @@ export const MCPServerTable: React.FC<MCPServerTableProps> = ({ onEdit, onAdd, o
               <TableHeader>
                 <TableRow>
                   <TableHead className="tw-w-6 tw-px-2"></TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Transport</TableHead>
-                  <TableHead className="tw-max-w-xs">Configuration</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>{t('common:name')}</TableHead>
+                  <TableHead>{t('common:transport')}</TableHead>
+                  <TableHead className="tw-max-w-xs">{t('common:configuration')}</TableHead>
+                  <TableHead>{t('common:actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="tw-relative">
@@ -212,7 +216,7 @@ export const MCPServerTable: React.FC<MCPServerTableProps> = ({ onEdit, onAdd, o
       <div className="tw-mt-4 tw-flex tw-justify-end tw-gap-2">
         <Button onClick={onAdd} variant="secondary" className="tw-flex tw-items-center tw-gap-2">
           <Plus className="tw-size-4" />
-          Add MCP Server
+          {t('common:addMcpServer')}
         </Button>
       </div>
     </div>

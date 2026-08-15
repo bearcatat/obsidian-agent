@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 
 import { cn } from "./utils";
 import { usePortalContainer } from "@/hooks/PortalContainerContext";
+import { t } from "../../i18n";
 
 const Dialog = DialogPrimitive.Root;
 
@@ -51,7 +52,7 @@ const DialogContent = React.forwardRef<
         {children}
         <DialogPrimitive.Close className="clickable-icon tw-absolute tw-right-4 tw-top-4 tw-border-none tw-bg-transparent tw-text-faint tw-outline-none hover:tw-bg-transparent hover:tw-bg-opacity-100 hover:tw-text-normal focus-visible:tw-text-normal focus-visible:tw-outline-none focus-visible:tw-ring-0">
           <X className="tw-size-4" />
-          <span className="tw-sr-only">Close</span>
+          <span className="tw-sr-only">{t('common:close')}</span>
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>
     </DialogPortal>

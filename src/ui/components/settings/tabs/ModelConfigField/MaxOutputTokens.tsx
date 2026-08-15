@@ -3,6 +3,7 @@ import { FormField } from "@/ui/elements/form-field"
 import { SettingSlider } from "@/ui/elements/setting-slider"
 import { HelpCircle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/ui/elements/tooltip"
+import { formatNumber, t } from "@/i18n"
 
 interface MaxOutputTokensProps {
     model: ModelConfig
@@ -24,7 +25,7 @@ export const MaxOutputTokens = ({
     return (<FormField
         label={
             <div className="tw-flex tw-items-center tw-gap-2">
-                Max Output Tokens
+                {t("settings:maxOutputTokens")}
                 <TooltipProvider delayDuration={0}>
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -32,14 +33,7 @@ export const MaxOutputTokens = ({
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
                             <div className="tw-w-[300px]">
-                                <p>
-                                    The maximum number of <em>output tokens</em> to generate. Default is{" "}
-                                    {defaultValue}.
-                                </p>
-                                <em>
-                                    This number plus the length of your prompt (input tokens) must be
-                                    smaller than the context window of the model.
-                                </em>
+                                {t("settings:maxOutputTokensHelp", { defaultValue: formatNumber(defaultValue) })}
                             </div>
                         </TooltipContent>
                     </Tooltip>

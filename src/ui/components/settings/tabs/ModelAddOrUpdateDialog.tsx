@@ -15,6 +15,7 @@ import { useSettingsLogic } from "@/hooks/use-settings";
 import { CommonModelConfig } from "./ProviderModelConfig/CommonModelConfig";
 import { ProviderModelConfig } from "./ProviderModelConfig/ProviderModelConfig";
 import { Notice } from "obsidian";
+import { t } from "@/i18n";
 
 
 interface ModelAddOrUpdateDialogProps {
@@ -54,10 +55,14 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
 
   const onSave = async () => {
     const cleanedModel = getCleanedModel(model);
+    if (!cleanedModel.id || !cleanedModel.name) {
+      new Notice(t("settings:modelRequired"));
+      return;
+    }
     if (cleanedModel.contextWindow !== undefined
       && cleanedModel.maxTokens !== undefined
       && cleanedModel.contextWindow <= cleanedModel.maxTokens) {
-      new Notice('Context window must be larger than Max Output Tokens.');
+      new Notice(t("settings:contextWindowError"));
       return;
     }
     try {
@@ -86,8 +91,8 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
         ref={(el: HTMLDivElement | null) => setDialogElement(el)}
       >
         <DialogHeader>
-          <DialogTitle>{isUpdate ? "Update Model" : "Add Model"}</DialogTitle>
-          <DialogDescription>{isUpdate ? "Update existing model in your collection." : "Add a new model to your collection."}</DialogDescription>
+          <DialogTitle>{isUpdate ? t("settings:updateModel") : t("settings:addModel")}</DialogTitle>
+          <DialogDescription>{isUpdate ? t("settings:updateModelDescription") : t("settings:addModelDescription")}</DialogDescription>
         </DialogHeader>
         <div className="tw-min-h-0 tw-overflow-y-auto tw-pr-2">
           <CommonModelConfig model={model} setModel={setModel} dialogElement={dialogElement}></CommonModelConfig>
@@ -97,7 +102,7 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
         <div className="tw-flex tw-items-center tw-justify-end tw-gap-4">
           <div className="tw-flex tw-gap-2">
             <Button variant="secondary" onClick={onSave}>
-              Save Model
+              {t("settings:saveModel")}
             </Button>
           </div>
         </div>

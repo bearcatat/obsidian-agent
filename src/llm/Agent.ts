@@ -30,6 +30,7 @@ import {
     serializeToolSchemas,
     withContextCompactionLock,
 } from "./ContextCompaction";
+import { formatNumber, t } from "@/i18n";
 
 function getVaultPathForApproval(): string {
     try {
@@ -249,7 +250,9 @@ export default class AIAgent {
                     retainedTurnCount: generated.retainedTurnCount,
                     lastCompactedAt: committedCheckpoint.createdAt,
                     lastReason: reason,
-                    message: `已压缩，保留最近 ${generated.retainedTurnCount} 轮`,
+                    message: t('agent:compactedRetainedTurns', {
+                        formattedCount: formatNumber(generated.retainedTurnCount),
+                    }),
                 },
             };
         });

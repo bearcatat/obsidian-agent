@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pencil } from "lucide-react";
 import React from "react";
 import { useSettingsState } from "@/hooks/use-settings";
+import { t } from "../../../../i18n";
 
 export type ExternalToolId = "exa" | "bocha" | "telegram";
 
@@ -29,24 +30,24 @@ export const ExternalToolsTable: React.FC<ExternalToolsTableProps> = ({ onEdit }
   const externalTools: ExternalTool[] = [
     {
       id: "exa",
-      name: "Exa Web Search",
-      description: "Search the web using Exa AI",
+      name: t('settings:exaWebSearch'),
+      description: t('settings:exaDescription'),
       enabled: exaSearchConfig.enabled && !!exaSearchConfig.apiKey,
       isConfigured: !!exaSearchConfig.apiKey,
       getLink: "https://dashboard.exa.ai/api-keys",
     },
     {
       id: "bocha",
-      name: "Bocha Web Search",
-      description: "Search the web using Bocha AI",
+      name: t('settings:bochaWebSearch'),
+      description: t('settings:bochaDescription'),
       enabled: bochaSearchConfig.enabled && !!bochaSearchConfig.apiKey,
       isConfigured: !!bochaSearchConfig.apiKey,
       getLink: "https://open.bochaai.com",
     },
     {
       id: "telegram",
-      name: "Telegram Feedback",
-      description: "Push async feedback requests to a bound Telegram user",
+      name: t('settings:telegramFeedback'),
+      description: t('settings:telegramDescription'),
       enabled: telegramFeedbackConfig.enabled && isTelegramConfigured,
       isConfigured: isTelegramConfigured,
       getLink: "https://t.me/BotFather",
@@ -59,10 +60,10 @@ export const ExternalToolsTable: React.FC<ExternalToolsTableProps> = ({ onEdit }
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Tool Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="tw-w-32">Status</TableHead>
-              <TableHead className="tw-w-24">Actions</TableHead>
+              <TableHead>{t('common:toolName')}</TableHead>
+              <TableHead>{t('common:description')}</TableHead>
+              <TableHead className="tw-w-32">{t('common:status')}</TableHead>
+              <TableHead className="tw-w-24">{t('common:actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -83,10 +84,10 @@ export const ExternalToolsTable: React.FC<ExternalToolsTableProps> = ({ onEdit }
                     />
                     <span className="tw-text-sm tw-text-gray-600">
                       {tool.enabled
-                        ? "Enabled"
+                        ? t('common:enabled')
                         : tool.isConfigured
-                        ? "Disabled"
-                        : "Not configured"}
+                        ? t('common:disabled')
+                        : t('common:notConfigured')}
                     </span>
                   </div>
                 </TableCell>
@@ -136,10 +137,10 @@ export const ExternalToolsTable: React.FC<ExternalToolsTableProps> = ({ onEdit }
               />
               <span className="tw-text-sm tw-text-gray-600">
                 {tool.enabled
-                  ? "Enabled"
+                  ? t('common:enabled')
                   : tool.isConfigured
-                  ? "Disabled"
-                  : "Not configured"}
+                  ? t('common:disabled')
+                  : t('common:notConfigured')}
               </span>
             </div>
           </div>

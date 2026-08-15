@@ -16,6 +16,7 @@ import { renderWebFetchMessage } from '@/tool/WebFetch/WebFetchTool';
 import { deserializeMessageForHistory, type SerializedHistoryMessage } from '@/messages/history-message';
 import type { MessageV2 } from '@/types';
 import { SubAgentMessagesCard } from '@/ui/components/agent-view/messages/messages';
+import { t } from '../../../../../i18n';
 
 interface CreateCommandResult {
   name: string;
@@ -114,20 +115,20 @@ export function renderHistoricalToolMessage(toolName: string, contentJson: strin
             <div className="tw-flex tw-items-center tw-gap-2 tw-mb-2">
               <span className="tw-text-lg">📝</span>
               <span className="tw-font-medium">
-                {data.is_new_file ? 'Create Command' : 'Update Command'}
+                {data.is_new_file ? t('agent:createCommand') : t('agent:updateCommand')}
               </span>
-              <span className="tw-ml-auto tw-text-sm tw-text-green-600">✓ Applied</span>
+              <span className="tw-ml-auto tw-text-sm tw-text-green-600">{t('common:applied')}</span>
             </div>
             <div className="tw-space-y-1 tw-text-sm tw-mb-3">
               <div>
-                <span className="tw-text-muted-foreground">Command:</span>{' '}
+                <span className="tw-text-muted-foreground">{t('common:command')}</span>{' '}
                 <code className="tw-px-1 tw-bg-muted tw-rounded">/{data.name}</code>
               </div>
               <div>
-                <span className="tw-text-muted-foreground">Description:</span> {data.description}
+                <span className="tw-text-muted-foreground">{t('common:description')}</span> {data.description}
               </div>
               <div>
-                <span className="tw-text-muted-foreground">File:</span>{' '}
+                <span className="tw-text-muted-foreground">{t('common:file')}</span>{' '}
                 <code className="tw-px-1 tw-bg-muted tw-rounded tw-text-xs">{data.file_path}</code>
               </div>
             </div>
@@ -173,7 +174,7 @@ export function renderHistoricalToolMessage(toolName: string, contentJson: strin
       case 'telegramFeedback':
         return renderTelegramFeedbackMessage(data);
       default:
-        return <div className="tw-p-2 tw-text-muted">No historical renderer for {toolName}. Raw data: {contentJson}</div>;
+        return <div className="tw-p-2 tw-text-muted">{t('common:noHistoricalRenderer', { name: toolName, content: contentJson })}</div>;
     }
   } catch (error) {
     // Fallback for tools that were saved with raw string content instead of JSON payload
@@ -206,7 +207,7 @@ export function renderHistoricalToolMessage(toolName: string, contentJson: strin
       return `🕐 ${match ? match[1].trim() : 'Current time'}`;
     }
 
-    return <div className="tw-p-2 tw-text-muted tw-italic">Completed: {toolName}</div>;
+    return <div className="tw-p-2 tw-text-muted tw-italic">{t('common:completed', { name: toolName })}</div>;
   }
 }
 

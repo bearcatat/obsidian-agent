@@ -1,3 +1,4 @@
+import * as obsidian from 'obsidian';
 import { Plugin, TFile, TAbstractFile } from 'obsidian';
 import { IObsidianAgentPlugin, resolveModelVariant } from './types';
 import { UIManager } from './ui/ui-manager';
@@ -25,6 +26,7 @@ import TelegramFeedbackRuntime from './tool/TelegramFeedback/TelegramFeedbackRun
 import { SessionLogic } from './logic/session-logic';
 import MemoryLogic from './logic/memory-logic';
 import MemoryJobQueue from './logic/memory-job-queue';
+import { initI18n, resolveHostLocale } from './i18n';
 
 export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgentPlugin {
 	private uiManager!: UIManager;
@@ -48,6 +50,9 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 		try {
 			// 优先初始化设置，确保模型配置可用
 			await this.initializeSettings();
+
+			// 在任何 React root 挂载前解析宿主语言并初始化共享 UI 本地化
+			await this.initializeLocalization();
 
 			// 初始化UI，让用户看到界面
 			this.initializeUI();
@@ -169,6 +174,11 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 	private initializeUI(): void {
 		this.uiManager = new UIManager(this);
 		this.uiManager.setupUI();
+	}
+
+	private async initializeLocalization(): Promise<void> {
+		// resolveHostLocale 只读取公开的 getLanguage()，旧宿主或异常值安全回退英文。
+		await initI18n(resolveHostLocale(obsidian));
 	}
 
 	private registerSkillFileWatcher(): void {

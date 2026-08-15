@@ -28,6 +28,7 @@ import {
     updateUsageCalibration,
     withContextCompactionLock,
 } from "./ContextCompaction";
+import { formatNumber, t } from "@/i18n";
 
 export interface RuntimeCheckpointCommit {
     checkpoint: ContextCheckpoint;
@@ -105,7 +106,7 @@ function compactionErrorState(error: ContextCompactionError, contextWindow?: num
         retryable: error.retryable,
         contextWindow,
         lastReason: error.reason,
-        message: '压缩失败',
+        message: t('agent:compactionFailedShort'),
     };
 }
 
@@ -202,7 +203,7 @@ export async function runStreamingTurn({
                 contextWindow,
                 estimatedInputTokens: estimateBefore,
                 lastReason: reason,
-                message: '正在压缩上下文',
+                message: t('agent:compacting'),
             });
             try {
                 const generated = await createContextCheckpoint({
@@ -246,7 +247,9 @@ export async function runStreamingTurn({
                     retainedTurnCount: generated.retainedTurnCount,
                     lastCompactedAt: checkpoint.createdAt,
                     lastReason: reason,
-                    message: `已压缩，保留最近 ${generated.retainedTurnCount} 轮`,
+                    message: t('agent:compactedRetainedTurns', {
+                        formattedCount: formatNumber(generated.retainedTurnCount),
+                    }),
                 });
             } catch (error) {
                 if (abortSignal.aborted) {
@@ -289,7 +292,7 @@ export async function runStreamingTurn({
                     ? getLanguageModelIdentity(preparedModel, contextCompaction.modelConfig, contextCompaction.variant)
                     : getLanguageModelIdentity(preparedModel, context.model, context.variant);
 
-                await reportRuntime({ status: 'estimating', contextWindow, message: '正在估算上下文' });
+                await reportRuntime({ status: 'estimating', contextWindow, message: t('agent:estimating') });
                 let active = buildActiveContext(sourceMessages);
                 let normalized = normalizeMessages(active.messages);
                 let system = appendCheckpointSafety(preparedSystem, active.checkpointApplied);
@@ -346,7 +349,7 @@ export async function runStreamingTurn({
                         estimatedInputTokens: estimatedTokens,
                         lastError: 'Context window must be larger than Max output tokens.',
                         retryable: false,
-                        message: 'Context window 配置无效',
+                        message: t('agent:contextWindowInvalid'),
                     }
                     : {
                         status: 'idle',
@@ -357,7 +360,9 @@ export async function runStreamingTurn({
                         lastCompactedAt: runtimeCheckpoint?.createdAt,
                         lastReason: runtimeCheckpoint?.reason,
                         message: runtimeCheckpoint
-                            ? `已压缩，保留最近 ${active.retainedTurnCount} 轮`
+                            ? t('agent:compactedRetainedTurns', {
+                                formattedCount: formatNumber(active.retainedTurnCount),
+                            })
                             : undefined,
                     });
 
@@ -404,7 +409,7 @@ export async function runStreamingTurn({
             contextWindow,
             lastError: 'Context window must be larger than Max output tokens.',
             retryable: false,
-            message: 'Context window 配置无效',
+            message: t('agent:contextWindowInvalid'),
         });
     }
 

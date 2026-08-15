@@ -10,6 +10,7 @@ import { BochaSearchConfig } from "@/types";
 import SettingsLogic from "@/logic/settings-logic";
 import { ExternalLink, Key, Settings2 } from "lucide-react";
 import { Notice } from "obsidian";
+import { formatNumber, getErrorMessage, t } from "@/i18n";
 
 interface BochaConfigProps {
   onSave?: () => void;
@@ -37,11 +38,14 @@ export const BochaConfig: React.FC<BochaConfigProps> = ({ onSave, dialogElement 
     setIsSaving(true);
     try {
       await settingsLogic.updateBochaSearchConfig(localConfig);
-      new Notice("Bocha search config saved.", 3000);
+      new Notice(t("common:saved"), 3000);
       onSave?.();
     } catch (error) {
       console.error("Failed to save Bocha search config:", error);
-      new Notice(`Failed to save Bocha search config: ${error instanceof Error ? error.message : "Unknown error"}`, 5000);
+      new Notice(t("common:saveFailed", {
+        operation: t("settings:saveBochaConfig"),
+        cause: getErrorMessage(error),
+      }), 5000);
     } finally {
       setIsSaving(false);
     }
@@ -56,7 +60,7 @@ export const BochaConfig: React.FC<BochaConfigProps> = ({ onSave, dialogElement 
         <div className="tw-flex tw-items-center tw-justify-between">
           <Label htmlFor="bocha-api-key" className="tw-flex tw-items-center tw-gap-2">
             <Key className="tw-size-4" />
-            API Key
+            {t("settings:apiKey")}
           </Label>
           <a
             href="https://open.bochaai.com"
@@ -64,7 +68,7 @@ export const BochaConfig: React.FC<BochaConfigProps> = ({ onSave, dialogElement 
             rel="noopener noreferrer"
             className="tw-flex tw-items-center tw-gap-1 tw-text-sm tw-text-blue-500 hover:tw-text-blue-600 tw-transition-colors"
           >
-            Get API Key
+            {t("common:getApiKey")}
             <ExternalLink className="tw-size-3" />
           </a>
         </div>
@@ -72,7 +76,7 @@ export const BochaConfig: React.FC<BochaConfigProps> = ({ onSave, dialogElement 
           <Input
             id="bocha-api-key"
             type={showApiKey ? "text" : "password"}
-            placeholder="Enter your Bocha API key"
+            placeholder={t("settings:bochaApiKeyPlaceholder")}
             value={localConfig.apiKey}
             onChange={(e) => setLocalConfig((prev) => ({ ...prev, apiKey: e.target.value }))}
             className="tw-flex-1"
@@ -82,7 +86,7 @@ export const BochaConfig: React.FC<BochaConfigProps> = ({ onSave, dialogElement 
             size="sm"
             onClick={() => setShowApiKey(!showApiKey)}
           >
-            {showApiKey ? "Hide" : "Show"}
+            {showApiKey ? t("common:hide") : t("common:show")}
           </Button>
         </div>
       </div>
@@ -90,9 +94,9 @@ export const BochaConfig: React.FC<BochaConfigProps> = ({ onSave, dialogElement 
       {/* Enable/Disable Switch */}
       <div className="tw-flex tw-items-center tw-justify-between tw-p-4 tw-bg-secondary/50 tw-rounded-lg">
         <div className="tw-space-y-1">
-          <Label className="tw-text-base tw-font-medium">Enable Bocha Web Search</Label>
+          <Label className="tw-text-base tw-font-medium">{t("settings:enableBocha")}</Label>
           <p className="tw-text-sm tw-text-gray-500">
-            Allow the AI agent to search the web using Bocha API
+            {t("settings:allowAgentSearchBocha")}
           </p>
         </div>
         <SettingSwitch
@@ -108,13 +112,13 @@ export const BochaConfig: React.FC<BochaConfigProps> = ({ onSave, dialogElement 
       <div className="tw-space-y-4">
         <Label className="tw-flex tw-items-center tw-gap-2">
           <Settings2 className="tw-size-4" />
-          Default Parameters
+          {t("settings:defaultParameters")}
         </Label>
 
         <div className="tw-grid tw-grid-cols-2 tw-gap-4">
           <div className="tw-space-y-2">
             <Label htmlFor="bocha-count" className="tw-text-sm">
-              Number of Results
+              {t("settings:numberOfResults")}
             </Label>
             <Input
               id="bocha-count"
@@ -129,12 +133,12 @@ export const BochaConfig: React.FC<BochaConfigProps> = ({ onSave, dialogElement 
                 }))
               }
             />
-            <p className="tw-text-xs tw-text-gray-500">Range: 1-50</p>
+            <p className="tw-text-xs tw-text-gray-500">{t("settings:range", { value: `${formatNumber(1)}-${formatNumber(50)}` })}</p>
           </div>
 
           <div className="tw-space-y-2">
             <Label htmlFor="bocha-freshness" className="tw-text-sm">
-              Time Range
+              {t("settings:selectTimeRange")}
             </Label>
             <Select
               value={localConfig.freshness || "noLimit"}
@@ -146,14 +150,14 @@ export const BochaConfig: React.FC<BochaConfigProps> = ({ onSave, dialogElement 
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select time range" />
+                <SelectValue placeholder={t("settings:selectTimeRange")} />
               </SelectTrigger>
               <SelectContent container={dialogElement}>
-                <SelectItem value="noLimit">No limit</SelectItem>
-                <SelectItem value="oneYear">Past year</SelectItem>
-                <SelectItem value="oneMonth">Past month</SelectItem>
-                <SelectItem value="oneWeek">Past week</SelectItem>
-                <SelectItem value="oneDay">Past day</SelectItem>
+                <SelectItem value="noLimit">{t("settings:noLimit")}</SelectItem>
+                <SelectItem value="oneYear">{t("settings:pastYear")}</SelectItem>
+                <SelectItem value="oneMonth">{t("settings:pastMonth")}</SelectItem>
+                <SelectItem value="oneWeek">{t("settings:pastWeek")}</SelectItem>
+                <SelectItem value="oneDay">{t("settings:pastDay")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -163,7 +167,7 @@ export const BochaConfig: React.FC<BochaConfigProps> = ({ onSave, dialogElement 
       {/* Save Button */}
       <div className="tw-flex tw-justify-end tw-pt-4">
         <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? "Saving..." : "Save Changes"}
+          {isSaving ? t("common:saving") : t("common:saveChanges")}
         </Button>
       </div>
     </div>

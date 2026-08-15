@@ -3,6 +3,7 @@ import { FormField } from "@/ui/elements/form-field"
 import { SettingSlider } from "@/ui/elements/setting-slider"
 import { HelpCircle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/ui/elements/tooltip"
+import { formatNumber, t } from "@/i18n"
 
 interface TemperatureProps {
     model: ModelConfig
@@ -24,7 +25,7 @@ export const Temperature = ({
     return (<FormField
         label={
             <div className="tw-flex tw-items-center tw-gap-2">
-                Temperature
+                {t("settings:temperature")}
                 <TooltipProvider delayDuration={0}>
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -32,8 +33,7 @@ export const Temperature = ({
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
                             <div className="tw-max-w-[300px]">
-                                Default is {defaultValue}. Higher values will result
-                                in more creativeness, but also more mistakes. Set to 0 for no randomness.
+                                {t("settings:temperatureHelp", { defaultValue: formatNumber(defaultValue) })}
                             </div>
                         </TooltipContent>
                     </Tooltip>

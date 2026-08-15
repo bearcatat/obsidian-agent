@@ -6,6 +6,7 @@ import { SnapshotLogic } from "./snapshot-logic";
 import { getGlobalApp } from "@/utils";
 import { fileMutex } from "@/tool/FileEdit/mutex";
 import { SessionLogic } from "./session-logic";
+import { t } from "@/i18n";
 
 interface PrepareReviewBaseResult {
   baselineContent: string;
@@ -172,7 +173,7 @@ export class FileReviewLogic {
       return;
     }
     if (review.status === 'conflicted') {
-      new Notice('Cannot reject this change because the file was modified by another conversation.', 4000);
+      new Notice(t('agent:cannotRejectChangedFile'), 4000);
       return;
     }
 
@@ -240,7 +241,7 @@ export class FileReviewLogic {
       return;
     }
     if (review.status === 'conflicted') {
-      new Notice('Cannot reject this block because the file was modified by another conversation.', 4000);
+      new Notice(t('agent:cannotRejectChangedBlock'), 4000);
       return;
     }
 

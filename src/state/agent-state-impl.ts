@@ -11,6 +11,7 @@ import { ToolMessage } from '@/messages/tool-message';
 import { getGlobalApp } from '@/utils';
 import { SessionLogic } from '@/logic/session-logic';
 import { updateContextRuntimeForModelChange } from '@/llm/ContextCompaction';
+import { t } from '@/i18n';
 
 export interface AgentStore extends AgentStateData {
   conversations: Record<string, ConversationState>;
@@ -357,7 +358,7 @@ export const useAgentStore = create<AgentStore>()(
         }
       });
       if (hasConflictedFile) {
-        new Notice('Cannot undo this turn because a changed file was modified by another conversation.', 4000);
+        new Notice(t('agent:cannotUndoChangedFile'), 4000);
         return;
       }
       const discardedSnapshotIds = new Set<string>();

@@ -8,6 +8,7 @@ import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import React from "react";
 import { ModelConfig } from "@/types";
 import { useSettingsLogic, useSettingsState } from "@/hooks/use-settings";
+import { t } from "@/i18n";
 
 const ModelTableRow: React.FC<{
   model: ModelConfig;
@@ -38,6 +39,7 @@ const ModelTableRow: React.FC<{
           variant="ghost"
           size="icon"
           className="tw-size-6 tw-cursor-grab tw-touch-none tw-p-0 hover:tw-cursor-grab active:tw-cursor-grabbing"
+          aria-label={t("common:move")}
           {...attributes}
           {...listeners}
         >
@@ -53,15 +55,17 @@ const ModelTableRow: React.FC<{
             <Button
               variant="ghost"
               size="icon"
+              aria-label={t("common:edit")}
               onClick={() => onEdit(model)}
               className="tw-shadow-sm tw-transition-shadow hover:tw-shadow-md"
             >
-              <Pencil className="tw-size-4" />
+          <Pencil className="tw-size-4" />
             </Button>
           )}
           <Button
             variant="ghost"
             size="icon"
+            aria-label={t("common:delete")}
             onClick={async () => {
               try {
                 await removeModel(model.id);
@@ -151,10 +155,10 @@ export const ModelTable: React.FC<ModelTableProps> = ({ onEdit, onAdd }) => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="tw-w-6 tw-px-2"></TableHead>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>{t("common:id")}</TableHead>
+                  <TableHead>{t("common:name")}</TableHead>
+                  <TableHead>{t("settings:provider")}</TableHead>
+                  <TableHead>{t("common:actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="tw-relative">
@@ -179,7 +183,7 @@ export const ModelTable: React.FC<ModelTableProps> = ({ onEdit, onAdd }) => {
       <div className="tw-mt-4 tw-flex tw-justify-end tw-gap-2">
         <Button onClick={onAdd} variant="secondary" className="tw-flex tw-items-center tw-gap-2">
           <Plus className="tw-size-4" />
-          Add Custom Model
+          {t("settings:addCustomModel")}
         </Button>
       </div>
     </div>

@@ -9,6 +9,7 @@ import { useApp } from "@/hooks/app-context";
 import { Notice } from "obsidian";
 import { MAX_IMAGE_SIZE } from "./cm-config/utils";
 import { getAvailableVariants, ModelConfig, ModelVariant } from "@/types";
+import { formatDateTime, formatNumber, t } from "../../../../i18n";
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico'];
 const IMAGE_MIME_TYPES = 'image/png,image/jpeg,image/gif,image/webp,image/bmp,image/svg+xml,image/x-icon';
@@ -28,9 +29,7 @@ const isValidImageFile = (file: File): boolean => {
 };
 
 const formatTokens = (num: number) => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'm';
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
-  return num.toString();
+  return formatNumber(num);
 };
 
 const getModelVariantLabel = (modelConfig: ModelConfig, variant: ModelVariant | null) => {
@@ -56,10 +55,10 @@ const InputButtomGenerate: React.FC<InputButtomGenerateProps> = ({
 }) => {
   const { contextRuntimeState } = useAgentState();
   const statusLabel = contextRuntimeState.status === 'compacting'
-    ? '正在压缩上下文'
+    ? t('agent:compacting')
     : contextRuntimeState.status === 'estimating'
-      ? '正在估算上下文'
-      : contextRuntimeState.message || 'Generating...';
+      ? t('agent:estimating')
+      : contextRuntimeState.message || t('agent:generating');
   return (
     <div className="tw-flex tw-h-6 tw-justify-between tw-gap-1 tw-px-1">
       <div className="tw-flex tw-items-center tw-gap-1 tw-px-1 tw-text-sm tw-text-faint">
@@ -73,7 +72,7 @@ const InputButtomGenerate: React.FC<InputButtomGenerateProps> = ({
         onClick={() => onStopGenerating()}
       >
         <StopCircle className="tw-size-4" />
-        Stop
+        {t('common:stop')}
       </Button>
     </div>
   )
@@ -130,7 +129,7 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
 
     if (oversizedFiles.length > 0) {
       const fileList = oversizedFiles.join(', ');
-      new Notice(`图片超过 5MB 限制: ${fileList}`, 3000);
+      new Notice(t('agent:imageTooLarge', { files: fileList }), 3000);
     }
 
     if (validFiles.length > 0 && onAddImages) {
@@ -152,7 +151,7 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
   const copyContextError = async () => {
     if (!contextRuntimeState.lastError) return;
     await navigator.clipboard.writeText(contextRuntimeState.lastError);
-    new Notice('Context error copied.');
+    new Notice(t('agent:contextErrorCopied'));
   };
 
   return (
@@ -160,18 +159,18 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
       {contextRuntimeState.status === 'error' && contextRuntimeState.lastError && (
         <div className="tw-flex tw-min-w-0 tw-flex-wrap tw-items-center tw-justify-between tw-gap-1 tw-rounded tw-bg-error/10 tw-px-2 tw-py-1 tw-text-xs tw-text-error">
           <span className="tw-min-w-0 tw-flex-1 tw-truncate" title={contextRuntimeState.lastError}>
-            {contextRuntimeState.message || '压缩失败'}: {contextRuntimeState.lastError}
+            {contextRuntimeState.message || t('agent:compactionFailedShort')}: {contextRuntimeState.lastError}
           </span>
           <span className="tw-flex tw-shrink-0 tw-items-center tw-gap-1">
             {contextRuntimeState.retryable && (
               <Button variant="ghost2" size="fit" onClick={() => void retryContextCompaction()}>
-                <RotateCcw className="tw-size-3" /> Retry
+                <RotateCcw className="tw-size-3" /> {t('common:retry')}
               </Button>
             )}
             <Button variant="ghost2" size="fit" onClick={openModelSettings}>
-              <Settings2 className="tw-size-3" /> Settings
+              <Settings2 className="tw-size-3" /> {t('common:settings')}
             </Button>
-            <Button variant="ghost2" size="fit" onClick={() => void copyContextError()} aria-label="Copy context error">
+            <Button variant="ghost2" size="fit" onClick={() => void copyContextError()} aria-label={t('common:copyContextError')}>
               <Copy className="tw-size-3" />
             </Button>
           </span>
@@ -190,7 +189,7 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
         <DropdownMenu open={isModelDropdownOpen} onOpenChange={setIsModelDropdownOpen}>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost2" size="fit">
-              {model ? getModelVariantLabel(model, variant) : "Select Model"}
+              {model ? getModelVariantLabel(model, variant) : t('common:selectModel')}
               <ChevronDown className="tw-mt-0.5 tw-size-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -242,11 +241,11 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
               <TooltipContent side="top">
                 <div className="tw-flex tw-flex-col tw-gap-1.5 tw-text-xs">
                   <div className="tw-flex tw-justify-between tw-items-center tw-gap-8 group">
-                    <span className="tw-text-muted">Active context</span>
-                    <span className="tw-font-mono" title={estimatedContextTokens?.toString()}>
+                    <span className="tw-text-muted">{t('common:activeContext')}</span>
+                    <span className="tw-font-mono" title={estimatedContextTokens === undefined ? undefined : formatNumber(estimatedContextTokens)}>
                       {contextWindow
-                        ? `${estimatedContextTokens ? formatTokens(estimatedContextTokens) : '—'} / ${formatTokens(contextWindow)}${contextPercent !== undefined ? ` (${contextPercent}%)` : ''}`
-                        : 'Context window not configured'}
+                        ? `${estimatedContextTokens ? formatTokens(estimatedContextTokens) : '—'} / ${formatTokens(contextWindow)}${contextPercent !== undefined ? ` (${formatNumber(contextPercent)}%)` : ''}`
+                        : t('common:contextWindowNotConfigured')}
                     </span>
                   </div>
                   {contextRuntimeState.message && (
@@ -254,27 +253,27 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
                   )}
                   {contextCheckpoint && (
                     <div className="tw-flex tw-justify-between tw-items-center tw-gap-8 group">
-                      <span className="tw-text-muted">Last compacted</span>
-                      <span>{new Date(contextCheckpoint.createdAt).toLocaleString()}</span>
+                      <span className="tw-text-muted">{t('common:lastCompacted')}</span>
+                      <span>{formatDateTime(contextCheckpoint.createdAt)}</span>
                     </div>
                   )}
                   {lastUsage && lastUsage.totalTokens && <div className="tw-h-px tw-w-full tw-bg-border tw-my-1" />}
                   {lastUsage && lastUsage.totalTokens && (
                     <>
                   <div className="tw-flex tw-justify-between tw-items-center tw-gap-8 group">
-                    <span className="tw-text-muted">Input</span>
-                    <span className="tw-font-mono" title={(lastUsage.inputTokens || 0).toString()}>{formatTokens(lastUsage.inputTokens || 0)}</span>
+                    <span className="tw-text-muted">{t('common:input')}</span>
+                    <span className="tw-font-mono" title={formatNumber(lastUsage.inputTokens || 0)}>{formatTokens(lastUsage.inputTokens || 0)}</span>
                   </div>
                   
                   <div className="tw-flex tw-justify-between tw-items-center tw-gap-8 group">
-                    <span className="tw-text-muted">Output</span>
-                    <span className="tw-font-mono" title={(lastUsage.outputTokens || 0).toString()}>{formatTokens(lastUsage.outputTokens || 0)}</span>
+                    <span className="tw-text-muted">{t('common:output')}</span>
+                    <span className="tw-font-mono" title={formatNumber(lastUsage.outputTokens || 0)}>{formatTokens(lastUsage.outputTokens || 0)}</span>
                   </div>
                   
                   {((lastUsage.cacheReadTokens || 0) + (lastUsage.cacheWriteTokens || 0)) > 0 && (
                     <div className="tw-flex tw-justify-between tw-items-center tw-gap-8 group">
-                      <span className="tw-text-muted">Cached</span>
-                      <span className="tw-font-mono" title={((lastUsage.cacheReadTokens || 0) + (lastUsage.cacheWriteTokens || 0)).toString()}>
+                      <span className="tw-text-muted">{t('common:cached')}</span>
+                      <span className="tw-font-mono" title={formatNumber((lastUsage.cacheReadTokens || 0) + (lastUsage.cacheWriteTokens || 0))}>
                         {formatTokens((lastUsage.cacheReadTokens || 0) + (lastUsage.cacheWriteTokens || 0))}
                       </span>
                     </div>
@@ -283,8 +282,8 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
                   <div className="tw-h-px tw-w-full tw-bg-border tw-my-1" />
                   
                   <div className="tw-flex tw-justify-between tw-items-center tw-gap-8 group">
-                    <span className="tw-text-muted">Total</span>
-                    <span className="tw-font-mono tw-font-medium" title={totalSessionTokens.toString()}>{formatTokens(totalSessionTokens)}</span>
+                    <span className="tw-text-muted">{t('common:total')}</span>
+                    <span className="tw-font-mono tw-font-medium" title={formatNumber(totalSessionTokens)}>{formatTokens(totalSessionTokens)}</span>
                   </div>
                     </>
                   )}
@@ -298,7 +297,7 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
           size="fit"
           className="tw-text-muted"
           onClick={() => fileInputRef.current?.click()}
-          aria-label="Add images from file"
+          aria-label={t('common:addImages')}
         >
           <Image className="tw-size-4" />
         </Button>

@@ -13,6 +13,7 @@ import SkillLogic from '@/logic/skill-logic';
 import { AgentViewLogic } from '@/logic/agent-view-logic';
 import { useAgentStore } from '@/state/agent-state-impl';
 import { Notice } from 'obsidian';
+import { t } from '../../../../i18n';
 
 export const Input = () => {
   const emptyContext: Context = {
@@ -56,7 +57,7 @@ export const Input = () => {
       return;
     }
     if (isLoading) {
-      new Notice('The current turn is still running. Only /compact can be queued right now.');
+      new Notice(t('agent:turnStillRunning'));
       return;
     }
     const contextLogic = ContextLogic.getInstance();

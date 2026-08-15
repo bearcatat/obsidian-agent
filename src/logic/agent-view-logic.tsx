@@ -23,6 +23,7 @@ import { ModelMessage } from "ai";
 import { ContextCompactionController } from "@/llm/AgentRuntime";
 import { ContextCompactionError, validateContextCheckpoint } from "@/llm/ContextCompaction";
 import { ConversationState } from "@/state/agent-state";
+import { getErrorMessage, t } from "@/i18n";
 
 interface PendingTurnRetry {
   userMessage: UserMessage;
@@ -101,7 +102,7 @@ export class AgentViewLogic {
     store.setContextRuntimeState({
       ...conversation.contextRuntimeState,
       pendingFocus: trimmedFocus || existingFocus || '',
-      message: '将在当前模型步骤结束后压缩上下文',
+      message: t('agent:compactionQueued'),
     }, conversationId);
   }
 
@@ -253,14 +254,16 @@ export class AgentViewLogic {
           }
           const errorStore = agentStore.getState();
           errorStore.setUnread(errorStore.activeConversationId !== conversationId, conversationId);
-          new Notice(error.message, 5000);
+          new Notice(t('agent:contextCompactionFailed', { cause: error.message }), 5000);
         } else {
           const runtimeState = agentStore.getState().conversations[conversationId]?.contextRuntimeState;
           if (runtimeState?.status === 'error' && runtimeState.retryable) {
-            new Notice(runtimeState.lastError ?? 'Context compaction failed.', 5000);
+            new Notice(t('agent:contextCompactionFailed', {
+              cause: runtimeState.lastError ?? t('agent:compactionFailedShort'),
+            }), 5000);
           } else {
             console.error('Failed to send message:', error);
-            new Notice(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`, 3000);
+            new Notice(t('agent:sendMessageFailed', { cause: getErrorMessage(error) }), 3000);
           }
         }
       }
@@ -294,12 +297,12 @@ export class AgentViewLogic {
     const conversationId = requestedConversationId ?? store.activeConversationId;
     const conversation = conversationId ? store.conversations[conversationId] : undefined;
     if (!conversationId || !conversation || !(conversation.model ?? store.model)) {
-      new Notice('Select a model before compacting context.');
+      new Notice(t('agent:selectModelBeforeCompacting'));
       return;
     }
     if (conversation.isLoading) {
       this.queueManualCompaction(conversationId, focus);
-      new Notice('Context compaction queued for the next safe model-step boundary.');
+      new Notice(t('agent:compactionQueued'));
       return;
     }
     await this.runManualCompaction(conversationId, focus);
@@ -333,7 +336,7 @@ export class AgentViewLogic {
       lastError: undefined,
       retryable: undefined,
       lastReason: 'manual',
-      message: '正在压缩上下文',
+      message: t('agent:compacting'),
       pendingFocus: undefined,
     }, conversationId);
     let compactedSuccessfully = false;
@@ -397,12 +400,12 @@ export class AgentViewLogic {
           retryable: compactionError.retryable,
           contextWindow: model.contextWindow,
           lastReason: 'manual',
-          message: '压缩失败',
+          message: t('agent:compactionFailedShort'),
           ...(pendingFocus !== undefined ? { pendingFocus } : {}),
         }, conversationId);
         if (compactionError.retryable) this.manualRetrySnapshots.set(conversationId, snapshot);
         latestStore.setUnread(latestStore.activeConversationId !== conversationId, conversationId);
-        new Notice(compactionError.message, 5000);
+        new Notice(t('agent:contextCompactionFailed', { cause: compactionError.message }), 5000);
       }
     } finally {
       const latestStore = agentStore.getState();

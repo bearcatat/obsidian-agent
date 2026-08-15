@@ -1,5 +1,6 @@
 import React from "react";
 import { computeLineNumWidth, DiffPreviewRow } from "./diff-preview-utils";
+import { t } from "../../../../../i18n";
 
 type Props = {
     diffRows: DiffPreviewRow[];
@@ -18,7 +19,7 @@ export const DiffView = ({ diffRows }: Props) => {
         <div className="tw-w-full tw-mt-2 tw-rounded tw-border tw-border-border tw-overflow-hidden tw-bg-[#f6f8fa] dark:tw-bg-[#0d1117]">
             <div className="tw-font-mono tw-text-xs tw-leading-relaxed tw-max-h-48 tw-overflow-auto">
                 {diffRows.length === 0 ? (
-                    <div className="tw-px-2 tw-py-1 tw-text-muted-foreground">No changes</div>
+                    <div className="tw-px-2 tw-py-1 tw-text-muted-foreground">{t('common:noChanges')}</div>
                 ) : diffRows.map((row, index) => {
                     if (row.type === "ellipsis") {
                         return (

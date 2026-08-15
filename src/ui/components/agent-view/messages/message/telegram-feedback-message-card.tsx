@@ -3,6 +3,7 @@ import { Button } from "@/ui/elements/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/ui/elements/collapsible";
 import { ChevronsUpDown } from "lucide-react";
 import { memo, useEffect, useMemo, useState } from "react";
+import { formatDateTime, t } from "../../../../../i18n";
 
 export interface TelegramFeedbackMessageCardData extends TelegramFeedbackProgress {}
 
@@ -27,7 +28,7 @@ export const TelegramFeedbackMessageCard = memo(({ question, replies, status, im
     >
       <div className="tw-flex tw-items-center tw-justify-between tw-px-1 tw-text-sm">
         <div className="tw-min-w-0 tw-truncate tw-text-muted tw-text-xs">
-          Telegram feedback {header} {username ? `from @${username}` : ""} {!isOpen && summary ? summary : ""}
+          {t('agent:telegramFeedback')} {header} {username ? `from @${username}` : ""} {!isOpen && summary ? summary : ""}
         </div>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" size="icon" className="size-8">
@@ -36,12 +37,12 @@ export const TelegramFeedbackMessageCard = memo(({ question, replies, status, im
         </CollapsibleTrigger>
       </div>
       <CollapsibleContent className="tw-text-muted tw-gap-1 tw-px-1 tw-rounded-sm tw-bg-primary tw-max-h-64 tw-overflow-y-auto">
-        <Section title="Question">
+        <Section title={t('common:question')}>
           <TextBlock text={question} muted={false} />
         </Section>
 
         {replies.length > 0 ? (
-          <Section title={replies.length > 1 ? "Replies" : "Reply"}>
+          <Section title={t('common:replies')}>
             <div className="tw-flex tw-flex-col tw-gap-2">
               {replies.map((reply, index) => (
                 <ReplyCard key={`${reply.messageId}-${index}`} reply={reply} index={index} />
@@ -49,14 +50,14 @@ export const TelegramFeedbackMessageCard = memo(({ question, replies, status, im
             </div>
           </Section>
         ) : (
-          <Section title="Replies">
-            <TextBlock text="Waiting for a Telegram reply..." muted />
+          <Section title={t('common:replies')}>
+            <TextBlock text={t('agent:waitingTelegramReply')} muted />
           </Section>
         )}
 
         {status === "processing" || imageAnalysis ? (
-          <Section title="Image analysis">
-            <TextBlock text={imageAnalysis || "Received + processing images..."} muted={!imageAnalysis} />
+          <Section title={t('common:imageAnalysis')}>
+            <TextBlock text={imageAnalysis || t('agent:receivedProcessingImagesText')} muted={!imageAnalysis} />
           </Section>
         ) : null}
       </CollapsibleContent>
@@ -86,7 +87,7 @@ function ReplyCard({ reply, index }: { reply: TelegramFeedbackReply; index: numb
   return (
     <div className="tw-flex tw-flex-col tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-border tw-bg-background tw-p-1.5">
       <div className="tw-flex tw-items-center tw-justify-between tw-gap-2 tw-px-1 tw-text-[11px] tw-text-muted">
-        <span>Reply {index + 1}</span>
+        <span>{t('common:replyNumber', { number: index + 1 })}</span>
         <span>{formatTimestamp(reply.receivedAt)}</span>
       </div>
       {images.length > 0 ? (
@@ -95,14 +96,14 @@ function ReplyCard({ reply, index }: { reply: TelegramFeedbackReply; index: numb
             <img
               key={`${reply.messageId}-${imageIndex}`}
               src={image}
-              alt={`Telegram feedback image ${imageIndex + 1}`}
+              alt={t('agent:telegramFeedbackImage', { number: imageIndex + 1 })}
               className="tw-h-28 tw-w-full tw-rounded-md tw-object-cover tw-border tw-border-solid tw-border-border tw-bg-muted"
             />
           ))}
         </div>
       ) : null}
       {hasText ? <TextBlock text={reply.text} muted={false} /> : null}
-      {!hasText && images.length === 0 ? <TextBlock text="(empty reply)" muted /> : null}
+      {!hasText && images.length === 0 ? <TextBlock text={t('agent:emptyReply')} muted /> : null}
     </div>
   );
 }
@@ -123,29 +124,29 @@ function TextBlock({ text, muted = false }: { text: string; muted?: boolean }) {
 function getHeaderText(status: TelegramFeedbackStatus): string {
   switch (status) {
     case "processing":
-      return "(Received + processing images)";
+      return t('agent:receivedProcessingImages');
     case "completed":
     case "received":
-      return "(Received)";
+      return t('agent:received');
     default:
-      return "(Pending)";
+      return t('agent:pending');
   }
 }
 
 function getSummaryText(replyCount: number, imageCount: number): string {
   const parts: string[] = [];
   if (replyCount > 0) {
-    parts.push(`${replyCount} repl${replyCount === 1 ? "y" : "ies"}`);
+    parts.push(t('agent:replyCount', { count: replyCount }));
   }
   if (imageCount > 0) {
-    parts.push(`${imageCount} image${imageCount === 1 ? "" : "s"}`);
+    parts.push(t('agent:imageCount', { count: imageCount }));
   }
   return parts.length > 0 ? `(${parts.join(", ")})` : "";
 }
 
 function formatTimestamp(value: number): string {
   try {
-    return new Date(value).toLocaleTimeString();
+    return formatDateTime(value, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   } catch {
     return "";
   }

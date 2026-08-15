@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/ui/elements/dropdown-menu";
 import { SettingDropdownTrigger } from "./setting-dropdown-trigger";
+import { t } from "@/i18n";
 
 interface ModelVariantSelectProps {
   label: string;
@@ -42,7 +43,7 @@ export const ModelVariantSelect: React.FC<ModelVariantSelectProps> = ({
     : undefined;
   const selectedLabel = selectedModel
     ? `${configuredModel ? selectedModel.id : `${fallbackLabel} | ${selectedModel.id}`}${selectedVariantLabel ? ` | ${selectedVariantLabel}` : ""}`
-    : "No model configured";
+    : t("settings:noModelConfigured");
 
   const modelMenuItem = (
     key: string,

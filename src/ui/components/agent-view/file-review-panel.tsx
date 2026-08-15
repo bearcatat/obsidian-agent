@@ -6,6 +6,7 @@ import { Check, FilePenLine, Undo2 } from "lucide-react";
 import { FileReviewEntry } from "@/types";
 import { FileReviewDialog } from "./file-review-dialog";
 import { Table, TableBody, TableCell, TableRow } from "@/ui/elements/tables";
+import { formatNumber, t } from "../../../i18n";
 
 function splitLines(text: string): string[] {
   if (!text) return [];
@@ -180,9 +181,9 @@ export const FileReviewPanel = () => {
           onClick={() => setIsOpen((prev) => !prev)}
         >
           <div className="tw-flex tw-items-center tw-gap-1.5 tw-text-xs tw-font-medium tw-text-muted-foreground">
-            <span>{pending.length} file(s) changed</span>
-            <span className="tw-text-[#116329] dark:tw-text-[#3fb950]">+{totalDiffStats.added}</span>
-            <span className="tw-text-[#82071e] dark:tw-text-[#ffa198]">-{totalDiffStats.removed}</span>
+            <span>{t('common:changedFiles', { count: pending.length })}</span>
+            <span className="tw-text-[#116329] dark:tw-text-[#3fb950]">+{formatNumber(totalDiffStats.added)}</span>
+            <span className="tw-text-[#82071e] dark:tw-text-[#ffa198]">-{formatNumber(totalDiffStats.removed)}</span>
           </div>
           <div
             className="tw-flex tw-items-center tw-gap-1"
@@ -195,7 +196,7 @@ export const FileReviewPanel = () => {
                 onClick={() => void applyAllFileReviews()}
               >
                 <Check className="tw-size-4" />
-                Apply All
+                {t('common:applyAll')}
               </Button>
               <Button
                 variant="ghost"
@@ -204,7 +205,7 @@ export const FileReviewPanel = () => {
                 onClick={() => void rejectAllFileReviews()}
               >
                 <Undo2 className="tw-size-4" />
-                Reject All
+                {t('common:rejectAll')}
               </Button>
           </div>
         </div>
@@ -219,7 +220,7 @@ export const FileReviewPanel = () => {
                 >
                   <TableCell className="tw-py-0.5 tw-pl-2">
                     <span className="tw-truncate tw-font-mono tw-text-xs">{item.filePath}</span>
-                    {item.status === 'conflicted' ? <span className="tw-ml-1 tw-text-xs tw-text-[#82071e] dark:tw-text-[#ffa198]">Conflict</span> : null}
+                    {item.status === 'conflicted' ? <span className="tw-ml-1 tw-text-xs tw-text-[#82071e] dark:tw-text-[#ffa198]">{t('common:conflict')}</span> : null}
                   </TableCell>
                   <TableCell
                     className="tw-py-0.5 tw-pr-2 tw-text-right tw-whitespace-nowrap"
@@ -230,8 +231,8 @@ export const FileReviewPanel = () => {
                         const stats = diffStats.get(item.filePath);
                         return stats ? (
                           <div className="tw-flex tw-items-center tw-gap-0.5 tw-text-xs tw-px-1">
-                            <span className="tw-text-[#116329] dark:tw-text-[#3fb950]">+{stats.added}</span>
-                            <span className="tw-text-[#82071e] dark:tw-text-[#ffa198]">-{stats.removed}</span>
+                            <span className="tw-text-[#116329] dark:tw-text-[#3fb950]">+{formatNumber(stats.added)}</span>
+                            <span className="tw-text-[#82071e] dark:tw-text-[#ffa198]">-{formatNumber(stats.removed)}</span>
                           </div>
                         ) : null;
                       })()}
@@ -239,6 +240,7 @@ export const FileReviewPanel = () => {
                         variant="ghost"
                         size="icon"
                         className="tw-size-6"
+                        aria-label={t('common:edit')}
                         onClick={(event) => handleOpenInEditor(event, item)}
                       >
                         <FilePenLine className="tw-size-3.5" />
@@ -247,6 +249,7 @@ export const FileReviewPanel = () => {
                         variant="ghost"
                         size="icon"
                         className="tw-size-6 tw-text-accent"
+                        aria-label={t('common:apply')}
                         onClick={() => applyFileReview(item.filePath)}
                       >
                         <Check className="tw-size-3.5" />
@@ -255,6 +258,7 @@ export const FileReviewPanel = () => {
                         variant="ghost"
                         size="icon"
                         className="tw-size-6 tw-text-[#82071e] dark:tw-text-[#ffa198]"
+                        aria-label={t('common:reject')}
                         onClick={() => { void rejectFileReview(item.filePath); }}
                       >
                         <Undo2 className="tw-size-3.5" />

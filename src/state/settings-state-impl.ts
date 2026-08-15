@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { ModelConfig, ModelVariant, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings, normalizeMemoryIdleHours, resolveModelVariant } from '../types';
+import { assertValidModelIdentity, ModelConfig, ModelVariant, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings, normalizeMemoryIdleHours, resolveModelVariant } from '../types';
 import { cloneDefaultBashPermissions, getDefaultBuiltinTools, normalizeBashPermissionConfig, normalizeBuiltinTools } from '../tool/BuiltinTools';
 import AIModelManager from '../llm/ModelManager';
 import { SettingsStateData } from './settings-state';
@@ -69,6 +69,7 @@ export const useSettingsStore = create<SettingsStore>()(
 
     addOrUpdateModel: (model: ModelConfig, originalId?: string) =>
       set((state) => {
+        assertValidModelIdentity(model);
         const targetId = originalId || model.id;
         const existingIndex = state.models.findIndex((m) => m.id === targetId);
 

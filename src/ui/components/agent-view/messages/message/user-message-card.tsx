@@ -5,6 +5,7 @@ import { Button } from "@/ui/elements/button";
 import { Undo2 } from "lucide-react";
 import { useAgentStore } from "@/state/agent-state-impl";
 import { InputEditorState } from "@/state/input-editor-state";
+import { t } from "../../../../../i18n";
 
 type Props = {
     id: string;
@@ -39,7 +40,7 @@ export function UserMessageCard({ id, content, images }: Props) {
                     size="icon" 
                     className="tw-h-6 tw-w-6" 
                     onClick={handleUndo}
-                    title="Edit & Retry"
+                    title={t('common:editRetry')}
                 >
                     <Undo2 className="tw-h-3 tw-w-3" />
                 </Button>

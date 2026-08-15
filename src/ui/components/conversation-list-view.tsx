@@ -5,6 +5,8 @@ import { ConversationSidebar } from './agent-view/conversation-sidebar';
 import { AppContextProvider } from '@/hooks/app-context';
 import { TooltipProvider } from '../elements/tooltip';
 import { IconManager } from '../icons';
+import { I18nextProvider, i18n } from '../../i18n/react';
+import { t } from '../../i18n';
 
 export const CONVERSATION_LIST_VIEW_TYPE = 'agent-conversation-list-view';
 
@@ -20,7 +22,7 @@ export class ConversationListView extends ItemView {
   }
 
   getDisplayText(): string {
-    return 'Agent Conversations';
+    return t('common:agentConversations');
   }
 
   getIcon(): string {
@@ -36,13 +38,15 @@ export class ConversationListView extends ItemView {
     reactContainer.style.margin = '0';
     this.root = createRoot(reactContainer);
     this.root.render(
-      <AppContextProvider app={this.app}>
-        <TooltipProvider delayDuration={0}>
-          <React.StrictMode>
-            <ConversationSidebar />
-          </React.StrictMode>
-        </TooltipProvider>
-      </AppContextProvider>,
+      <I18nextProvider i18n={i18n}>
+        <AppContextProvider app={this.app}>
+          <TooltipProvider delayDuration={0}>
+            <React.StrictMode>
+              <ConversationSidebar />
+            </React.StrictMode>
+          </TooltipProvider>
+        </AppContextProvider>
+      </I18nextProvider>,
     );
   }
 

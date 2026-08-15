@@ -1,16 +1,18 @@
+import { formatDateTime } from '../../i18n';
+
 export const generateId = (): string => {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 };
 
 export const formatTime = (date: Date): string => {
-  return date.toLocaleTimeString('zh-CN', {
+  return formatDateTime(date, {
     hour: '2-digit',
     minute: '2-digit'
   });
 };
 
 export const formatDate = (date: Date): string => {
-  return date.toLocaleDateString('zh-CN', {
+  return formatDateTime(date, {
     year: 'numeric',
     month: 'short',
     day: 'numeric'

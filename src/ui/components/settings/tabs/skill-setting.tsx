@@ -6,8 +6,10 @@ import SkillLogic from "@/logic/skill-logic";
 import { isBuiltinSkill } from "@/logic/builtin-skills";
 import { useSkillStore } from "@/state/skill-state";
 import { SettingSwitch } from "@/ui/elements/setting-switch";
+import { useTranslation } from "../../../../i18n/react";
 
 export const SkillSetting: React.FC = () => {
+  const { t } = useTranslation("settings");
   const skills = useSkillStore((state) => state.skills);
 
   const handleToggleSkill = async (skill: SkillConfig, enabled: boolean) => {
@@ -21,21 +23,21 @@ export const SkillSetting: React.FC = () => {
   return (
     <div className="tw-space-y-6">
       <div className="tw-text-sm tw-text-muted-foreground">
-        Skills are stored as SKILL.md files in <code className="tw-px-1 tw-py-0.5 tw-bg-muted tw-rounded">obsidian-agent/skills/{'{name}'}/SKILL.md</code>
+        {t("skillsStored")} <code className="tw-px-1 tw-py-0.5 tw-bg-muted tw-rounded">obsidian-agent/skills/{'{name}'}/SKILL.md</code>
       </div>
 
       <section>
         <div className="tw-flex tw-items-center tw-gap-2 tw-mb-3">
           <Target className="tw-size-5" />
-          <span className="tw-text-lg tw-font-bold">Skills</span>
+          <span className="tw-text-lg tw-font-bold">{t("skills")}</span>
         </div>
         
         {skills.filter(s => !isBuiltinSkill(s.name)).length === 0 ? (
           <div className="tw-border tw-rounded-lg tw-p-8 tw-text-center tw-text-muted-foreground">
             <Target className="tw-size-12 tw-mx-auto tw-mb-4 tw-opacity-50" />
-            <p className="tw-mb-2">No user skills found</p>
+            <p className="tw-mb-2">{t("noUserSkills")}</p>
             <p className="tw-text-sm">
-              Use the builtin skill <code className="tw-px-1 tw-py-0.5 tw-bg-muted tw-rounded">skill({`"create-skill"`})</code> to create a new skill.
+              {t("createSkill", { skill: 'skill("create-skill")' })}
             </p>
           </div>
         ) : (
@@ -43,9 +45,9 @@ export const SkillSetting: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="tw-w-20">Status</TableHead>
-                  <TableHead>Skill</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead className="tw-w-20">{t('common:status')}</TableHead>
+                  <TableHead>{t("skillLabel")}</TableHead>
+                  <TableHead>{t('common:description')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -57,9 +59,9 @@ export const SkillSetting: React.FC = () => {
                          {isBuiltin ? (
                            <span 
                              className="tw-flex tw-items-center tw-justify-center tw-text-xs tw-text-muted-foreground"
-                             title="Builtin skill - always available via skill tool"
+                             title={t("builtinSkillTitle")}
                            >
-                             Builtin
+                             {t("builtin")}
                            </span>
                          ) : (
                            <SettingSwitch
@@ -86,15 +88,15 @@ export const SkillSetting: React.FC = () => {
       </section>
 
       <div className="tw-text-sm tw-text-muted-foreground tw-space-y-2">
-        <p className="tw-font-medium">About Skills:</p>
+        <p className="tw-font-medium">{t("aboutSkills")}</p>
         <ul className="tw-list-disc tw-list-inside tw-space-y-1 tw-text-xs">
-          <li><strong>User Skills:</strong> Toggle to enable globally, or use <code className="tw-px-1 tw-bg-muted tw-rounded">/{'{skill-name}'}</code> to activate for current session</li>
-          <li><strong>Builtin Skills:</strong> Always available via the <code className="tw-px-1 tw-bg-muted tw-rounded">skill</code> tool (e.g., <code className="tw-px-1 tw-bg-muted tw-rounded">skill({`"create-skill"`})</code>)</li>
-          <li><strong>Tool trigger:</strong> The agent can use the <code className="tw-px-1 tw-bg-muted tw-rounded">skill</code> tool to load skills on-demand</li>
-          <li><strong>Session persistence:</strong> Skills activated via command or tool remain active for the current session</li>
+          <li>{t("userSkillsAbout", { skillName: "{skill-name}" })}</li>
+          <li>{t("builtinSkillsAbout")}</li>
+          <li>{t("toolTriggerAbout")}</li>
+          <li>{t("sessionPersistenceAbout")}</li>
         </ul>
         
-        <p className="tw-font-medium tw-mt-4">Example SKILL.md file:</p>
+        <p className="tw-font-medium tw-mt-4">{t("exampleSkillFile")}</p>
         <pre className="tw-bg-muted tw-p-3 tw-rounded-lg tw-overflow-x-auto tw-text-xs">
 {`---
 name: translate-text

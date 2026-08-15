@@ -6,6 +6,7 @@ import { useAgentStore } from "@/state/agent-state-impl";
 import { ChevronsUpDown, FilePlus, FilePen } from "lucide-react";
 import { buildHunkPreviewRows, buildLineDiff } from "./diff-preview-utils";
 import { DiffView } from "./diff-view";
+import { t } from "../../../../../i18n";
 
 type WriteResult = {
     file_path: string
@@ -30,27 +31,27 @@ function getStatusText(
     origin_answered_state?: boolean,
 ): string {
     if (isReverted) {
-        return "Rejected";
+        return t('agent:rejected');
     }
     if (reviewStatus === "reviewing") {
-        return "Reviewing";
+        return t('agent:reviewing');
     }
     if (reviewStatus === "reviewed") {
-        return "Reviewed";
+        return t('agent:reviewed');
     }
     if (reviewStatus === "conflicted") {
-        return "Conflict";
+        return t('common:conflict');
     }
     if (reviewStatus) {
-        return "Needs sync";
+        return t('agent:needsSync');
     }
     if (decision === "reject") {
-        return "Rejected";
+        return t('agent:rejected');
     }
     if (decision === "apply") {
-        return "Reviewed";
+        return t('agent:reviewed');
     }
-    return origin_answered_state ? "Reviewed" : "Reviewing";
+    return origin_answered_state ? t('agent:reviewed') : t('agent:reviewing');
 }
 
 export const WriteToolMessageCard = ({ origin_answered_state, writeResult, decision, reviewStatus, isReverted }: Props) => {
@@ -64,7 +65,7 @@ export const WriteToolMessageCard = ({ origin_answered_state, writeResult, decis
     );
 
     React.useEffect(() => {
-        if (effectiveStatusText === "Reviewing") {
+        if (effectiveStatusText === t('agent:reviewing')) {
             setIsOpen(true);
         }
     }, [effectiveStatusText]);
@@ -92,7 +93,7 @@ export const WriteToolMessageCard = ({ origin_answered_state, writeResult, decis
     }, [writeResult]);
 
     const fileIcon = writeResult.is_new_file ? <FilePlus className="tw-size-4" /> : <FilePen className="tw-size-4" />;
-    const fileStatus = writeResult.is_new_file ? "New" : "Overwrite";
+    const fileStatus = writeResult.is_new_file ? t('agent:newFile') : t('agent:overwrite');
 
     return (
         <Collapsible

@@ -5,6 +5,7 @@ import { ModelConfig } from "@/types";
 import { useSettingsState, useSettingsLogic } from "@/hooks/use-settings";
 import { ModelVariantSelect } from "../model-variant-select";
 import { SettingSwitch } from "@/ui/elements/setting-switch";
+import { t } from "../../../../i18n";
 
 export const ModelSetting: React.FC = () => {
   const _initialModel = {
@@ -37,7 +38,7 @@ export const ModelSetting: React.FC = () => {
   return (
     <div className="tw-min-w-0 tw-max-w-full tw-space-y-6">
       <section>
-        <div className="tw-mb-3 tw-text-xl tw-font-bold">Chat Models</div>
+        <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:chatModels')}</div>
         <ModelTable
           onEdit={(model) => { 
             setInitialModel(model); 
@@ -59,13 +60,13 @@ export const ModelSetting: React.FC = () => {
       </section>
 
       <section>
-        <div className="tw-mb-3 tw-text-xl tw-font-bold">Model Settings</div>
+        <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:modelSettings')}</div>
         <div className="tw-space-y-4">
           <div className="tw-flex tw-items-start tw-justify-between tw-gap-4 tw-rounded-lg tw-border tw-border-solid tw-border-border tw-p-3">
             <div className="tw-min-w-0">
-              <div className="tw-text-sm tw-font-medium">Automatically compact context</div>
+              <div className="tw-text-sm tw-font-medium">{t('settings:automaticallyCompactContext')}</div>
               <div className="tw-text-xs tw-text-muted-foreground">
-                Near a configured Context Window, summarize older turns with the current Provider before continuing. This adds one model request when triggered. Manual /compact remains available when disabled.
+                {t('settings:autoCompactionDescription')}
               </div>
             </div>
             <SettingSwitch
@@ -74,24 +75,24 @@ export const ModelSetting: React.FC = () => {
             />
           </div>
           <ModelVariantSelect
-            label="Default Agent Model"
+            label={t('settings:defaultAgentModel')}
             models={models}
             selectedModelId={defaultAgentModel?.id ?? null}
             variant={defaultAgentModelVariant}
             fallbackModel={models[0] ?? null}
-            fallbackLabel="First available model"
+            fallbackLabel={t('settings:firstAvailableModel')}
             onChange={(modelId, variant) => setDefaultAgentModel(
               modelId ? models.find((model) => model.id === modelId) ?? null : null,
               variant,
             )}
           />
           <ModelVariantSelect
-            label="Title Generation Model"
+            label={t('settings:titleGenerationModel')}
             models={models}
             selectedModelId={titleModel?.id ?? null}
             variant={titleModelVariant}
             fallbackModel={defaultAgentModel ?? models[0] ?? null}
-            fallbackLabel="Default agent model"
+            fallbackLabel={t('settings:defaultAgentModelFallback')}
             showVariants={false}
             onChange={(modelId) => setTitleModel(
               modelId ? models.find((model) => model.id === modelId) ?? null : null,
@@ -99,12 +100,12 @@ export const ModelSetting: React.FC = () => {
             )}
           />
           <ModelVariantSelect
-            label="Image Analysis Model"
+            label={t('settings:imageAnalysisModel')}
             models={models}
             selectedModelId={imageModel?.id ?? null}
             variant={imageModelVariant}
             fallbackModel={defaultAgentModel ?? models[0] ?? null}
-            fallbackLabel="Default agent model"
+            fallbackLabel={t('settings:defaultAgentModelFallback')}
             showVariants={false}
             onChange={(modelId) => setImageModel(
               modelId ? models.find((model) => model.id === modelId) ?? null : null,

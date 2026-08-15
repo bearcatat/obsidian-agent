@@ -9,6 +9,7 @@ import { TelegramFeedbackConfig as TelegramFeedbackConfigType } from "@/types";
 import SettingsLogic from "@/logic/settings-logic";
 import { Key, Link2, MessageSquareMore, ShieldCheck } from "lucide-react";
 import { Notice } from "obsidian";
+import { formatDateTime, getErrorMessage, t } from "@/i18n";
 
 interface TelegramFeedbackConfigProps {
   onSave?: () => void;
@@ -33,25 +34,34 @@ export const TelegramFeedbackConfig: React.FC<TelegramFeedbackConfigProps> = ({ 
 
   const bindingStatus = useMemo(() => {
     if (localConfig.boundUserId && localConfig.boundChatId) {
-      return `Bound to @${localConfig.boundUsername || "unknown"} (${localConfig.boundFirstName || "Telegram user"})`;
+      return t("settings:boundTo", {
+        username: localConfig.boundUsername || "unknown",
+        firstName: localConfig.boundFirstName || t("settings:telegramUser"),
+      });
     }
 
     if (localConfig.verificationCode && localConfig.verificationExpiresAt) {
-      return `Pending verification code: ${localConfig.verificationCode} (expires ${new Date(localConfig.verificationExpiresAt).toLocaleString()})`;
+      return t("settings:pendingVerification", {
+        code: localConfig.verificationCode,
+        date: formatDateTime(localConfig.verificationExpiresAt),
+      });
     }
 
-    return "Not bound";
+    return t("settings:notBound");
   }, [localConfig]);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
       await settingsLogic.updateTelegramFeedbackConfig(localConfig);
-      new Notice("Telegram feedback config saved.", 3000);
+      new Notice(t("common:saved"), 3000);
       onSave?.();
     } catch (error) {
       console.error("Failed to save Telegram feedback config:", error);
-      new Notice(`Failed to save Telegram feedback config: ${error instanceof Error ? error.message : "Unknown error"}`, 5000);
+      new Notice(t("common:saveFailed", {
+        operation: t("settings:saveTelegramConfig"),
+        cause: getErrorMessage(error),
+      }), 5000);
     } finally {
       setIsSaving(false);
     }
@@ -65,7 +75,10 @@ export const TelegramFeedbackConfig: React.FC<TelegramFeedbackConfigProps> = ({ 
       new Notice("Telegram verification code generated.", 3000);
     } catch (error) {
       console.error("Failed to generate Telegram verification code:", error);
-      new Notice(`Failed to generate Telegram verification code: ${error instanceof Error ? error.message : "Unknown error"}`, 5000);
+      new Notice(t("settings:telegramActionFailed", {
+        action: t("settings:generateVerificationCode"),
+        cause: getErrorMessage(error),
+      }), 5000);
     } finally {
       setIsSaving(false);
     }
@@ -79,7 +92,10 @@ export const TelegramFeedbackConfig: React.FC<TelegramFeedbackConfigProps> = ({ 
       new Notice("Telegram verification code cleared.", 3000);
     } catch (error) {
       console.error("Failed to clear Telegram verification code:", error);
-      new Notice(`Failed to clear Telegram verification code: ${error instanceof Error ? error.message : "Unknown error"}`, 5000);
+      new Notice(t("settings:telegramActionFailed", {
+        action: t("settings:clearCode"),
+        cause: getErrorMessage(error),
+      }), 5000);
     } finally {
       setIsSaving(false);
     }
@@ -93,7 +109,10 @@ export const TelegramFeedbackConfig: React.FC<TelegramFeedbackConfigProps> = ({ 
       new Notice("Telegram user binding cleared.", 3000);
     } catch (error) {
       console.error("Failed to clear Telegram binding:", error);
-      new Notice(`Failed to clear Telegram binding: ${error instanceof Error ? error.message : "Unknown error"}`, 5000);
+      new Notice(t("settings:telegramActionFailed", {
+        action: t("settings:unbindUser"),
+        cause: getErrorMessage(error),
+      }), 5000);
     } finally {
       setIsSaving(false);
     }
@@ -107,7 +126,7 @@ export const TelegramFeedbackConfig: React.FC<TelegramFeedbackConfigProps> = ({ 
         <div className="tw-flex tw-items-center tw-justify-between">
           <Label htmlFor="telegram-bot-token" className="tw-flex tw-items-center tw-gap-2">
             <Key className="tw-size-4" />
-            Bot Token
+            {t("settings:botToken")}
           </Label>
           <a
             href="https://t.me/BotFather"
@@ -115,20 +134,20 @@ export const TelegramFeedbackConfig: React.FC<TelegramFeedbackConfigProps> = ({ 
             rel="noopener noreferrer"
             className="tw-text-sm tw-text-blue-500 hover:tw-text-blue-600 tw-transition-colors"
           >
-            Get Token
+            {t("common:getToken")}
           </a>
         </div>
         <div className="tw-flex tw-gap-2">
           <Input
             id="telegram-bot-token"
             type={showToken ? "text" : "password"}
-            placeholder="Enter your Telegram bot token"
+            placeholder={t("settings:telegramTokenPlaceholder")}
             value={localConfig.botToken}
             onChange={(event) => setLocalConfig((prev) => ({ ...prev, botToken: event.target.value }))}
             className="tw-flex-1"
           />
           <Button variant="secondary" size="sm" onClick={() => setShowToken((prev) => !prev)}>
-            {showToken ? "Hide" : "Show"}
+            {showToken ? t("common:hide") : t("common:show")}
           </Button>
         </div>
       </div>
@@ -136,7 +155,7 @@ export const TelegramFeedbackConfig: React.FC<TelegramFeedbackConfigProps> = ({ 
       <div className="tw-space-y-2">
         <Label htmlFor="telegram-proxy-url" className="tw-flex tw-items-center tw-gap-2">
           <Link2 className="tw-size-4" />
-          Proxy URL
+          {t("settings:proxyUrl")}
         </Label>
         <Input
           id="telegram-proxy-url"
@@ -144,13 +163,13 @@ export const TelegramFeedbackConfig: React.FC<TelegramFeedbackConfigProps> = ({ 
           value={localConfig.proxyUrl}
           onChange={(event) => setLocalConfig((prev) => ({ ...prev, proxyUrl: event.target.value }))}
         />
-        <p className="tw-text-xs tw-text-gray-500">Supports HTTP, HTTPS, SOCKS4, and SOCKS5 proxy URLs.</p>
+        <p className="tw-text-xs tw-text-gray-500">{t("settings:supportsProxy")}</p>
       </div>
 
       <div className="tw-flex tw-items-center tw-justify-between tw-p-4 tw-bg-secondary/50 tw-rounded-lg">
         <div className="tw-space-y-1">
-          <Label className="tw-text-base tw-font-medium">Enable Telegram Runtime</Label>
-          <p className="tw-text-sm tw-text-gray-500">Start Telegram long polling inside the plugin and allow the agent to send feedback requests.</p>
+          <Label className="tw-text-base tw-font-medium">{t("settings:enableTelegram")}</Label>
+          <p className="tw-text-sm tw-text-gray-500">{t("settings:telegramRuntimeDescription")}</p>
         </div>
         <SettingSwitch
           checked={localConfig.enabled}
@@ -160,7 +179,7 @@ export const TelegramFeedbackConfig: React.FC<TelegramFeedbackConfigProps> = ({ 
       </div>
 
       <div className="tw-space-y-2">
-        <Label htmlFor="telegram-polling-timeout">Polling Timeout (seconds)</Label>
+        <Label htmlFor="telegram-polling-timeout">{t("settings:pollingTimeout")}</Label>
         <Input
           id="telegram-polling-timeout"
           type="number"
@@ -179,18 +198,18 @@ export const TelegramFeedbackConfig: React.FC<TelegramFeedbackConfigProps> = ({ 
       <div className="tw-space-y-3 tw-rounded-lg tw-border tw-p-4">
         <div className="tw-flex tw-items-center tw-gap-2 tw-font-medium">
           <ShieldCheck className="tw-size-4" />
-          User Binding
+          {t("settings:userBinding")}
         </div>
         <p className="tw-text-sm tw-text-gray-600">{bindingStatus}</p>
         <div className="tw-flex tw-flex-wrap tw-gap-2">
           <Button variant="secondary" onClick={handleGenerateCode} disabled={!isConfigured || isSaving}>
-            Generate Verification Code
+            {t("settings:generateVerificationCode")}
           </Button>
           <Button variant="secondary" onClick={handleClearCode} disabled={!localConfig.verificationCode || isSaving}>
-            Clear Code
+            {t("settings:clearCode")}
           </Button>
           <Button variant="secondary" onClick={handleUnbind} disabled={!localConfig.boundUserId || isSaving}>
-            Unbind User
+            {t("settings:unbindUser")}
           </Button>
         </div>
       </div>
@@ -198,14 +217,14 @@ export const TelegramFeedbackConfig: React.FC<TelegramFeedbackConfigProps> = ({ 
       <div className="tw-space-y-2 tw-rounded-lg tw-border tw-p-4">
         <div className="tw-flex tw-items-center tw-gap-2 tw-font-medium">
           <MessageSquareMore className="tw-size-4" />
-          Image Analysis
+          {t("settings:imageAnalysis")}
         </div>
-        <p className="tw-text-sm tw-text-gray-600">A fixed built-in subagent named <span className="tw-font-mono">{localConfig.imageAnalysisSubagentName}</span> will analyze image replies before the result is returned to the main agent.</p>
+        <p className="tw-text-sm tw-text-gray-600">{t("settings:telegramImageAnalysisDescription", { name: localConfig.imageAnalysisSubagentName })}</p>
       </div>
 
       <div className="tw-flex tw-justify-end tw-pt-4">
         <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? "Saving..." : "Save Changes"}
+          {isSaving ? t("common:saving") : t("common:saveChanges")}
         </Button>
       </div>
     </div>

@@ -8,6 +8,7 @@ import { SkillSetting } from "./tabs/skill-setting";
 import { SubAgentSetting } from "./tabs/subagent-setting";
 import { RuleSetting } from "./tabs/rule-setting";
 import { MemorySetting } from "./tabs/memory-setting";
+import { useTranslation } from "../../../i18n/react";
 
 const TAB_IDS = ["model","tool","command","skill","subagent","rule","memory"] as const;
 type TabId = (typeof TAB_IDS)[number];
@@ -32,15 +33,24 @@ const components: Record<TabId, React.FC> = {
   memory: () => <MemorySetting />,
 };
 
-// tabs
-const tabs: TabItemType[] = TAB_IDS.map((id) => ({
-  id,
-  icon: icons[id],
-  label: id.charAt(0).toUpperCase() + id.slice(1),
-}));
+const tabLabelKeys: Record<TabId, string> = {
+  model: 'models',
+  tool: 'tool',
+  command: 'command',
+  skill: 'skill',
+  subagent: 'subagent',
+  rule: 'rule',
+  memory: 'memory',
+};
 
 const SettingsContent: React.FC = () => {
   const { selectedTab, setSelectedTab } = useTab();
+  const { t } = useTranslation("settings");
+  const tabs: TabItemType[] = TAB_IDS.map((id) => ({
+    id,
+    icon: icons[id],
+    label: t(tabLabelKeys[id]),
+  }));
 
   return (
     <div className="tw-flex tw-min-w-0 tw-max-w-full tw-flex-col">
@@ -76,12 +86,14 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = () => {
+  const { t } = useTranslation("settings");
+
   return (
     <div className="tw-min-w-0 tw-max-w-full tw-overflow-x-hidden">
       <div className="tw-flex tw-flex-col tw-gap-2">
         <h1 className="tw-flex tw-flex-col tw-gap-2 sm:tw-flex-row sm:tw-items-center sm:tw-justify-between">
           <div className="tw-flex tw-items-center tw-gap-2">
-            <span>Agent Settings</span>
+            <span>{t("agentSettings")}</span>
           </div>
         </h1>
       </div>

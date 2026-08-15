@@ -57,6 +57,17 @@ export interface ModelConfig {
   useCORS?: boolean;
 }
 
+export function assertValidModelIdentity(model: ModelConfig | null | undefined): asserts model is ModelConfig {
+  if (
+    typeof model?.id !== "string"
+    || model.id.trim().length === 0
+    || typeof model.name !== "string"
+    || model.name.trim().length === 0
+  ) {
+    throw new Error("Model ID and model name are required");
+  }
+}
+
 // Model Providers
 export enum ModelProviders {
   OPENAI = "openai",

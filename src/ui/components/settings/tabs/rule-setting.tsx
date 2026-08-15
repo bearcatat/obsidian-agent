@@ -5,8 +5,10 @@ import { RuleConfig } from "@/types";
 import RuleLogic from "@/logic/rule-logic";
 import { useRuleStore } from "@/state/rule-state";
 import { SettingSwitch } from "@/ui/elements/setting-switch";
+import { useTranslation } from "../../../../i18n/react";
 
 export const RuleSetting: React.FC = () => {
+  const { t } = useTranslation("settings");
   const rules = useRuleStore((state) => state.rules);
 
   const handleToggleRule = async (rule: RuleConfig, enabled: boolean) => {
@@ -15,30 +17,30 @@ export const RuleSetting: React.FC = () => {
 
   const scopeLabel = (scope: string) => {
     switch (scope) {
-      case 'main': return 'Main only';
-      case 'sub': return 'Sub only';
-      default: return 'All agents';
+      case "main": return t("mainOnly");
+      case "sub": return t("subOnly");
+      default: return t("allAgents");
     }
   };
 
   return (
     <div className="tw-min-w-0 tw-max-w-full tw-space-y-6 tw-overflow-hidden">
       <div className="tw-min-w-0 tw-break-words tw-text-sm tw-text-muted-foreground">
-        New rules are stored as markdown files in <code className="tw-whitespace-normal tw-break-all tw-rounded tw-bg-muted tw-px-1 tw-py-0.5">obsidian-agent/rules/{'{name}'}.md</code>. Legacy folders like <code className="tw-whitespace-normal tw-break-all tw-rounded tw-bg-muted tw-px-1 tw-py-0.5">obsidian-agent/rules/{'{name}'}/RULE.md</code> are still supported.
+        {t("rulesStored")} <code className="tw-whitespace-normal tw-break-all tw-rounded tw-bg-muted tw-px-1 tw-py-0.5">obsidian-agent/rules/{'{name}'}.md</code>. {t("legacyRulesSupported")} <code className="tw-whitespace-normal tw-break-all tw-rounded tw-bg-muted tw-px-1 tw-py-0.5">obsidian-agent/rules/{'{name}'}/RULE.md</code> {t("stillSupported")}
       </div>
 
       <section className="tw-min-w-0 tw-max-w-full">
         <div className="tw-flex tw-items-center tw-gap-2 tw-mb-3">
           <ShieldCheck className="tw-size-5" />
-          <span className="tw-text-lg tw-font-bold">Rules</span>
+          <span className="tw-text-lg tw-font-bold">{t("rules")}</span>
         </div>
 
         {rules.length === 0 ? (
           <div className="tw-min-w-0 tw-max-w-full tw-break-words tw-rounded-lg tw-border tw-p-8 tw-text-center tw-text-muted-foreground">
             <ShieldCheck className="tw-size-12 tw-mx-auto tw-mb-4 tw-opacity-50" />
-            <p className="tw-mb-2">No rules found</p>
+            <p className="tw-mb-2">{t("noRules")}</p>
             <p className="tw-text-sm">
-              Use the builtin skill <code className="tw-px-1 tw-py-0.5 tw-bg-muted tw-rounded">skill({`"create-rule"`})</code> to create a new rule.
+              {t("createRule", { skill: 'skill("create-rule")' })}
             </p>
           </div>
         ) : (
@@ -46,10 +48,10 @@ export const RuleSetting: React.FC = () => {
             <Table className="tw-table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="tw-w-20">Status</TableHead>
-                  <TableHead>Rule</TableHead>
-                  <TableHead className="tw-w-32">Scope</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead className="tw-w-20">{t('common:status')}</TableHead>
+                  <TableHead>{t("ruleLabel")}</TableHead>
+                  <TableHead className="tw-w-32">{t("scope")}</TableHead>
+                  <TableHead>{t('common:description')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -81,16 +83,16 @@ export const RuleSetting: React.FC = () => {
       </section>
 
       <div className="tw-min-w-0 tw-max-w-full tw-space-y-2 tw-break-words tw-text-sm tw-text-muted-foreground">
-        <p className="tw-font-medium">About Rules:</p>
+        <p className="tw-font-medium">{t("aboutRules")}</p>
         <ul className="tw-list-disc tw-list-inside tw-space-y-1 tw-text-xs">
-          <li><strong>Always active:</strong> Enabled rules are automatically injected into agent system prompts — no per-session activation needed</li>
-          <li><strong>Scope "All":</strong> Injected into both the main agent and all sub-agents</li>
-          <li><strong>Scope "Main only":</strong> Injected only into the main agent</li>
-          <li><strong>Scope "Sub only":</strong> Injected only into sub-agent system prompts</li>
-          <li><strong>Toggle:</strong> Enable/disable rules globally via the switch</li>
+          <li>{t("alwaysActiveAbout")}</li>
+          <li>{t("scopeAllAbout")}</li>
+          <li>{t("scopeMainAbout")}</li>
+          <li>{t("scopeSubAbout")}</li>
+          <li>{t("toggleRulesAbout")}</li>
         </ul>
 
-        <p className="tw-font-medium tw-mt-4">Example rule file:</p>
+        <p className="tw-font-medium tw-mt-4">{t("exampleRuleFile")}</p>
         <pre className="tw-max-w-full tw-whitespace-pre-wrap tw-break-words tw-rounded-lg tw-bg-muted tw-p-3 tw-text-xs">
 {`---
 name: no-delete-without-confirm
@@ -101,7 +103,7 @@ enabled: true
 
 Never delete, remove, or permanently destroy any file, note, or folder without first asking the user for explicit confirmation. Always describe what will be deleted and wait for the user to confirm before proceeding.`}
         </pre>
-        <p className="tw-text-xs">Suggested path: <code className="tw-whitespace-normal tw-break-all tw-rounded tw-bg-muted tw-px-1 tw-py-0.5">obsidian-agent/rules/no-delete-without-confirm.md</code></p>
+        <p className="tw-text-xs">{t("suggestedPath")} <code className="tw-whitespace-normal tw-break-all tw-rounded tw-bg-muted tw-px-1 tw-py-0.5">obsidian-agent/rules/no-delete-without-confirm.md</code></p>
       </div>
     </div>
   );

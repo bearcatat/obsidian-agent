@@ -3,6 +3,7 @@ import { FormField } from "@/ui/elements/form-field"
 import { SettingSlider } from "@/ui/elements/setting-slider"
 import { HelpCircle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/ui/elements/tooltip"
+import { t } from "@/i18n"
 
 interface FrequencyPenaltyProps {
     model: ModelConfig
@@ -25,7 +26,7 @@ export const FrequencyPenalty = ({
     return (<FormField
         label={
             <div className="tw-flex tw-items-center tw-gap-2">
-                Frequency Penalty
+                {t("settings:frequencyPenalty")}
                 <TooltipProvider delayDuration={0}>
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -33,14 +34,7 @@ export const FrequencyPenalty = ({
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
                             <div className="tw-w-[300px]">
-                                <p>
-                                    The frequency penalty parameter tells the model not to repeat a word
-                                    that has already been used multiple times in the conversation.
-                                </p>
-                                <em>
-                                    The higher the value, the more the model is penalized for repeating
-                                    words.
-                                </em>
+                                {t("settings:frequencyPenaltyHelp")}
                             </div>
                         </TooltipContent>
                     </Tooltip>

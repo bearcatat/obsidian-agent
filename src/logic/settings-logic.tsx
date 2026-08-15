@@ -1,4 +1,4 @@
-import { ModelConfig, ModelVariant, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, MemorySettings, normalizeMemoryIdleHours, resolveModelVariant } from "../types";
+import { assertValidModelIdentity, ModelConfig, ModelVariant, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, MemorySettings, normalizeMemoryIdleHours, resolveModelVariant } from "../types";
 import { settingsStore } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
 import AIToolManager from "@/tool/ToolManager";
@@ -40,6 +40,7 @@ export class SettingsLogic {
 
     // 模型管理业务逻辑
     async addOrUpdateModel(model: ModelConfig, originalId?: string): Promise<void> {
+        assertValidModelIdentity(model);
         if (model.contextWindow !== undefined
             && (!Number.isFinite(model.contextWindow) || model.contextWindow <= 0)) {
             throw new Error('Context window must be a positive number');

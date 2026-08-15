@@ -6,62 +6,72 @@ import { IObsidianAgentPlugin } from "../../../types";
 import { Settings } from "./settings";
 import { TabProvider } from "../../../hooks/TabContext";
 import { PortalContainerProvider } from "../../../hooks/PortalContainerContext";
+import { I18nextProvider, i18n } from "../../../i18n/react";
+import { resources } from "../../../i18n";
 
 const SETTINGS_HOST_CLASS = "obsidian-agent-settings-host";
 const SETTINGS_ROOT_CLASS = "obsidian-agent-settings-react-root";
 
-const SETTING_SEARCH_ALIASES = [
-  "Models",
-  "Chat models",
-  "Model settings",
-  "Default agent model",
-  "Title generation model",
-  "Image analysis model",
-  "Provider",
-  "Display name",
-  "Model name",
-  "Base URL",
-  "API key",
-  "Temperature",
-  "Max output tokens",
-  "Context window",
-  "Automatically compact context",
-  "Top P",
-  "Frequency penalty",
-  "Presence penalty",
-  "CORS proxy",
-  "Tools",
-  "Builtin tools",
-  "Bash permissions",
-  "Bash 执行策略",
-  "直接执行",
-  "规则审批",
-  "智能审批",
-  "默认策略",
-  "命令模式",
-  "External tools",
-  "Exa web search",
-  "Bocha web search",
-  "Telegram feedback",
-  "MCP servers",
-  "Server name",
-  "Transport type",
-  "Environment variables",
-  "Server URL",
-  "Headers",
-  "Commands",
-  "Built-in commands",
-  "Custom commands",
-  "Skills",
-  "SubAgents",
-  "Rules",
-  "Memory",
-  "Idle threshold",
-  "Extraction model",
-  "Consolidation model",
-  "Max background model calls per day",
-  "Clear all memory",
-];
+const SETTING_SEARCH_ALIAS_KEYS = [
+  "models",
+  "chatModels",
+  "modelSettings",
+  "defaultAgentModel",
+  "titleGenerationModel",
+  "imageAnalysisModel",
+  "tool",
+  "provider",
+  "displayName",
+  "modelName",
+  "baseUrl",
+  "apiKey",
+  "contextWindow",
+  "automaticallyCompactContext",
+  "temperature",
+  "maxOutputTokens",
+  "topP",
+  "frequencyPenalty",
+  "presencePenalty",
+  "useCorsProxy",
+  "builtinTools",
+  "bashExecutionPolicy",
+  "directExecution",
+  "rulesApproval",
+  "aiApproval",
+  "commandPattern",
+  "externalTools",
+  "exaWebSearch",
+  "bochaWebSearch",
+  "telegramFeedback",
+  "mcpServers",
+  "serverName",
+  "transportType",
+  "environmentVariables",
+  "serverUrl",
+  "headers",
+  "command",
+  "commands",
+  "builtInCommands",
+  "customCommands",
+  "skills",
+  "subagents",
+  "rules",
+  "memory",
+  "idleThreshold",
+  "maxBackgroundCalls",
+  "clearAllMemory",
+] as const;
+
+const getSettingSearchAliases = (): string[] => Array.from(new Set(
+  SETTING_SEARCH_ALIAS_KEYS.flatMap(key => [
+    resources["zh-CN"].settings[key],
+    resources["en-US"].settings[key],
+  ]),
+));
+
+const getActiveSettingsResource = () => (
+  i18n.language === "zh-CN" ? resources["zh-CN"].settings : resources["en-US"].settings
+);
 
 export class ObsidianAgentSettingTab extends PluginSettingTab {
   plugin: IObsidianAgentPlugin;
@@ -75,9 +85,9 @@ export class ObsidianAgentSettingTab extends PluginSettingTab {
   getSettingDefinitions(): SettingDefinitionItem[] {
     return [
       {
-        name: "Agent settings",
-        desc: "Configure models, tools, extensions, permissions, and memory.",
-        aliases: SETTING_SEARCH_ALIASES,
+        name: getActiveSettingsResource().agentSettings,
+        desc: getActiveSettingsResource().settingsDescription,
+        aliases: getSettingSearchAliases(),
         render: (setting) => this.mountSettings(setting.settingEl),
       },
     ];
@@ -103,11 +113,13 @@ export class ObsidianAgentSettingTab extends PluginSettingTab {
     const portalContainer = containerEl.ownerDocument.body;
 
     root.render(
-      <PortalContainerProvider container={portalContainer}>
-        <TabProvider modalContainer={portalContainer}>
-          <Settings />
-        </TabProvider>
-      </PortalContainerProvider>,
+      <I18nextProvider i18n={i18n}>
+        <PortalContainerProvider container={portalContainer}>
+          <TabProvider modalContainer={portalContainer}>
+            <Settings />
+          </TabProvider>
+        </PortalContainerProvider>
+      </I18nextProvider>,
     );
 
     return () => this.unmountSettings(root);

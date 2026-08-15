@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Input } from "./input";
 import { cn } from "./utils";
 import { Eye, EyeOff } from "lucide-react";
+import { t } from "../../i18n";
 
 
 export function PasswordInput({
@@ -59,7 +60,7 @@ export function PasswordInput({
           disabled && "tw-cursor-not-allowed tw-opacity-50"
         )}
         role="button"
-        aria-label={showPassword ? "Hide password" : "Show password"}
+        aria-label={showPassword ? t('common:hidePassword') : t('common:showPassword')}
       >
         {showPassword ? (
           <EyeOff

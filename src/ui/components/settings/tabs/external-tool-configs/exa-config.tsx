@@ -10,6 +10,7 @@ import { ExaSearchConfig } from "@/types";
 import SettingsLogic from "@/logic/settings-logic";
 import { ExternalLink, Key, Settings2 } from "lucide-react";
 import { Notice } from "obsidian";
+import { formatNumber, getErrorMessage, t } from "@/i18n";
 
 interface ExaConfigProps {
   onSave?: () => void;
@@ -37,11 +38,14 @@ export const ExaConfig: React.FC<ExaConfigProps> = ({ onSave, dialogElement }) =
     setIsSaving(true);
     try {
       await settingsLogic.updateExaSearchConfig(localConfig);
-      new Notice("Exa search config saved.", 3000);
+      new Notice(t("common:saved"), 3000);
       onSave?.();
     } catch (error) {
       console.error("Failed to save Exa search config:", error);
-      new Notice(`Failed to save Exa search config: ${error instanceof Error ? error.message : "Unknown error"}`, 5000);
+      new Notice(t("common:saveFailed", {
+        operation: t("settings:saveExaConfig"),
+        cause: getErrorMessage(error),
+      }), 5000);
     } finally {
       setIsSaving(false);
     }
@@ -56,7 +60,7 @@ export const ExaConfig: React.FC<ExaConfigProps> = ({ onSave, dialogElement }) =
         <div className="tw-flex tw-items-center tw-justify-between">
           <Label htmlFor="exa-api-key" className="tw-flex tw-items-center tw-gap-2">
             <Key className="tw-size-4" />
-            API Key
+            {t("settings:apiKey")}
           </Label>
           <a
             href="https://dashboard.exa.ai/api-keys"
@@ -64,7 +68,7 @@ export const ExaConfig: React.FC<ExaConfigProps> = ({ onSave, dialogElement }) =
             rel="noopener noreferrer"
             className="tw-flex tw-items-center tw-gap-1 tw-text-sm tw-text-blue-500 hover:tw-text-blue-600 tw-transition-colors"
           >
-            Get API Key
+            {t("common:getApiKey")}
             <ExternalLink className="tw-size-3" />
           </a>
         </div>
@@ -72,7 +76,7 @@ export const ExaConfig: React.FC<ExaConfigProps> = ({ onSave, dialogElement }) =
           <Input
             id="exa-api-key"
             type={showApiKey ? "text" : "password"}
-            placeholder="Enter your Exa API key"
+            placeholder={t("settings:exaApiKeyPlaceholder")}
             value={localConfig.apiKey}
             onChange={(e) => setLocalConfig((prev) => ({ ...prev, apiKey: e.target.value }))}
             className="tw-flex-1"
@@ -82,7 +86,7 @@ export const ExaConfig: React.FC<ExaConfigProps> = ({ onSave, dialogElement }) =
             size="sm"
             onClick={() => setShowApiKey(!showApiKey)}
           >
-            {showApiKey ? "Hide" : "Show"}
+            {showApiKey ? t("common:hide") : t("common:show")}
           </Button>
         </div>
       </div>
@@ -90,9 +94,9 @@ export const ExaConfig: React.FC<ExaConfigProps> = ({ onSave, dialogElement }) =
       {/* Enable/Disable Switch */}
       <div className="tw-flex tw-items-center tw-justify-between tw-p-4 tw-bg-secondary/50 tw-rounded-lg">
         <div className="tw-space-y-1">
-          <Label className="tw-text-base tw-font-medium">Enable Exa Web Search</Label>
+          <Label className="tw-text-base tw-font-medium">{t("settings:enableExa")}</Label>
           <p className="tw-text-sm tw-text-gray-500">
-            Allow the AI agent to search the web using Exa API
+            {t("settings:allowAgentSearchExa")}
           </p>
         </div>
         <SettingSwitch
@@ -108,13 +112,13 @@ export const ExaConfig: React.FC<ExaConfigProps> = ({ onSave, dialogElement }) =
       <div className="tw-space-y-4">
         <Label className="tw-flex tw-items-center tw-gap-2">
           <Settings2 className="tw-size-4" />
-          Default Parameters
+          {t("settings:defaultParameters")}
         </Label>
 
         <div className="tw-grid tw-grid-cols-2 tw-gap-4">
           <div className="tw-space-y-2">
             <Label htmlFor="exa-num-results" className="tw-text-sm">
-              Number of Results
+              {t("settings:numberOfResults")}
             </Label>
             <Input
               id="exa-num-results"
@@ -129,12 +133,12 @@ export const ExaConfig: React.FC<ExaConfigProps> = ({ onSave, dialogElement }) =
                 }))
               }
             />
-            <p className="tw-text-xs tw-text-gray-500">Range: 1-20</p>
+            <p className="tw-text-xs tw-text-gray-500">{t("settings:range", { value: `${formatNumber(1)}-${formatNumber(20)}` })}</p>
           </div>
 
           <div className="tw-space-y-2">
             <Label htmlFor="exa-max-chars" className="tw-text-sm">
-              Max Characters
+              {t("settings:maxCharacters")}
             </Label>
             <Input
               id="exa-max-chars"
@@ -150,13 +154,13 @@ export const ExaConfig: React.FC<ExaConfigProps> = ({ onSave, dialogElement }) =
                 }))
               }
             />
-            <p className="tw-text-xs tw-text-gray-500">Range: 500-10000</p>
+            <p className="tw-text-xs tw-text-gray-500">{t("settings:range", { value: `${formatNumber(500)}-${formatNumber(10000)}` })}</p>
           </div>
         </div>
 
         <div className="tw-space-y-2">
           <Label htmlFor="exa-livecrawl" className="tw-text-sm">
-            Livecrawl Mode
+            {t("settings:selectLivecrawlMode")}
           </Label>
           <Select
             value={localConfig.livecrawl || "fallback"}
@@ -168,13 +172,13 @@ export const ExaConfig: React.FC<ExaConfigProps> = ({ onSave, dialogElement }) =
             }
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select livecrawl mode" />
+              <SelectValue placeholder={t("settings:selectLivecrawlMode")} />
             </SelectTrigger>
             <SelectContent container={dialogElement}>
-              <SelectItem value="never">Never - Use cached content only</SelectItem>
-              <SelectItem value="fallback">Fallback - Use live crawl when cached is stale</SelectItem>
-              <SelectItem value="always">Always - Always fetch fresh content</SelectItem>
-              <SelectItem value="preferred">Preferred - Prefer live crawl when available</SelectItem>
+              <SelectItem value="never">{t("settings:cachedOnly")}</SelectItem>
+              <SelectItem value="fallback">{t("settings:liveFallback")}</SelectItem>
+              <SelectItem value="always">{t("settings:alwaysFresh")}</SelectItem>
+              <SelectItem value="preferred">{t("settings:preferredLive")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -183,7 +187,7 @@ export const ExaConfig: React.FC<ExaConfigProps> = ({ onSave, dialogElement }) =
       {/* Save Button */}
       <div className="tw-flex tw-justify-end tw-pt-4">
         <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? "Saving..." : "Save Changes"}
+          {isSaving ? t("common:saving") : t("common:saveChanges")}
         </Button>
       </div>
     </div>

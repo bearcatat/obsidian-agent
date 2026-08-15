@@ -9,6 +9,7 @@ import { FormField } from "@/ui/elements/form-field";
 import { Textarea } from "@/ui/elements/textarea";
 import { debounce } from "@/ui/components/utils";
 import { useSettingsLogic } from "@/hooks/use-settings";
+import { t } from "@/i18n";
 
 interface MCPServerAddOrUpdateDialogProps {
   initialServer: MCPServerConfig;
@@ -155,32 +156,32 @@ export const MCPServerAddOrUpdateDialog: React.FC<MCPServerAddOrUpdateDialogProp
         ref={(el: HTMLDivElement | null) => setDialogElement(el)}
       >
         <DialogHeader>
-          <DialogTitle>{isUpdate ? "Update MCP Server" : "Add MCP Server"}</DialogTitle>
+          <DialogTitle>{isUpdate ? t("settings:updateMcpServer") : t("common:addMcpServer")}</DialogTitle>
           <DialogDescription>
-            {isUpdate ? "Update existing MCP server configuration." : "Add a new MCP server configuration."}
+            {isUpdate ? t("settings:updateMcpServerDescription") : t("settings:addMcpServerDescription")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="tw-space-y-3">
           <FormField
-            label="Server Name"
+            label={t("settings:serverName")}
             required
           >
             <Input
               type="text"
-              placeholder="Enter server name"
+              placeholder={t("settings:serverNamePlaceholder")}
               value={server.name || ""}
               onChange={(e) => setServer({ ...server, name: e.target.value })}
             />
           </FormField>
 
-          <FormField label="Transport Type">
+          <FormField label={t("settings:transportType")}>
             <Select 
               value={server.transport} 
               onValueChange={handleTransportChange}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select transport type" />
+                <SelectValue placeholder={t("settings:transportTypePlaceholder")} />
               </SelectTrigger>
               <SelectContent container={dialogElement}>
                 {Object.values(MCPTransportTypes).map((transport) => (
@@ -195,42 +196,42 @@ export const MCPServerAddOrUpdateDialog: React.FC<MCPServerAddOrUpdateDialogProp
           {server.transport === "stdio" && (
             <>
               <FormField
-                label="Command"
+                label={t("settings:commandLabel")}
                 required
               >
                 <Input
                   type="text"
-                  placeholder="Enter command (e.g., npx)"
+                  placeholder={t("settings:commandPlaceholder")}
                   value={server.command || ""}
                   onChange={(e) => setServer({ ...server, command: e.target.value })}
                 />
               </FormField>
 
                              <FormField
-                 label="Arguments"
+                  label={t("settings:argumentsLabel")}
                >
                  <Textarea
-                   placeholder="Enter arguments (one per line):&#10;--directory&#10;/path/to/bocha-search-mcp&#10;run&#10;bocha-search-mcp"
+                   placeholder={t("settings:argumentsPlaceholder")}
                    value={server.args?.join("\n") || ""}
                    onChange={(e) => handleArgsChange(e.target.value)}
                    rows={4}
                  />
                  <div className="tw-text-xs tw-text-gray-500 tw-mt-1">
-                   Format: one argument per line
+                    {t("settings:formatOneArgumentPerLine")}
                  </div>
                </FormField>
 
                <FormField
-                 label="Environment Variables (Optional)"
+                  label={t("settings:environmentVariables")}
                >
                  <Textarea
-                   placeholder="Enter environment variables in format:&#10;API_KEY: your_api_key_here&#10;DEBUG: true"
+                    placeholder={t("settings:environmentVariablesPlaceholder")}
                    value={envString}
                    onChange={(e) => handleEnvChange(e.target.value)}
                    rows={4}
                  />
                  <div className="tw-text-xs tw-text-gray-500 tw-mt-1">
-                   Format: KEY: VALUE (one per line)
+                    {t("settings:formatKeyValuePerLine")}
                  </div>
                </FormField>
              </>
@@ -239,15 +240,15 @@ export const MCPServerAddOrUpdateDialog: React.FC<MCPServerAddOrUpdateDialogProp
           {(server.transport === "http" || server.transport === "sse") && (
             <>
               <FormField
-                label="Server URL"
+                label={t("settings:serverUrl")}
                 required
               >
                 <Input
                   type="url"
                   placeholder={
                     server.transport === "sse" 
-                      ? "Enter SSE server URL (e.g., http://localhost:3000/events)"
-                      : "Enter server URL (e.g., http://localhost:3000)"
+                      ? t("settings:sseServerUrlPlaceholder")
+                      : t("settings:httpServerUrlPlaceholder")
                   }
                   value={server.url || ""}
                   onChange={(e) => setServer({ ...server, url: e.target.value })}
@@ -255,20 +256,20 @@ export const MCPServerAddOrUpdateDialog: React.FC<MCPServerAddOrUpdateDialogProp
               </FormField>
 
               <FormField
-                label="Headers (Optional)"
+                label={t("settings:headers")}
               >
                 <Textarea
                   placeholder={
                     server.transport === "sse"
-                      ? "Enter headers in format:&#10;Authorization: Bearer token&#10;Content-Type: text/event-stream"
-                      : "Enter headers in format:&#10;Authorization: Bearer token&#10;Content-Type: application/json"
+                      ? t("settings:sseHeadersPlaceholder")
+                      : t("settings:httpHeadersPlaceholder")
                   }
                   value={headersString}
                   onChange={(e) => handleHeadersChange(e.target.value)}
                   rows={4}
                 />
                 <div className="tw-text-xs tw-text-gray-500 tw-mt-1">
-                  Format: Key: Value (one per line)
+                  {t("settings:formatHeaderKeyValuePerLine")}
                 </div>
               </FormField>
             </>
@@ -277,10 +278,10 @@ export const MCPServerAddOrUpdateDialog: React.FC<MCPServerAddOrUpdateDialogProp
 
         <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-6">
           <Button variant="secondary" onClick={close}>
-            Cancel
+            {t("common:cancel")}
           </Button>
           <Button onClick={onSave}>
-            {isUpdate ? "Update" : "Add"}
+            {isUpdate ? t("common:update") : t("common:add")}
           </Button>
         </div>
       </DialogContent>

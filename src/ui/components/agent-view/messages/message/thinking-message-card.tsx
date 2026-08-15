@@ -5,6 +5,7 @@ import { AssistantMessageCard } from "./assistant-message-card";
 import { NestedMessagesList } from "../nested-messages-list";
 import { useState, useEffect, useMemo } from "react";
 import { ChevronsUpDown } from "lucide-react";
+import { t } from "@/i18n";
 
 type Props = {
     content: string;
@@ -36,7 +37,7 @@ export const ThinkingMessageCard = ({ content, isStreaming }: Props) => {
         >
             <div className="tw-flex tw-items-center tw-justify-between tw-px-2 tw-text-sm">
                 <div className="tw-text-muted tw-text-xs">
-                    💭 Thinking
+                    💭 {t("agent:thinking")}
                 </div>
                 <CollapsibleTrigger asChild>
                     <Button variant="ghost" size="icon" className="tw-size-8">

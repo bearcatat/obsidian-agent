@@ -4,6 +4,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import React from "react";
 import { BashAuthorizationSummary, BashCommand } from "@/types";
 import { ChevronsUpDown, Check, X, Terminal, AlertTriangle, ChevronDown } from "lucide-react";
+import { t } from "../../../../../i18n";
 
 type Decision = "apply" | "reject" | "allow" | "deny" | null;
 
@@ -73,22 +74,22 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
     const getStatusText = () => {
         if (answered) {
             if (decision === "apply" || decision === "allow") {
-                return bashCommand.exitCode === 0 ? "Executed successfully" : "Execution failed";
+                return bashCommand.exitCode === 0 ? t('agent:executedSuccessfully') : t('agent:executionFailed');
             }
             if (decision === "deny") {
-                return authorization?.source === "hard-block" ? "Blocked by hard guard" : "Denied";
+                return authorization?.source === "hard-block" ? t('agent:blockedByHardGuard') : t('agent:denied');
             }
-            return decision === "reject" ? "Rejected" : "Processed";
+            return decision === "reject" ? t('agent:rejected') : t('agent:processed');
         }
-        return pendingLabel || "Pending confirmation";
+        return pendingLabel || t('agent:pendingConfirmation');
     };
 
     const sourceLabel = authorization ? ({
-        "hard-block": "Hard guard",
-        direct: "Direct policy",
-        rule: "Rule approval",
-        ai: "AI approval",
-        human: "Human approval",
+        "hard-block": t('agent:hardGuard'),
+        direct: t('agent:directPolicy'),
+        rule: t('agent:ruleApproval'),
+        ai: t('agent:aiApproval'),
+        human: t('agent:humanApproval'),
     } as const)[authorization.source] : null;
 
     const isDangerous = React.useMemo(() => {
@@ -149,7 +150,7 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
 
                 {authorization && (
                     <div className="tw-mt-2 tw-rounded tw-bg-muted/40 tw-px-2 tw-py-1.5 tw-text-xs tw-text-muted-foreground">
-                        <div>{sourceLabel} · {authorization.isolation === "none" ? "Unsandboxed" : "Sandboxed"}{authorization.risk ? ` · Risk: ${authorization.risk}` : ""}{authorization.authorization ? ` · Authorization: ${authorization.authorization}` : ""}</div>
+                        <div>{sourceLabel} · {authorization.isolation === "none" ? t('agent:unsandboxed') : t('agent:sandboxed')}{authorization.risk ? ` · ${t('agent:risk')}: ${authorization.risk}` : ""}{authorization.authorization ? ` · ${t('agent:authorization')}: ${authorization.authorization}` : ""}</div>
                         {authorization.reason && <div className="tw-mt-1 tw-break-words">{authorization.reason}</div>}
                     </div>
                 )}
@@ -167,7 +168,7 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
                 {bashCommand.exitCode !== undefined && bashCommand.exitCode !== null && (
                     <div className="tw-mt-2 tw-text-sm">
                         <span className={bashCommand.exitCode === 0 ? "tw-text-green-500" : "tw-text-red-500"}>
-                            Exit code: {bashCommand.exitCode}
+                            {t('agent:exitCode')}: {bashCommand.exitCode}
                         </span>
                     </div>
                 )}
@@ -181,7 +182,7 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
                             onClick={handleApply}
                         >
                             <Check className="tw-size-4 tw-mr-1" />
-                            Execute
+                            {t('agent:execute')}
                         </Button>
                         <Button 
                             variant="ghost" 
@@ -190,29 +191,29 @@ export const BashToolMessageCard = ({ origin_answered_state, bashCommand, decisi
                             onClick={handleReject}
                         >
                             <X className="tw-size-4 tw-mr-1" />
-                            Deny
+                            {t('agent:denyAction')}
                         </Button>
                         {onAlwaysAllow && onAlwaysDeny && onAlwaysAllowGroup && onAlwaysDenyGroup && <>
                         <div className="tw-w-px tw-h-6 tw-bg-border" />
                         <DropdownMenu open={isRememberDropdownOpen} onOpenChange={setIsRememberDropdownOpen}>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost2" size="fit">
-                                    Remember...
+                                    {t('agent:remember')}
                                     <ChevronDown className="tw-mt-0.5 tw-size-4" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start">
                                 <DropdownMenuItem onSelect={() => { setIsRememberDropdownOpen(false); handleAlwaysAllow(); }}>
-                                    Allow and remember
+                                    {t('agent:allowAndRemember')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => { setIsRememberDropdownOpen(false); handleAlwaysDeny(); }}>
-                                    Deny and remember
+                                    {t('agent:denyAndRemember')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => { setIsRememberDropdownOpen(false); handleAlwaysAllowGroup(); }}>
-                                    Allow all {commandBase} commands
+                                    {t('agent:allowAllCommands', { command: commandBase })}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onSelect={() => { setIsRememberDropdownOpen(false); handleAlwaysDenyGroup(); }}>
-                                    Deny all {commandBase} commands
+                                    {t('agent:denyAllCommands', { command: commandBase })}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>

@@ -3,6 +3,7 @@ import { FormField } from "@/ui/elements/form-field";
 import { Input } from "@/ui/elements/input";
 import { HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/ui/elements/tooltip";
+import { t } from "@/i18n";
 
 export const ContextWindow = ({ model, setModel }: {
   model: ModelConfig;
@@ -15,10 +16,10 @@ export const ContextWindow = ({ model, setModel }: {
   return (
     <FormField
       error={invalid}
-      errorMessage="Context window must be larger than Max Output Tokens."
+      errorMessage={t("settings:contextWindowError")}
       label={
         <div className="tw-flex tw-items-center tw-gap-2">
-          Context Window
+          {t("settings:contextWindow")}
           <TooltipProvider delayDuration={0}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -26,7 +27,7 @@ export const ContextWindow = ({ model, setModel }: {
               </TooltipTrigger>
               <TooltipContent side="bottom">
                 <div className="tw-w-[300px]">
-                  Total input + output token capacity for this model. Leave empty when unknown. Automatic preflight compaction only runs when this value is configured.
+                  {t("settings:contextWindowHelp")}
                 </div>
               </TooltipContent>
             </Tooltip>
@@ -38,7 +39,7 @@ export const ContextWindow = ({ model, setModel }: {
         type="number"
         min={1}
         step={1024}
-        placeholder="Unknown"
+        placeholder={t("settings:unknown")}
         value={model.contextWindow ?? ''}
         onChange={(event) => {
           const raw = event.target.value.trim();

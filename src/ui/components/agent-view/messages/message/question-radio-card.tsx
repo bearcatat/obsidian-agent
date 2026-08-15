@@ -7,6 +7,7 @@ import { TransparentInput } from "@/ui/elements/input";
 import React from "react";
 import { Question, QuestionOption } from "@/types";
 import { ChevronsUpDown } from "lucide-react";
+import { t } from "@/i18n";
 
 type Props = {
     origin_answered_state: boolean;
@@ -76,7 +77,7 @@ export const QuestionRadioCard = ({ origin_answered_state, question, answer, onA
         >
             <div className="tw-flex tw-items-center tw-justify-between tw-px-2 tw-text-sm tw-py-1">
                 <div>
-                    {isAnswered ? "Answered" : "Question"}: {question.header ? `${question.header}: ` : ""}{question.question}
+                    {isAnswered ? t("agent:answered") : t("common:question")}: {question.header ? `${question.header}: ` : ""}{question.question}
                 </div>
                 {isAnswered && (
                     <CollapsibleTrigger asChild>
@@ -115,7 +116,7 @@ export const QuestionRadioCard = ({ origin_answered_state, question, answer, onA
                 {!isAnswered && (
                     <div className="tw-flex tw-justify-start tw-mt-2 tw-px-2">
                         <Button variant="ghost" size="fit" className="tw-text-muted" onClick={handleSubmit}>
-                            Submit
+                            {t("agent:submit")}
                         </Button>
                     </div>
                 )}
@@ -193,7 +194,7 @@ const CustomRadioOption = ({
                     <TransparentInput
                         value={inputValue}
                         onChange={(e: { target: { value: string; }; }) => onInputChange(e.target.value)}
-                        placeholder={"Type your own answer"}
+                        placeholder={t("agent:typeOwnAnswer")}
                         readOnly={disabled}
                         onFocus={() => { !disabled && handleOptionChange(CUSTOM_OPTION_VALUE) }}
                         className="tw-text-sm"

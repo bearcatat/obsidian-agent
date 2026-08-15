@@ -5,6 +5,7 @@ import { ExternalToolId } from "./external-tools-table";
 import { ExaConfig } from "./external-tool-configs/exa-config";
 import { BochaConfig } from "./external-tool-configs/bocha-config";
 import { TelegramFeedbackConfig } from "./external-tool-configs/telegram-feedback-config";
+import { t } from "@/i18n";
 
 interface ExternalToolDialogProps {
   toolId: ExternalToolId | null;
@@ -12,18 +13,18 @@ interface ExternalToolDialogProps {
   close: () => void;
 }
 
-const toolInfo: Record<ExternalToolId, { name: string; description: string }> = {
+const toolInfo: Record<ExternalToolId, { nameKey: string; descriptionKey: string }> = {
   exa: {
-    name: "Exa Web Search",
-    description: "Configure Exa AI web search.",
+    nameKey: "exaWebSearch",
+    descriptionKey: "configureExa",
   },
   bocha: {
-    name: "Bocha Web Search",
-    description: "Configure Bocha AI web search.",
+    nameKey: "bochaWebSearch",
+    descriptionKey: "configureBocha",
   },
   telegram: {
-    name: "Telegram Feedback",
-    description: "Configure Telegram bot feedback, proxy, and user binding.",
+    nameKey: "telegramFeedback",
+    descriptionKey: "configureTelegram",
   },
 };
 
@@ -47,8 +48,8 @@ export const ExternalToolDialog: React.FC<ExternalToolDialogProps> = ({
         className="sm:tw-max-w-[500px]"
       >
         <DialogHeader>
-          <DialogTitle>{info.name}</DialogTitle>
-          <DialogDescription>{info.description}</DialogDescription>
+          <DialogTitle>{t(`settings:${info.nameKey}`)}</DialogTitle>
+          <DialogDescription>{t(`settings:${info.descriptionKey}`)}</DialogDescription>
         </DialogHeader>
         
         {toolId === "exa" && <ExaConfig onSave={close} dialogElement={dialogElement} />}

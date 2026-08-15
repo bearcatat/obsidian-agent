@@ -3,6 +3,7 @@ import { Button } from "@/ui/elements/button";
 import { X } from "lucide-react";
 import React from "react";
 import { Context } from "@/types";
+import { t } from "../../../../i18n";
 
 function ContextImageBadge({
   image,
@@ -17,14 +18,14 @@ function ContextImageBadge({
     <Badge className="tw-items-center tw-py-0 tw-pl-0.5 tw-pr-0.5 tw-text-xs tw-gap-1">
       <img
         src={image}
-        alt={`Pasted image ${index + 1}`}
+        alt={t('common:pastedImage', { number: index + 1 })}
         className="tw-w-6 tw-h-6 tw-object-cover tw-rounded"
       />
       <Button
         variant="ghost2"
         size="fit"
         onClick={() => removeImage(index)}
-        aria-label="Remove image from context"
+        aria-label={t('common:removeImage')}
       >
         <X className="tw-size-4" />
       </Button>
@@ -37,7 +38,7 @@ function UserContextImageBadge({ image, index }: { image: string; index: number 
     <Badge className="tw-items-center tw-py-0 tw-pl-0.5 tw-pr-0.5 tw-text-xs tw-gap-1">
       <img
         src={image}
-        alt={`Image ${index + 1}`}
+        alt={t('common:imageNumber', { number: index + 1 })}
         className="tw-w-6 tw-h-6 tw-object-cover tw-rounded"
       />
       <span className="tw-text-[--text-muted]">{index + 1}</span>

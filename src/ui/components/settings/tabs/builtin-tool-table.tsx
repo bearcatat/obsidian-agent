@@ -2,6 +2,7 @@ import { BuiltinToolConfig } from "@/types";
 import { useSettings } from "@/hooks/use-settings";
 import { SettingSwitch } from "@/ui/elements/setting-switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/ui/elements/tables";
+import { getBuiltinToolDisplayDescription, t } from "../../../../i18n";
 
 const BuiltinToolTableRow: React.FC<{
   tool: BuiltinToolConfig;
@@ -16,7 +17,7 @@ const BuiltinToolTableRow: React.FC<{
       </TableCell>
       <TableCell>
         <div className="tw-text-sm tw-text-gray-600">
-          {tool.description}
+          {getBuiltinToolDisplayDescription(tool.name, tool.description)}
         </div>
       </TableCell>
       <TableCell className="tw-w-20">
@@ -43,7 +44,7 @@ export const BuiltinToolTable: React.FC = () => {
   if (!builtinTools || builtinTools.length === 0) {
     return (
       <div className="tw-space-y-4">
-        <div className="tw-text-sm tw-text-gray-500">Loading built-in tools...</div>
+        <div className="tw-text-sm tw-text-gray-500">{t('common:loadingTools')}</div>
       </div>
     );
   }
@@ -55,9 +56,9 @@ export const BuiltinToolTable: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Tool Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="tw-w-20">Status</TableHead>
+                <TableHead>{t('common:toolName')}</TableHead>
+                <TableHead>{t('common:description')}</TableHead>
+                <TableHead className="tw-w-20">{t('common:status')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="tw-relative">

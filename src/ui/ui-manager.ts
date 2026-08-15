@@ -4,6 +4,7 @@ import { IObsidianAgentPlugin } from '../types';
 import { AgentView, AGENT_VIEW_TYPE } from './components/agent-view/agent-view';
 import { ConversationListView, CONVERSATION_LIST_VIEW_TYPE } from './components/conversation-list-view';
 import { WorkspaceLeaf } from 'obsidian';
+import { t } from '../i18n';
 
 export class UIManager {
 	private plugin: IObsidianAgentPlugin;
@@ -26,7 +27,7 @@ export class UIManager {
 	private setupRibbonIcon(): void {
 		const ribbonIconEl = this.plugin.addRibbonIcon(
 			IconManager.getIconName(),
-			'Obsidian Agent',
+			t('common:pluginName'),
 			this.handleRibbonClick,
 		);
 		ribbonIconEl.addClass('obsidian-agent-ribbon-class');

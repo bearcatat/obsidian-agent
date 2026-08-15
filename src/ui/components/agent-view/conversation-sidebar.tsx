@@ -5,8 +5,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../../elements/tooltip"
 import { useAgentStore } from "@/state/agent-state-impl";
 import { SessionLogic, SessionMetadata } from "@/logic/session-logic";
 import { AgentViewLogic } from "@/logic/agent-view-logic";
+import { formatDateTime, t } from '../../../i18n';
 
 export const ConversationSidebar: React.FC = () => {
+  const translate = (key: string, options?: Record<string, unknown>) => t(key, options);
   const [persisted, setPersisted] = useState<SessionMetadata[]>([]);
   const conversations = useAgentStore(state => state.conversations);
   const activeId = useAgentStore(state => state.activeConversationId);
@@ -84,14 +86,14 @@ export const ConversationSidebar: React.FC = () => {
   return (
     <aside className="tw-m-0 tw-flex tw-h-full tw-w-full tw-min-w-0 tw-flex-col">
       <div className="tw-flex tw-items-center tw-justify-between tw-px-2 tw-py-1">
-        <span style={{ fontSize: 'var(--nav-item-size, var(--font-ui-small))', fontWeight: 'var(--nav-item-weight, 400)' }}>CHATS</span>
+        <span style={{ fontSize: 'var(--nav-item-size, var(--font-ui-small))', fontWeight: 'var(--nav-item-weight, 400)' }}>{translate('common:chats')}</span>
         <Button
           variant="ghost2"
           size="fit"
           style={{ fontSize: 'var(--nav-item-size, var(--font-ui-small))', fontWeight: 'var(--nav-item-weight, 400)' }}
           onClick={() => void createConversation()}
         >
-          <MessageSquarePlus className="tw-mr-1 tw-size-4" />New Chat
+          <MessageSquarePlus className="tw-mr-1 tw-size-4" />{translate('common:newChat')}
         </Button>
       </div>
       <div className="nav-files-container tw-min-h-0 tw-flex-1 tw-overflow-y-auto tw-px-2 tw-py-1">
@@ -121,7 +123,7 @@ export const ConversationSidebar: React.FC = () => {
                       variant="ghost2"
                       size="icon"
                       className="tw-hidden !tw-size-3.5 !tw-min-h-0 !tw-min-w-0 tw-shrink-0 tw-p-0 group-hover:tw-flex"
-                      aria-label={`Delete ${item.title}`}
+                      aria-label={translate('common:deleteItem', { name: item.title })}
                       onClick={event => {
                         event.stopPropagation();
                         void deleteConversation(item.id);
@@ -132,7 +134,7 @@ export const ConversationSidebar: React.FC = () => {
                   </div>
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="right">Updated {new Date(item.updatedAt).toLocaleString()}</TooltipContent>
+              <TooltipContent side="right">{translate('common:updated', { date: formatDateTime(item.updatedAt) })}</TooltipContent>
             </Tooltip>
           );
         })}

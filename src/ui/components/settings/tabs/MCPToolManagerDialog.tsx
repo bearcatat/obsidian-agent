@@ -5,6 +5,7 @@ import { Button } from "@/ui/elements/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/ui/elements/dialog";
 import { Checkbox } from "@/ui/elements/checkbox";
 import { useSettingsLogic } from "@/hooks/use-settings";
+import { formatNumber, getErrorMessage, t } from "@/i18n";
 
 interface MCPToolManagerDialogProps {
   server: MCPServerConfig;
@@ -53,7 +54,7 @@ export const MCPToolManagerDialog: React.FC<MCPToolManagerDialogProps> = ({
       setTools(toolConfigs);
     } catch (err) {
       console.error('Failed to load MCP tools:', err);
-      setError('Failed to load tools from MCP server. Please check your configuration.');
+      setError(t('settings:loadMcpToolsFailed', { cause: getErrorMessage(err) }));
     } finally {
       setLoading(false);
     }
@@ -80,7 +81,7 @@ export const MCPToolManagerDialog: React.FC<MCPToolManagerDialogProps> = ({
       close();
     } catch (error) {
       console.error('Failed to save tool configuration:', error);
-      setError('Failed to save tool configuration.');
+      setError(t('settings:saveToolConfigurationFailed', { cause: getErrorMessage(error) }));
     }
   };
 
@@ -94,15 +95,15 @@ export const MCPToolManagerDialog: React.FC<MCPToolManagerDialogProps> = ({
         container={modalContainer}
       >
         <DialogHeader>
-          <DialogTitle>Manage Tools - {server.name}</DialogTitle>
+          <DialogTitle>{t('settings:manageToolsFor', { name: server.name })}</DialogTitle>
           <DialogDescription>
-            Select which tools from this MCP server should be available to the AI assistant.
+            {t('settings:mcpToolsDescription')}
           </DialogDescription>
         </DialogHeader>
 
         {loading && (
           <div className="tw-flex tw-justify-center tw-py-8">
-            <div className="tw-text-gray-500">Loading tools...</div>
+            <div className="tw-text-gray-500">{t('common:loadingTools')}</div>
           </div>
         )}
 
@@ -116,14 +117,17 @@ export const MCPToolManagerDialog: React.FC<MCPToolManagerDialogProps> = ({
           <>
             <div className="tw-flex tw-justify-between tw-items-center tw-mb-4">
               <div className="tw-text-sm tw-text-gray-600">
-                {enabledCount} of {totalCount} tools enabled
+                {t('common:toolsEnabled', {
+                  enabled: formatNumber(enabledCount),
+                  total: formatNumber(totalCount),
+                })}
               </div>
               <div className="tw-flex tw-gap-2">
                 <Button variant="secondary" size="sm" onClick={handleSelectAll}>
-                  Select All
+                  {t('common:selectAll')}
                 </Button>
                 <Button variant="secondary" size="sm" onClick={handleDeselectAll}>
-                  Deselect All
+                  {t('common:deselectAll')}
                 </Button>
               </div>
             </div>
@@ -151,10 +155,10 @@ export const MCPToolManagerDialog: React.FC<MCPToolManagerDialogProps> = ({
 
         <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-6">
           <Button variant="secondary" onClick={close}>
-            Cancel
+            {t('common:cancel')}
           </Button>
           <Button onClick={handleSave} disabled={loading}>
-            Save Configuration
+            {t('common:save')}
           </Button>
         </div>
       </DialogContent>

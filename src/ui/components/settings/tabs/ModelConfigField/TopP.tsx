@@ -3,6 +3,7 @@ import { FormField } from "@/ui/elements/form-field"
 import { SettingSlider } from "@/ui/elements/setting-slider"
 import { HelpCircle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/ui/elements/tooltip"
+import { formatNumber, t } from "@/i18n"
 
 interface TopPProps {
     model: ModelConfig
@@ -24,7 +25,7 @@ export const TopP = ({
     return (<FormField
         label={
             <div className="tw-flex tw-items-center tw-gap-2">
-                Top-P
+                {t("settings:topP")}
                 <TooltipProvider delayDuration={0}>
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -32,9 +33,7 @@ export const TopP = ({
                         </TooltipTrigger>
                         <TooltipContent side="bottom">
                             <div className="tw-w-[300px]">
-                                Default value is {defaultValue}, the smaller the value, the less variety in the
-                                answers, the easier to understand, the larger the value, the larger the
-                                range of AI&apos;s vocabulary, the more diverse.
+                                {t("settings:topPHelp", { defaultValue: formatNumber(defaultValue) })}
                             </div>
                         </TooltipContent>
                     </Tooltip>

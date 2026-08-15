@@ -6,6 +6,8 @@ import { IconManager } from '../../icons';
 import { TooltipProvider } from '../../elements/tooltip';
 import React from 'react';
 import { CONVERSATION_LIST_VIEW_TYPE } from '../conversation-list-view';
+import { I18nextProvider, i18n } from '../../../i18n/react';
+import { t } from '../../../i18n';
 
 export const AGENT_VIEW_TYPE = 'agent-view';
 
@@ -21,7 +23,7 @@ export class AgentView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return 'Agent View';
+		return t('common:agentView');
 	}
 
 	getIcon(): string {
@@ -46,13 +48,15 @@ export class AgentView extends ItemView {
 
 		// 使用应用上下文包装组件
 		this.root.render(
-			<AppContextProvider app={this.app}>
-				<TooltipProvider delayDuration={0}>
-					<React.StrictMode>
-						<Chat />
-					</React.StrictMode>
-				</TooltipProvider>
-			</AppContextProvider>
+			<I18nextProvider i18n={i18n}>
+				<AppContextProvider app={this.app}>
+					<TooltipProvider delayDuration={0}>
+						<React.StrictMode>
+							<Chat />
+						</React.StrictMode>
+					</TooltipProvider>
+				</AppContextProvider>
+			</I18nextProvider>
 		);
 	}
 

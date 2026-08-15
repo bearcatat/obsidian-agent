@@ -7,6 +7,7 @@ import { BashPermissionSettings } from "./bash-permission-settings";
 import { useState } from "react";
 import { MCPServerTable } from "./mcp-server-table";
 import { MCPServerConfig } from "@/types";
+import { t } from "../../../../i18n";
 
 export const ToolSetting: React.FC = () => {
 
@@ -35,17 +36,17 @@ export const ToolSetting: React.FC = () => {
   return (
     <div className="tw-space-y-8">
       <section>
-        <div className="tw-mb-3 tw-text-xl tw-font-bold">Builtin Tools</div>
+        <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:builtinTools')}</div>
         <BuiltinToolTable />
       </section>
 
       <section>
-        <div className="tw-mb-3 tw-text-xl tw-font-bold">Bash 执行策略</div>
+        <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:bashExecutionPolicy')}</div>
         <BashPermissionSettings />
       </section>
 
       <section>
-        <div className="tw-mb-3 tw-text-xl tw-font-bold">External Tools</div>
+        <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:externalTools')}</div>
         <ExternalToolsTable onEdit={handleEditExternalTool} />
         <ExternalToolDialog
           toolId={selectedExternalTool}
@@ -58,7 +59,7 @@ export const ToolSetting: React.FC = () => {
       </section>
 
       <section>
-        <div className="tw-mb-3 tw-text-xl tw-font-bold">MCP Servers</div>
+        <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:mcpServers')}</div>
         <MCPServerTable
           onEdit={(server) => {
             setInitialServer(server);
