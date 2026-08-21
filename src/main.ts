@@ -27,6 +27,7 @@ import { SessionLogic } from './logic/session-logic';
 import MemoryLogic from './logic/memory-logic';
 import MemoryJobQueue from './logic/memory-job-queue';
 import { initI18n, resolveHostLocale } from './i18n';
+import VaultRagService from './retrieval/VaultRagService';
 
 export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgentPlugin {
 	private uiManager!: UIManager;
@@ -123,6 +124,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			SessionLogic.resetInstance();
 			MemoryLogic.resetInstance();
 			MemoryJobQueue.resetInstance();
+			VaultRagService.resetInstance();
 			FileReviewDriftMonitor.resetInstance();
 			FileReviewLogic.resetInstance();
 			SettingsLogic.resetInstance();

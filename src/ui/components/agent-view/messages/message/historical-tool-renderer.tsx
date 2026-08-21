@@ -13,6 +13,7 @@ import { renderSearchMessage } from '@/tool/Search/SearchTool';
 import { renderSkillMessage } from '@/tool/Skill/SkillTool';
 import { renderTelegramFeedbackMessage } from './telegram-feedback-message-card';
 import { renderWebFetchMessage } from '@/tool/WebFetch/WebFetchTool';
+import { renderVaultRagMessage } from '@/tool/VaultRag/VaultRagSearchTool';
 import { deserializeMessageForHistory, type SerializedHistoryMessage } from '@/messages/history-message';
 import type { MessageV2 } from '@/types';
 import { SubAgentMessagesCard } from '@/ui/components/agent-view/messages/messages';
@@ -106,6 +107,8 @@ export function renderHistoricalToolMessage(toolName: string, contentJson: strin
         return renderListMessage(data.path, data.stats);
       case 'search':
         return renderSearchMessage(data.params.query, data.metadata);
+      case 'vaultRagSearch':
+        return renderVaultRagMessage(data.response, data.query);
       case 'skill':
         return renderSkillMessage(data);
       case 'createCommand': {

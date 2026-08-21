@@ -10,6 +10,7 @@ import { SearchTool, toolName as SearchToolName } from "../Search/SearchTool";
 import { ListTool, toolName as ListToolName } from "../List/ListTool";
 import { SkillTool, toolName as SkillToolName } from "../Skill/SkillTool";
 import { BashTool, toolName as BashToolName } from "../Bash/BashTool";
+import { VaultRagSearchTool, toolName as VaultRagSearchToolName } from "../VaultRag/VaultRagSearchTool";
 
 export const BUILTIN_TOOL_REGISTRY: ToolSet = {
   [ReadNoteByPathToolName]: ReadNoteByPathTool,
@@ -23,4 +24,5 @@ export const BUILTIN_TOOL_REGISTRY: ToolSet = {
   [ListToolName]: ListTool,
   [SkillToolName]: SkillTool,
   [BashToolName]: BashTool,
+  [VaultRagSearchToolName]: VaultRagSearchTool,
 };

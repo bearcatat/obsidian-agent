@@ -106,6 +106,11 @@ export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
     enabled: true,
   },
   {
+    name: "vaultRagSearch",
+    description: "Search the current Vault Markdown index with semantic vectors",
+    enabled: true,
+  },
+  {
     name: "list",
     description: "List files and directories in a folder",
     enabled: true,

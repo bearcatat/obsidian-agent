@@ -1,4 +1,4 @@
-import { assertValidModelIdentity, ModelConfig, ModelVariant, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, MemorySettings, normalizeMemoryIdleHours, resolveModelVariant } from "../types";
+import { assertValidModelIdentity, assertValidEmbeddingModel, ModelConfig, ModelVariant, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, MemorySettings, normalizeMemoryIdleHours, resolveModelVariant, EmbeddingModelConfig } from "../types";
 import { settingsStore } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
 import AIToolManager from "@/tool/ToolManager";
@@ -9,6 +9,7 @@ import TelegramFeedbackRuntime from "@/tool/TelegramFeedback/TelegramFeedbackRun
 import MemoryJobQueue from "@/logic/memory-job-queue";
 import { AgentViewLogic } from "@/logic/agent-view-logic";
 import { agentStore } from "@/state/agent-state-impl";
+import VaultRagService from "@/retrieval/VaultRagService";
 
 export class SettingsLogic {
     private static instance: SettingsLogic;
@@ -85,6 +86,48 @@ export class SettingsLogic {
         }
 
         state.removeModel(modelId);
+        await this.saveSettings();
+    }
+
+    async addOrUpdateEmbeddingModel(model: EmbeddingModelConfig, originalId?: string): Promise<void> {
+        assertValidEmbeddingModel(model);
+        const state = settingsStore.getState();
+        const targetId = originalId ?? model.id;
+        if (originalId && !state.embeddingModels.some((item) => item.id === originalId)) {
+            throw new Error(`Embedding model with ID "${originalId}" not found`);
+        }
+        if (!originalId && state.embeddingModels.some((item) => item.id === model.id)) {
+            throw new Error(`Embedding model with ID "${model.id}" already exists`);
+        }
+        state.addOrUpdateEmbeddingModel({ ...model, id: model.id.trim(), name: model.name.trim(), baseUrl: model.baseUrl.trim(), apiKey: model.apiKey.trim() }, originalId);
+        await this.saveSettings();
+        await VaultRagService.getInstance().configure(this.getSelectedEmbeddingModel());
+        if (originalId && originalId !== model.id) await this.removeEmbeddingModelIndex(originalId);
+    }
+
+    async removeEmbeddingModel(modelId: string): Promise<void> {
+        const state = settingsStore.getState();
+        if (!state.embeddingModels.some((item) => item.id === modelId)) throw new Error(`Embedding model with ID "${modelId}" not found`);
+        state.removeEmbeddingModel(modelId);
+        await this.saveSettings();
+        await VaultRagService.getInstance().configure(this.getSelectedEmbeddingModel());
+        await this.removeEmbeddingModelIndex(modelId);
+    }
+
+    async reorderEmbeddingModels(models: EmbeddingModelConfig[]): Promise<void> {
+        const current = settingsStore.getState().embeddingModels;
+        if (current.length !== models.length || new Set(models.map((model) => model.id)).size !== current.length) {
+            throw new Error("Embedding model list mismatch during reordering");
+        }
+        settingsStore.getState().reorderEmbeddingModels(models);
+        await this.saveSettings();
+    }
+
+    async setRagEmbeddingModelId(modelId: string | null): Promise<void> {
+        const state = settingsStore.getState();
+        if (modelId && !state.embeddingModels.some((model) => model.id === modelId)) throw new Error("Selected embedding model was not found");
+        state.setRagEmbeddingModelId(modelId);
+        await VaultRagService.getInstance().configure(this.getSelectedEmbeddingModel());
         await this.saveSettings();
     }
 
@@ -261,6 +304,7 @@ export class SettingsLogic {
                     await this.saveSettings();
                 }
             }
+            await VaultRagService.getInstance().configure(this.getSelectedEmbeddingModel());
             // 异步初始化，不阻塞插件加载
             TelegramFeedbackRuntime.getInstance().configure(settingsStore.getState().telegramFeedbackConfig).catch((error: unknown) => {
                 console.error('[TelegramFeedbackRuntime] Background configure failed:', error);
@@ -275,6 +319,8 @@ export class SettingsLogic {
             const state = settingsStore.getState();
             const stateData = {
                 models: state.models,
+                embeddingModels: state.embeddingModels,
+                ragSettings: state.ragSettings,
                 defaultAgentModel: state.defaultAgentModel,
                 defaultAgentModelVariant: state.defaultAgentModelVariant,
                 titleModel: state.titleModel,
@@ -430,6 +476,20 @@ export class SettingsLogic {
         await MemoryJobQueue.getInstance().configure();
         await this.saveSettings();
     }
+
+    private getSelectedEmbeddingModel(): EmbeddingModelConfig | null {
+        const state = settingsStore.getState();
+        return state.embeddingModels.find((model) => model.id === state.ragSettings.embeddingModelId) ?? null;
+    }
+
+    private async removeEmbeddingModelIndex(modelId: string): Promise<void> {
+        try {
+            await VaultRagService.getInstance().removeModel(modelId);
+        } catch (error) {
+            console.error(`[VaultRagService] Failed to remove RAG index for embedding model "${modelId}":`, error);
+        }
+    }
+
 }
 
 export default SettingsLogic;

@@ -57,6 +57,34 @@ export interface ModelConfig {
   useCORS?: boolean;
 }
 
+/** A remote OpenAI-compatible embedding endpoint. No field has a fallback. */
+export interface EmbeddingModelConfig {
+  id: string;
+  name: string;
+  provider: "openai-compatible";
+  baseUrl: string;
+  apiKey: string;
+}
+
+export interface RagSettings {
+  embeddingModelId: string | null;
+}
+
+export function createDefaultRagSettings(): RagSettings {
+  return { embeddingModelId: null };
+}
+
+export function assertValidEmbeddingModel(model: EmbeddingModelConfig | null | undefined): asserts model is EmbeddingModelConfig {
+  if (!model
+    || !model.id.trim()
+    || !model.name.trim()
+    || model.provider !== "openai-compatible"
+    || !model.baseUrl.trim()
+    || !model.apiKey.trim()) {
+    throw new Error("Embedding model ID, name, provider, Base URL, and API key are required");
+  }
+}
+
 export function assertValidModelIdentity(model: ModelConfig | null | undefined): asserts model is ModelConfig {
   if (
     typeof model?.id !== "string"

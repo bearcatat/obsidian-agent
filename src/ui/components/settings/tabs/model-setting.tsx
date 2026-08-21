@@ -6,6 +6,7 @@ import { useSettingsState, useSettingsLogic } from "@/hooks/use-settings";
 import { ModelVariantSelect } from "../model-variant-select";
 import { SettingSwitch } from "@/ui/elements/setting-switch";
 import { t } from "../../../../i18n";
+import { EmbeddingModelsSetting, VaultRagIndexSetting } from "./vault-rag-setting";
 
 export const ModelSetting: React.FC = () => {
   const _initialModel = {
@@ -58,6 +59,8 @@ export const ModelSetting: React.FC = () => {
           close={() => setShowAddDialog(false)}
         />
       </section>
+
+      <EmbeddingModelsSetting />
 
       <section>
         <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:modelSettings')}</div>
@@ -114,6 +117,8 @@ export const ModelSetting: React.FC = () => {
           />
         </div>
       </section>
+
+      <VaultRagIndexSetting />
     </div>
   );
 };

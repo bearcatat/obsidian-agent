@@ -1,8 +1,10 @@
-import { ModelConfig, ModelVariant, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings } from '../types';
+import { ModelConfig, ModelVariant, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings, EmbeddingModelConfig, RagSettings, createDefaultRagSettings } from '../types';
 import { cloneDefaultBashPermissions, getDefaultBuiltinTools } from '../tool/BuiltinTools';
 
 export interface ISettingsState {
   readonly models: ModelConfig[];
+  readonly embeddingModels: EmbeddingModelConfig[];
+  readonly ragSettings: RagSettings;
   readonly defaultAgentModel: ModelConfig | null;
   readonly defaultAgentModelVariant: ModelVariant | null;
   readonly titleModel: ModelConfig | null;
@@ -22,6 +24,8 @@ export interface ISettingsState {
 export function clone(settingsState: ISettingsState): ISettingsState {
   return {
     models: settingsState.models || [],
+    embeddingModels: settingsState.embeddingModels || [],
+    ragSettings: settingsState.ragSettings || createDefaultRagSettings(),
     defaultAgentModel: settingsState.defaultAgentModel,
     defaultAgentModelVariant: settingsState.defaultAgentModelVariant ?? null,
     titleModel: settingsState.titleModel,
@@ -41,6 +45,8 @@ export function clone(settingsState: ISettingsState): ISettingsState {
 
 export interface SettingsStateData {
   models: ModelConfig[];
+  embeddingModels: EmbeddingModelConfig[];
+  ragSettings: RagSettings;
   defaultAgentModel: ModelConfig | null;
   defaultAgentModelVariant: ModelVariant | null;
   titleModel: ModelConfig | null;
