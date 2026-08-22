@@ -3,8 +3,7 @@ import { Notice } from "obsidian";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import type { EmbeddingModelConfig } from "@/types";
 import { useSettingsLogic, useSettingsState } from "@/hooks/use-settings";
-import VaultRagService from "@/retrieval/VaultRagService";
-import { getGlobalApp } from "@/utils";
+import VaultRagService, { type RagOperation } from "@/retrieval/VaultRagService";
 import { Button } from "@/ui/elements/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/ui/elements/dialog";
 import { FormField } from "@/ui/elements/form-field";
@@ -30,37 +29,9 @@ function VaultRagSetting({ section }: { section: "models" | "index" }): React.Re
   const [editing, setEditing] = useState<EmbeddingModelConfig | null>(null);
   const [originalId, setOriginalId] = useState<string | undefined>();
   const [status, setStatus] = useState(VaultRagService.getInstance().getStatus());
-  const [pendingUpdates, setPendingUpdates] = useState<number | null>(null);
-
   useEffect(() => VaultRagService.getInstance().subscribe(() => setStatus(VaultRagService.getInstance().getStatus())), []);
   const selected = ragSettings.embeddingModelId;
   const busy = ["building", "refreshing", "rebuilding"].includes(status.operation);
-
-  useEffect(() => {
-    if (!selected || status.operation !== "available") {
-      setPendingUpdates(null);
-      return;
-    }
-    let disposed = false;
-    const refreshPendingUpdates = (file?: { path: string; extension?: string }) => {
-      if (file && (file.extension !== "md" || file.path.startsWith(".obsidian-agent/"))) return;
-      void VaultRagService.getInstance().getPendingUpdateCount()
-        .then((count) => { if (!disposed) setPendingUpdates(count); })
-        .catch(() => { if (!disposed) setPendingUpdates(null); });
-    };
-    refreshPendingUpdates();
-    const vault = getGlobalApp().vault;
-    const eventRefs = [
-      vault.on("create", refreshPendingUpdates),
-      vault.on("modify", refreshPendingUpdates),
-      vault.on("delete", refreshPendingUpdates),
-      vault.on("rename", refreshPendingUpdates),
-    ];
-    return () => {
-      disposed = true;
-      eventRefs.forEach((eventRef) => vault.offref(eventRef));
-    };
-  }, [selected, status.operation]);
 
   const removeModel = async (modelId: string) => {
     try {
@@ -98,17 +69,29 @@ function VaultRagSetting({ section }: { section: "models" | "index" }): React.Re
           </Select>
         </div>
         {selected && <div className="tw-space-y-2">
-          <div className="tw-text-sm">{t("common:status")}: {status.operation} · {status.completed}/{status.total} {t("settings:ragFiles")}{status.operation === "available" && pendingUpdates !== null ? ` · ${t("settings:ragPendingFiles", { count: pendingUpdates })}` : ""}</div>
-          {status.message && <div className="tw-mb-2 tw-text-xs tw-text-muted-foreground">{status.message}</div>}
+          <div className="tw-text-sm">{t("common:status")}: {ragOperationLabel(status.operation)} · {status.completed}/{status.total} {t("settings:ragFiles")} · {t("settings:ragPendingFiles", { count: status.pendingFiles })}</div>
+          {status.message && <div className="tw-mb-2 tw-text-xs tw-text-muted-foreground">{ragStatusMessage(status)}</div>}
           <div className="tw-flex tw-flex-wrap tw-gap-2">
-            <Button variant="secondary" disabled={busy} onClick={() => void VaultRagService.getInstance().build()}>{t("settings:ragFullBuild")}</Button>
-            <Button variant="secondary" disabled={busy || status.operation !== "available" || !pendingUpdates} onClick={() => void VaultRagService.getInstance().refresh()}>{t("settings:ragIncrementalRefresh")}</Button>
+            <Button variant="secondary" disabled={busy} onClick={() => void VaultRagService.getInstance().rebuild()}>{t("settings:ragRebuild")}</Button>
             {busy && <Button variant="destructive" onClick={() => VaultRagService.getInstance().cancel()}>{t("common:cancel")}</Button>}
           </div>
         </div>}
       </div>
     </section>}
   </div>;
+}
+
+function ragOperationLabel(operation: RagOperation): string {
+  if (operation === "building") return t("settings:ragAutoBuilding");
+  if (operation === "refreshing") return t("settings:ragAutoRefreshing");
+  if (operation === "rebuilding") return t("settings:ragRebuilding");
+  return operation;
+}
+
+function ragStatusMessage(status: ReturnType<VaultRagService["getStatus"]>): string | undefined {
+  if (status.automatic && status.operation === "error") return t("settings:ragAutoOperationFailed");
+  if (status.automatic && status.operation === "canceled") return t("settings:ragAutoOperationCanceled");
+  return status.message;
 }
 
 function EmbeddingModelDialog({ model: initialModel, originalId, close, save }: { model: EmbeddingModelConfig; originalId?: string; close: () => void; save: (model: EmbeddingModelConfig) => Promise<void> }): React.ReactElement {

@@ -47,6 +47,18 @@ if (vaultRagServiceSource.includes("remove-rag-path")
   || vaultRagServiceSource.includes("node:fs/promises")) {
   throw new Error("Vault RAG cleanup must stay in VaultRagService without permission or attribute changes");
 }
+for (const requiredSource of [
+  'start(plugin: Plugin)',
+  'shutdown(): Promise<void>',
+  'vault.on("rename"',
+  'isRagMarkdownPath',
+  'lastChangeAt + 30_000',
+  'if (this.activeOperation) throw new Error("An index operation is already running.")',
+  'autoSuppressedRevision',
+  'pendingFiles',
+]) {
+  if (!vaultRagServiceSource.includes(requiredSource)) throw new Error(`Vault RAG automatic-index invariant is missing: ${requiredSource}`);
+}
 const { code: cleanupCode } = await transform(vaultRagServiceSource, {
   loader: "ts",
   format: "cjs",
@@ -58,6 +70,7 @@ vm.runInNewContext(cleanupCode, {
   exports: cleanupModule.exports,
   require(path) {
     if (path === "@/utils") return { getGlobalApp: () => ({ vault: { adapter: cleanupAdapter } }) };
+    if (path === "obsidian") return { TFile: class TFile {}, TFolder: class TFolder {} };
     if (path === "ai" || path === "@ai-sdk/openai-compatible" || path === "@orama/orama" || path === "@orama/plugin-data-persistence") return {};
     throw new Error(`Unexpected module request: ${path}`);
   },
@@ -106,6 +119,20 @@ if (settingsLogicSource.includes("cleanupAfterReload")
   throw new Error("Vault RAG reload cleanup or user-facing cleanup failure feedback is still enabled");
 }
 console.log("Vault RAG deletion-only cleanup wiring passed");
+
+const mainSource = await readFile(resolve("src/main.ts"), "utf8");
+if (!mainSource.includes("VaultRagService.getInstance().start(this)")
+  || !mainSource.includes("await VaultRagService.getInstance().shutdown()")) {
+  throw new Error("Vault RAG watcher is not wired to the plugin lifecycle");
+}
+const vaultRagSettingSource = await readFile(resolve("src/ui/components/settings/tabs/vault-rag-setting.tsx"), "utf8");
+if (vaultRagSettingSource.includes("ragIncrementalRefresh")
+  || vaultRagSettingSource.includes(".refresh()")
+  || !vaultRagSettingSource.includes(".rebuild()")
+  || !vaultRagSettingSource.includes("ragPendingFiles")) {
+  throw new Error("Vault RAG settings must expose rebuild and service pending state, without manual refresh");
+}
+console.log("Vault RAG automatic-index wiring passed");
 
 function hexToBytes(value) {
   if (value.length % 2 !== 0 || !/^[0-9a-f]*$/i.test(value)) throw new Error("Invalid persistence hex");

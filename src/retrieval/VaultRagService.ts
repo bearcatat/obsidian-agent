@@ -2,7 +2,8 @@ import { embed, embedMany } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { create, getByID, insert, search } from "@orama/orama";
 import { persist, restore } from "@orama/plugin-data-persistence";
-import type { App, TFile } from "obsidian";
+import { TFile, TFolder } from "obsidian";
+import type { App, Plugin, TAbstractFile } from "obsidian";
 import { getGlobalApp } from "@/utils";
 import type { EmbeddingModelConfig } from "@/types";
 
@@ -19,8 +20,12 @@ export interface RagStatus {
   chunks: number;
   completed: number;
   total: number;
+  pendingFiles: number;
+  automatic: boolean;
   message?: string;
 }
+
+type RagStatusUpdate = Omit<RagStatus, "pendingFiles" | "automatic"> & { pendingFiles?: number; automatic?: boolean };
 
 interface ChunkMetadata {
   id: string;
@@ -78,7 +83,15 @@ export default class VaultRagService {
   private activeOperationModelId: string | null = null;
   private activeOperationDone: Promise<void> | null = null;
   private pendingUpdateCountPromise: Promise<number> | null = null;
-  private status: RagStatus = { operation: "disabled", files: 0, chunks: 0, completed: 0, total: 0 };
+  private status: RagStatus = { operation: "disabled", files: 0, chunks: 0, completed: 0, total: 0, pendingFiles: 0, automatic: false };
+  private autoIndexStarted = false;
+  private stopping = false;
+  private debounceTimer: number | null = null;
+  private lastChangeAt = 0;
+  private dirty = false;
+  private changeRevision = 0;
+  private schedulerEpoch = 0;
+  private autoSuppressedRevision: number | null = null;
 
   static getInstance(): VaultRagService {
     if (!VaultRagService.instance) VaultRagService.instance = new VaultRagService();
@@ -86,7 +99,6 @@ export default class VaultRagService {
   }
 
   static resetInstance(): void {
-    VaultRagService.instance?.cancel();
     VaultRagService.instance = undefined;
   }
 
@@ -99,22 +111,50 @@ export default class VaultRagService {
     return { ...this.status };
   }
 
+  /** Starts the plugin-lifetime Vault watcher. It intentionally does not wait for embedding requests. */
+  start(plugin: Plugin): void {
+    if (this.autoIndexStarted) return;
+    this.autoIndexStarted = true;
+    this.stopping = false;
+    const vault = getGlobalApp().vault;
+    plugin.registerEvent(vault.on("create", (file) => this.onVaultChanged(file)));
+    plugin.registerEvent(vault.on("modify", (file) => this.onVaultChanged(file)));
+    plugin.registerEvent(vault.on("delete", (file) => this.onVaultChanged(file)));
+    plugin.registerEvent(vault.on("rename", (file, oldPath) => this.onVaultRenamed(file, oldPath)));
+    void this.recoverAfterConfigure();
+  }
+
+  async shutdown(): Promise<void> {
+    this.stopping = true;
+    this.autoIndexStarted = false;
+    this.schedulerEpoch++;
+    this.clearDebounceTimer();
+    this.cancel();
+    await this.activeOperationDone;
+  }
+
   async configure(model: EmbeddingModelConfig | null): Promise<void> {
     if (this.model?.id === model?.id && this.model?.name === model?.name && this.model?.baseUrl === model?.baseUrl && this.model?.apiKey === model?.apiKey) return;
+    this.schedulerEpoch++;
+    this.clearDebounceTimer();
     this.cancel();
+    await this.activeOperationDone;
     this.pendingUpdateCountPromise = null;
+    this.dirty = false;
+    this.autoSuppressedRevision = null;
     this.model = model;
     this.manifest = null;
     this.database = null;
     if (!model) {
-      this.setStatus({ operation: "disabled", files: 0, chunks: 0, completed: 0, total: 0 });
+      this.setStatus({ operation: "disabled", files: 0, chunks: 0, completed: 0, total: 0, pendingFiles: 0, automatic: false });
       return;
     }
     try {
       await this.loadPublishedIndex();
     } catch {
-      this.setStatus({ operation: "error", files: 0, chunks: 0, completed: 0, total: 0, message: "The published RAG index cannot be read. Rebuild it." });
+      this.setStatus({ operation: "error", files: 0, chunks: 0, completed: 0, total: 0, pendingFiles: 0, automatic: false, message: "The published RAG index cannot be read. Rebuild it." });
     }
+    if (this.autoIndexStarted) void this.recoverAfterConfigure();
   }
 
   async removeModel(modelId: string): Promise<void> {
@@ -139,22 +179,37 @@ export default class VaultRagService {
   }
 
   private async countPendingUpdates(): Promise<number> {
-    if (!this.model || !this.manifest || this.status.operation !== "available") return 0;
+    if (!this.model) return 0;
     const modelId = this.model.id;
     const manifest = this.manifest;
     const files = getGlobalApp().vault.getMarkdownFiles().filter((file) => !file.path.startsWith(".obsidian-agent/"));
+    if (!manifest) return files.length;
     const manifestByPath = new Map(manifest.files.map((file) => [file.path, file]));
     const currentPaths = new Set(files.map((file) => file.path));
-    let pending = manifest.files.filter((file) => !currentPaths.has(file.path)).length;
+    const removed = manifest.files.filter((file) => !currentPaths.has(file.path));
+    let pending = removed.length;
 
     const changed = await Promise.all(files.map(async (file) => {
       const current = await getGlobalApp().vault.read(file);
-      return manifestByPath.get(file.path)?.contentHash !== await hash(current);
+      const contentHash = await hash(current);
+      return { path: file.path, contentHash, changed: manifestByPath.get(file.path)?.contentHash !== contentHash };
     }));
-    pending += changed.filter(Boolean).length;
+    const addedOrChanged = changed.filter((file) => file.changed);
+    pending += addedOrChanged.length;
+    // A live rename has no durable file identity. Pair unchanged hash removals/additions
+    // so one renamed Markdown note counts once rather than as delete plus create.
+    const removedByHash = new Map<string, number>();
+    for (const file of removed) removedByHash.set(file.contentHash, (removedByHash.get(file.contentHash) ?? 0) + 1);
+    for (const file of addedOrChanged) {
+      const matchingRemoved = removedByHash.get(file.contentHash) ?? 0;
+      if (matchingRemoved > 0) {
+        pending--;
+        removedByHash.set(file.contentHash, matchingRemoved - 1);
+      }
+    }
 
     // Do not return an out-of-date calculation after a model/index transition.
-    return this.model?.id === modelId && this.manifest === manifest && this.status.operation === "available" ? pending : 0;
+    return this.model?.id === modelId && this.manifest === manifest ? pending : 0;
   }
 
   cancel(): void {
@@ -168,15 +223,16 @@ export default class VaultRagService {
   }
 
   async build(): Promise<void> {
-    await this.run("building", true);
+    await this.run("building", true, false);
   }
 
   async refresh(): Promise<void> {
-    await this.run("refreshing", false);
+    await this.run("refreshing", false, false);
   }
 
   async rebuild(): Promise<void> {
-    await this.run("rebuilding", true);
+    this.clearDebounceTimer();
+    await this.run("rebuilding", true, false);
   }
 
   async search(query: string, limit = 5, abortSignal?: AbortSignal): Promise<RagSearchResponse> {
@@ -226,22 +282,110 @@ export default class VaultRagService {
     }
   }
 
-  private async run(operation: Extract<RagOperation, "building" | "refreshing" | "rebuilding">, forceAll: boolean): Promise<void> {
+  private onVaultChanged(file: TAbstractFile): void {
+    if (!this.isRelevantVaultFile(file)) return;
+    this.markChanged();
+  }
+
+  private onVaultRenamed(file: TAbstractFile, oldPath: string): void {
+    if (!this.isRelevantVaultFile(file) && !isRagMarkdownPath(oldPath)) return;
+    this.markChanged();
+  }
+
+  private isRelevantVaultFile(file: TAbstractFile): boolean {
+    if (file instanceof TFile) return file.extension === "md" && isRagMarkdownPath(file.path);
+    // A folder deletion/rename can be the only event emitted for several notes.
+    return file instanceof TFolder && isRagMarkdownPath(file.path);
+  }
+
+  private markChanged(): void {
+    if (!this.autoIndexStarted || this.stopping || !this.model) return;
+    this.dirty = true;
+    this.changeRevision++;
+    this.autoSuppressedRevision = null;
+    this.lastChangeAt = Date.now();
+    void this.recountPendingUpdates();
+    this.scheduleDrain();
+  }
+
+  private async recoverAfterConfigure(): Promise<void> {
+    if (!this.autoIndexStarted || this.stopping || !this.model) return;
+    const epoch = this.schedulerEpoch;
+    const pending = await this.recountPendingUpdates();
+    if (this.stopping || epoch !== this.schedulerEpoch || !this.model) return;
+    if (!this.manifest) {
+      this.dirty = true;
+      void this.drain(true);
+      return;
+    }
+    if (pending > 0) {
+      this.dirty = true;
+      this.lastChangeAt = Date.now();
+      this.scheduleDrain();
+    } else {
+      this.dirty = false;
+    }
+  }
+
+  private async recountPendingUpdates(): Promise<number> {
+    const epoch = this.schedulerEpoch;
+    const modelId = this.model?.id;
+    try {
+      const pendingFiles = await this.getPendingUpdateCount();
+      if (epoch === this.schedulerEpoch && modelId === this.model?.id) this.setStatus({ ...this.status, pendingFiles });
+      return pendingFiles;
+    } catch {
+      return this.status.pendingFiles;
+    }
+  }
+
+  private scheduleDrain(): void {
+    if (this.stopping || !this.model || !this.dirty) return;
+    this.clearDebounceTimer();
+    const delay = Math.max(0, this.lastChangeAt + 30_000 - Date.now());
+    const epoch = this.schedulerEpoch;
+    this.debounceTimer = window.setTimeout(() => {
+      this.debounceTimer = null;
+      if (epoch === this.schedulerEpoch) void this.drain(false);
+    }, delay);
+  }
+
+  private clearDebounceTimer(): void {
+    if (this.debounceTimer !== null) window.clearTimeout(this.debounceTimer);
+    this.debounceTimer = null;
+  }
+
+  private async drain(immediately: boolean): Promise<void> {
+    if (this.stopping || !this.model || !this.dirty) return;
+    if (!immediately && Date.now() < this.lastChangeAt + 30_000) {
+      this.scheduleDrain();
+      return;
+    }
+    if (this.activeOperation) return;
+    if (this.autoSuppressedRevision === this.changeRevision) return;
+    const startRevision = this.changeRevision;
+    const forceAll = !this.manifest;
+    await this.run(forceAll ? "building" : "refreshing", forceAll, true, startRevision);
+  }
+
+  private async run(operation: Extract<RagOperation, "building" | "refreshing" | "rebuilding">, forceAll: boolean, automatic: boolean, startRevision = this.changeRevision): Promise<void> {
     if (!this.model) throw new Error("Select an embedding model before managing the index.");
-    this.cancel();
+    if (this.activeOperation) throw new Error("An index operation is already running.");
     this.pendingUpdateCountPromise = null;
     const controller = new AbortController();
     let resolveOperationDone!: () => void;
     const operationDone = new Promise<void>((resolve) => { resolveOperationDone = resolve; });
     this.activeOperation = controller;
     const model = this.model;
+    const schedulerEpoch = this.schedulerEpoch;
     this.activeOperationModelId = model.id;
     this.activeOperationDone = operationDone;
     const app = getGlobalApp();
     const stage = `${this.modelDirectory(model.id)}/staging-${Date.now()}`;
+    let succeeded = false;
     try {
       const files = app.vault.getMarkdownFiles().filter((file) => !file.path.startsWith(".obsidian-agent/"));
-      this.setStatus({ operation, files: 0, chunks: 0, completed: 0, total: files.length });
+      this.setStatus({ operation, files: 0, chunks: 0, completed: 0, total: files.length, automatic });
       const candidate = forceAll ? null : await this.readManifest(model.id);
       const previous = candidate?.embeddingFingerprint === embeddingFingerprint(model) ? candidate : null;
       const previousDatabase = previous ? await this.readDatabase(model.id, previous) : null;
@@ -306,14 +450,16 @@ export default class VaultRagService {
         updatedAt: Date.now(),
       };
       await this.publish(stage, model.id, manifest, database, controller);
+      if (this.model?.id !== model.id || schedulerEpoch !== this.schedulerEpoch) throw new DOMException("Aborted", "AbortError");
       this.manifest = manifest;
       this.database = database;
       this.setStatus({ operation: "available", files: manifest.files.length, chunks: countChunks(manifest), completed: manifest.files.length, total: manifest.files.length });
+      succeeded = true;
     } catch (error) {
       if (isAbort(error) || controller.signal.aborted) {
-        this.setStatus({ operation: "canceled", files: this.status.files, chunks: this.status.chunks, completed: this.status.completed, total: this.status.total });
+        this.setStatus({ operation: "canceled", files: this.status.files, chunks: this.status.chunks, completed: this.status.completed, total: this.status.total, automatic, message: automatic ? "Automatic index operation was canceled." : undefined });
       } else {
-        this.setStatus({ operation: "error", files: 0, chunks: 0, completed: 0, total: 0, message: "Index operation failed. The published index was kept unchanged." });
+        this.setStatus({ operation: "error", files: this.manifest?.files.length ?? 0, chunks: this.manifest ? countChunks(this.manifest) : 0, completed: 0, total: 0, automatic, message: automatic ? "Automatic index operation failed. The published index was kept unchanged." : "Index operation failed. The published index was kept unchanged." });
       }
     } finally {
       try {
@@ -326,6 +472,15 @@ export default class VaultRagService {
           this.activeOperation = null;
           this.activeOperationModelId = null;
           this.activeOperationDone = null;
+        }
+        if (!this.stopping && schedulerEpoch === this.schedulerEpoch && this.model?.id === model.id) {
+          if (succeeded) {
+            const pending = await this.recountPendingUpdates();
+            this.dirty = pending > 0;
+            if (this.dirty && this.changeRevision > startRevision) this.scheduleDrain();
+          } else if (automatic) {
+            this.autoSuppressedRevision = startRevision;
+          }
         }
       }
     }
@@ -356,16 +511,16 @@ export default class VaultRagService {
     if (!this.model) return;
     const manifest = await this.readManifest(this.model.id);
     if (!manifest) {
-      this.setStatus({ operation: "disabled", files: 0, chunks: 0, completed: 0, total: 0, message: "No index has been built." });
+      this.setStatus({ operation: "disabled", files: 0, chunks: 0, completed: 0, total: 0, automatic: false, message: "No index has been built." });
       return;
     }
     if (manifest.embeddingFingerprint !== embeddingFingerprint(this.model)) {
-      this.setStatus({ operation: "disabled", files: 0, chunks: 0, completed: 0, total: 0, message: "The selected embedding model changed. Rebuild the index." });
+      this.setStatus({ operation: "disabled", files: 0, chunks: 0, completed: 0, total: 0, automatic: false, message: "The selected embedding model changed. Rebuild the index." });
       return;
     }
     this.manifest = manifest;
     this.database = await this.readDatabase(this.model.id, manifest);
-    this.setStatus({ operation: "available", files: manifest.files.length, chunks: countChunks(manifest), completed: manifest.files.length, total: manifest.files.length });
+    this.setStatus({ operation: "available", files: manifest.files.length, chunks: countChunks(manifest), completed: manifest.files.length, total: manifest.files.length, automatic: false });
   }
 
   private async readManifest(modelId: string): Promise<RagManifest | null> {
@@ -446,8 +601,8 @@ export default class VaultRagService {
     if (controller.signal.aborted) throw new DOMException("Aborted", "AbortError");
   }
 
-  private setStatus(status: RagStatus): void {
-    this.status = status;
+  private setStatus(status: RagStatusUpdate): void {
+    this.status = { ...status, pendingFiles: status.pendingFiles ?? this.status.pendingFiles, automatic: status.automatic ?? this.status.automatic };
     this.listeners.forEach((listener) => listener());
   }
 }
@@ -489,6 +644,10 @@ async function ensureDirectory(adapter: App["vault"]["adapter"], path: string): 
 
 function countChunks(manifest: RagManifest): number {
   return manifest.files.reduce((total, file) => total + file.chunks.length, 0);
+}
+
+function isRagMarkdownPath(path: string): boolean {
+  return !path.startsWith(".obsidian-agent/");
 }
 
 function isAbort(error: unknown): boolean {

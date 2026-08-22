@@ -127,8 +127,8 @@ export class SettingsLogic {
         const state = settingsStore.getState();
         if (modelId && !state.embeddingModels.some((model) => model.id === modelId)) throw new Error("Selected embedding model was not found");
         state.setRagEmbeddingModelId(modelId);
-        await VaultRagService.getInstance().configure(this.getSelectedEmbeddingModel());
         await this.saveSettings();
+        await VaultRagService.getInstance().configure(this.getSelectedEmbeddingModel());
     }
 
     async reorderModels(newModels: ModelConfig[]): Promise<void> {

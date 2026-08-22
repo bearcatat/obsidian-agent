@@ -55,6 +55,9 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			// 在任何 React root 挂载前解析宿主语言并初始化共享 UI 本地化
 			await this.initializeLocalization();
 
+			// Vault RAG watcher follows the plugin lifecycle, not the settings component lifecycle.
+			VaultRagService.getInstance().start(this);
+
 			// 初始化UI，让用户看到界面
 			this.initializeUI();
 			FileReviewDriftMonitor.getInstance().register(this);
@@ -103,6 +106,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 	async onunload() {
 		try {
+			await VaultRagService.getInstance().shutdown();
 			await TelegramFeedbackRuntime.getInstance().stop();
 
 			// 1. 中断正在进行的请求
