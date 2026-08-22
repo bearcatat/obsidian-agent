@@ -56,6 +56,9 @@ for (const requiredSource of [
   'if (this.activeOperation) throw new Error("An index operation is already running.")',
   'autoSuppressedRevision',
   'pendingFiles',
+  'EMBEDDING_BATCH_MAX_CHARACTERS = 50_000',
+  'splitEmbeddingBatches(values)',
+  'maxParallelCalls: 1',
 ]) {
   if (!vaultRagServiceSource.includes(requiredSource)) throw new Error(`Vault RAG automatic-index invariant is missing: ${requiredSource}`);
 }

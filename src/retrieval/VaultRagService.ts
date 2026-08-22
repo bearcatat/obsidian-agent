@@ -11,6 +11,11 @@ const RAG_ROOT = ".obsidian-agent/rag/models";
 const MANIFEST_NAME = "manifest.json";
 const INDEX_NAME = "index.bin";
 const CHUNK_SIZE = 6000;
+// OpenAI-compatible endpoints commonly cap the total input tokens per request.
+// Character count is deliberately a conservative proxy so this also remains safe
+// for Chinese text, where a character can consume roughly one token.
+const EMBEDDING_BATCH_MAX_CHARACTERS = 50_000;
+const EMBEDDING_BATCH_MAX_VALUES = 256;
 
 export type RagOperation = "idle" | "building" | "refreshing" | "rebuilding" | "canceled" | "available" | "error" | "disabled";
 
@@ -545,8 +550,14 @@ export default class VaultRagService {
     const model = this.requireModel();
     try {
       const provider = createOpenAICompatible({ name: "vault-rag", baseURL: model.baseUrl, apiKey: model.apiKey });
-      const result = await embedMany({ model: provider.embeddingModel(model.name), values, abortSignal: signal, maxRetries: 0 });
-      return result.embeddings;
+      const embeddingModel = provider.embeddingModel(model.name);
+      const embeddings: number[][] = [];
+      for (const batch of splitEmbeddingBatches(values)) {
+        if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+        const result = await embedMany({ model: embeddingModel, values: batch, abortSignal: signal, maxRetries: 0, maxParallelCalls: 1 });
+        embeddings.push(...result.embeddings);
+      }
+      return embeddings;
     } catch (error) {
       if (isAbort(error) || signal.aborted) throw error;
       throw new Error("Embedding request failed.");
@@ -631,6 +642,23 @@ function chunk(title: string, content: string, path: string): Array<ChunkMetadat
     start = Math.max(end, start + 1);
   }
   return chunks;
+}
+
+function splitEmbeddingBatches(values: string[]): string[][] {
+  const batches: string[][] = [];
+  let batch: string[] = [];
+  let characters = 0;
+  for (const value of values) {
+    if (batch.length > 0 && (batch.length === EMBEDDING_BATCH_MAX_VALUES || characters + value.length > EMBEDDING_BATCH_MAX_CHARACTERS)) {
+      batches.push(batch);
+      batch = [];
+      characters = 0;
+    }
+    batch.push(value);
+    characters += value.length;
+  }
+  if (batch.length > 0) batches.push(batch);
+  return batches;
 }
 
 async function hash(value: string): Promise<string> {
