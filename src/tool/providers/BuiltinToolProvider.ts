@@ -3,6 +3,7 @@ import { BuiltinToolConfig } from "@/types";
 import { ToolProvider } from "../ToolProvider";
 import { ToolContext } from "../ToolContext";
 import { BUILTIN_TOOL_REGISTRY } from "../registry/BuiltinToolRegistry";
+import { isBashSandboxPlatformSupported } from "../Bash/sandbox-executor";
 
 export default class BuiltinToolProvider implements ToolProvider {
   private configs: BuiltinToolConfig[] = [];
@@ -12,7 +13,7 @@ export default class BuiltinToolProvider implements ToolProvider {
   }
 
   getAllTools(_context: ToolContext): ToolSet {
-    return BUILTIN_TOOL_REGISTRY;
+    return this.filterUnsupportedTools(BUILTIN_TOOL_REGISTRY);
   }
 
   getEnabledTools(_context: ToolContext): ToolSet {
@@ -23,7 +24,13 @@ export default class BuiltinToolProvider implements ToolProvider {
     );
 
     return Object.fromEntries(
-      Object.entries(BUILTIN_TOOL_REGISTRY).filter(([toolName]) => enabledToolNames.has(toolName))
+      Object.entries(this.filterUnsupportedTools(BUILTIN_TOOL_REGISTRY)).filter(([toolName]) => enabledToolNames.has(toolName))
     );
+  }
+
+  private filterUnsupportedTools(tools: ToolSet): ToolSet {
+    if (isBashSandboxPlatformSupported()) return tools;
+    const { bash: _bash, ...supported } = tools;
+    return supported;
   }
 }

@@ -13,6 +13,9 @@ export interface AgentToolContext {
   currentTurnId?: string;
   currentUserText?: string;
   bashApprovalContext?: Readonly<import('@/types').BashApprovalContext>;
+  bashApprovalMode?: import('@/types').BashApprovalMode;
+  /** Runtime-only, query-local approval reuse and singleflight state. */
+  bashApprovalScope?: import('@/types').BashApprovalScope;
   /** Host-only path used to sanitize approval data; never sent to a Provider. */
   bashApprovalVaultPath?: string;
 }

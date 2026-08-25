@@ -1,61 +1,115 @@
 /// <reference types="node" />
-import { spawn } from 'child_process';
+import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
 const DEFAULT_TIMEOUT = 60000;
 const MAX_OUTPUT_SIZE = 100 * 1024;
+let windowsSpawnMutex: Promise<void> = Promise.resolve();
 
-type ShellConfig = {
+export type ShellConfig = {
   shell: string;
   args: string[];
   encoding: BufferEncoding;
+  displayName?: string;
 };
+
+export interface BashShellInfo {
+  name: string;
+  version?: string;
+}
 
 export type ExecuteResult = {
   output: string;
   exitCode: number;
   error: string;
+  shell?: BashShellInfo;
+  /** The configured shell or cwd could not be started; no user command ran. */
+  startupFailed?: boolean;
 };
 
-function getUnixShellConfig(): ShellConfig {
+export function getUnixShellConfig(): ShellConfig {
   return { shell: '/bin/bash', args: ['-c'], encoding: 'utf8' };
 }
 
-function getWindowsGitBashConfig(): ShellConfig {
-  const shellEnv = process.env.SHELL;
-  if (shellEnv && shellEnv.toLowerCase().includes('bash')) {
-    return { shell: shellEnv, args: ['-lc'], encoding: 'utf8' };
-  }
-
-  const programFiles = process.env.ProgramFiles;
-  const programFilesX86 = process.env['ProgramFiles(x86)'];
-  const localAppData = process.env.LocalAppData;
-  const candidates = [
-    programFiles ? path.join(programFiles, 'Git', 'bin', 'bash.exe') : undefined,
-    programFiles ? path.join(programFiles, 'Git', 'usr', 'bin', 'bash.exe') : undefined,
-    programFilesX86 ? path.join(programFilesX86, 'Git', 'bin', 'bash.exe') : undefined,
-    programFilesX86 ? path.join(programFilesX86, 'Git', 'usr', 'bin', 'bash.exe') : undefined,
-    localAppData ? path.join(localAppData, 'Programs', 'Git', 'bin', 'bash.exe') : undefined,
-    localAppData ? path.join(localAppData, 'Programs', 'Git', 'usr', 'bin', 'bash.exe') : undefined,
-  ].filter(Boolean) as string[];
-
-  for (const p of candidates) {
+function existingExecutable(candidates: readonly string[]): string | undefined {
+  for (const candidate of candidates) {
     try {
-      if (fs.existsSync(p)) {
-        return { shell: p, args: ['--noprofile', '--norc', '-lc'], encoding: 'utf8' };
-      }
-    } catch (e) {
-      // Ignore fs errors and try next.
+      if (candidate && fs.existsSync(candidate)) return candidate;
+    } catch {
+      // An unreadable candidate cannot be used as a shell executable.
     }
   }
-
-  return { shell: 'bash.exe', args: ['--noprofile', '--norc', '-lc'], encoding: 'utf8' };
+  return undefined;
 }
 
-function getWindowsCmdConfig(): ShellConfig {
-  // cmd.exe: use /u for UTF-16LE output
-  return { shell: 'cmd.exe', args: ['/u', '/c'], encoding: 'utf16le' };
+function pathCandidates(executable: string): string[] {
+  return (process.env.Path ?? process.env.PATH ?? '')
+    .split(path.delimiter)
+    .map((entry) => entry.trim().replace(/^"|"$/g, ''))
+    .filter(Boolean)
+    .map((entry) => path.join(entry, executable));
+}
+
+/**
+ * Resolve the sole Windows command shell. PowerShell 7 is preferred; Windows
+ * PowerShell is the only supported fallback. Returning undefined is deliberate:
+ * callers must fail closed instead of trying another shell.
+ */
+export function getWindowsPowerShellConfig(): ShellConfig | undefined {
+  const pwsh = existingExecutable([
+    ...pathCandidates('pwsh.exe'),
+    process.env.ProgramFiles ? path.join(process.env.ProgramFiles, 'PowerShell', '7', 'pwsh.exe') : '',
+  ]);
+  if (pwsh) return { shell: pwsh, args: ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command'], encoding: 'utf8', displayName: 'PowerShell 7' };
+
+  const windowsRoot = process.env.SystemRoot ?? process.env.WINDIR;
+  const legacyPowerShell = existingExecutable([
+    ...pathCandidates('powershell.exe'),
+    windowsRoot ? path.join(windowsRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe') : '',
+  ]);
+  if (legacyPowerShell) return { shell: legacyPowerShell, args: ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command'], encoding: 'utf8', displayName: 'Windows PowerShell' };
+
+  return undefined;
+}
+
+export function getWindowsPowerShellInfo(config: ShellConfig): BashShellInfo {
+  return { name: config.displayName ?? 'PowerShell' };
+}
+
+/**
+ * `CreateProcess` inherits this Node process's environment. Limit temporary
+ * TMP/TEMP overrides to the synchronous child-creation window, serializing
+ * every Windows child creation in this module so another invocation cannot
+ * inherit the private sandbox temp directory.
+ */
+export async function spawnWithWindowsEnvironment<T>(tempDir: string | undefined, operation: () => T): Promise<T> {
+  if (process.platform !== 'win32') return operation();
+
+  const previous = windowsSpawnMutex;
+  let release: (() => void) | undefined;
+  windowsSpawnMutex = new Promise<void>((resolve) => { release = resolve; });
+  await previous;
+
+  const tmpWasSet = Object.prototype.hasOwnProperty.call(process.env, 'TMP');
+  const tempWasSet = Object.prototype.hasOwnProperty.call(process.env, 'TEMP');
+  const previousTmp = process.env.TMP;
+  const previousTemp = process.env.TEMP;
+  try {
+    if (tempDir) {
+      process.env.TMP = tempDir;
+      process.env.TEMP = tempDir;
+    }
+    return operation();
+  } finally {
+    if (tempDir) {
+      if (tmpWasSet) process.env.TMP = previousTmp!;
+      else delete process.env.TMP;
+      if (tempWasSet) process.env.TEMP = previousTemp!;
+      else delete process.env.TEMP;
+    }
+    release?.();
+  }
 }
 
 export interface BashExecutionRequest {
@@ -69,18 +123,21 @@ export interface BashExecutor {
   execute(request: BashExecutionRequest, signal?: AbortSignal): Promise<ExecuteResult>;
 }
 
-async function runWithShell(command: string, cwd: string, timeoutMs: number, config: ShellConfig, signal?: AbortSignal): Promise<ExecuteResult | { enotent: true }> {
-  return await new Promise((resolve) => {
-    if (signal?.aborted) {
-      resolve({ output: "Command cancelled", exitCode: 130, error: "Cancelled" });
-      return;
-    }
-    const child = spawn(config.shell, [...config.args, command], {
+export async function runWithShell(command: string, cwd: string, timeoutMs: number, config: ShellConfig, signal?: AbortSignal): Promise<ExecuteResult | { enotent: true }> {
+  if (signal?.aborted) return { output: 'Command cancelled', exitCode: 130, error: 'Cancelled' };
+
+  let child: ChildProcessWithoutNullStreams;
+  try {
+    child = await spawnWithWindowsEnvironment(undefined, () => spawn(config.shell, [...config.args, command], {
       cwd: cwd || undefined,
       shell: false,
       windowsHide: true,
-    });
+    }));
+  } catch (error) {
+    return { output: '', exitCode: 125, error: error instanceof Error ? error.message : 'Command shell failed to start', startupFailed: true };
+  }
 
+  return await new Promise((resolve) => {
     const stdoutBuffers: Buffer[] = [];
     const stderrBuffers: Buffer[] = [];
 
@@ -146,7 +203,7 @@ async function runWithShell(command: string, cwd: string, timeoutMs: number, con
         resolve({ enotent: true });
         return;
       }
-      resolve({ output: '', exitCode: 1, error: error.message || 'Command spawn failed' });
+      resolve({ output: '', exitCode: 125, error: error.message || 'Command shell failed to start', startupFailed: true });
     });
   });
 }
@@ -160,15 +217,11 @@ export async function executeCommand(command: string, cwd: string, timeout?: num
     return 'enotent' in result ? { output: '', exitCode: 1, error: 'Shell not found' } : result;
   }
 
-  const bashCfg = getWindowsGitBashConfig();
-  const bashResult = await runWithShell(command, cwd, timeoutMs, bashCfg, signal);
-  if (!('enotent' in bashResult)) {
-    return bashResult;
-  }
-
-  const cmdCfg = getWindowsCmdConfig();
-  const cmdResult = await runWithShell(command, cwd, timeoutMs, cmdCfg, signal);
-  return 'enotent' in cmdResult ? { output: '', exitCode: 1, error: 'Shell not found' } : cmdResult;
+  const config = getWindowsPowerShellConfig();
+  if (!config) return { output: '', exitCode: 125, error: 'PowerShell 7 and Windows PowerShell are unavailable', startupFailed: true };
+  const result = await runWithShell(command, cwd, timeoutMs, config, signal);
+  if ('enotent' in result) return { output: '', exitCode: 125, error: 'PowerShell failed to start', startupFailed: true };
+  return { ...result, shell: getWindowsPowerShellInfo(config) };
 }
 
 export const localBashExecutor: BashExecutor = {

@@ -1,5 +1,5 @@
-import { ModelConfig, ModelVariant, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings, EmbeddingModelConfig, RagSettings, createDefaultRagSettings } from '../types';
-import { cloneDefaultBashPermissions, getDefaultBuiltinTools } from '../tool/BuiltinTools';
+import { ModelConfig, ModelVariant, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashSandboxConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings, EmbeddingModelConfig, RagSettings, createDefaultRagSettings } from '../types';
+import { getDefaultBuiltinTools } from '../tool/BuiltinTools';
 
 export interface ISettingsState {
   readonly models: ModelConfig[];
@@ -17,7 +17,7 @@ export interface ISettingsState {
   readonly exaSearchConfig: ExaSearchConfig;
   readonly bochaSearchConfig: BochaSearchConfig;
   readonly telegramFeedbackConfig: TelegramFeedbackConfig;
-  readonly bashPermissions: BashPermissionConfig;
+  readonly bashSandbox: BashSandboxConfig;
   readonly memorySettings: MemorySettings;
 }
 
@@ -38,7 +38,7 @@ export function clone(settingsState: ISettingsState): ISettingsState {
     exaSearchConfig: settingsState.exaSearchConfig || { apiKey: "", enabled: false },
     bochaSearchConfig: settingsState.bochaSearchConfig || { apiKey: "", enabled: false },
     telegramFeedbackConfig: settingsState.telegramFeedbackConfig || createDefaultTelegramFeedbackConfig(),
-    bashPermissions: settingsState.bashPermissions || cloneDefaultBashPermissions(),
+    bashSandbox: settingsState.bashSandbox || { mode: 'workspace-write' },
     memorySettings: settingsState.memorySettings || createDefaultMemorySettings(),
   };
 }
@@ -59,6 +59,6 @@ export interface SettingsStateData {
   exaSearchConfig: ExaSearchConfig;
   bochaSearchConfig: BochaSearchConfig;
   telegramFeedbackConfig: TelegramFeedbackConfig;
-  bashPermissions: BashPermissionConfig;
+  bashSandbox: BashSandboxConfig;
   memorySettings: MemorySettings;
 }

@@ -19,6 +19,7 @@ import { CHAT_TITLE_MAX_LENGTH } from "./title-constants";
 import { mergeTools } from "./agent-utils";
 import { ContextCompactionController, runStreamingTurn } from "./AgentRuntime";
 import { buildBashApprovalContext } from "@/tool/Bash/bash-approval-context";
+import { closeBashApprovalScope, createBashApprovalScope } from "@/tool/Bash/bash-approval-scope";
 import { getGlobalApp } from "@/utils";
 import {
     applyUsageCalibration,
@@ -100,6 +101,7 @@ export default class AIAgent {
             activateSkill: (name: string) => boolean;
             memoryContext?: MemoryContext | null;
             approvalHistory: ModelMessage[];
+            bashApprovalMode: import('@/types').BashApprovalMode;
             contextCompaction: ContextCompactionController;
         }
     ): Promise<ModelMessage[]> {
@@ -126,6 +128,8 @@ export default class AIAgent {
                 ...activeSkillConfigs.map((skill) => ({ source: "skill" as const, name: skill.name, text: skill.body })),
             ],
         });
+        const bashApprovalScope = createBashApprovalScope();
+        try {
         const { responseMessages } = await runStreamingTurn({
             agentConfig,
             instructions: this.buildSystemPrompt(options.activeSkills, options.memoryContext),
@@ -144,11 +148,16 @@ export default class AIAgent {
                 currentUserText: message.content,
                 bashApprovalContext,
                 bashApprovalVaultPath,
+                bashApprovalMode: options.bashApprovalMode,
+                bashApprovalScope,
             },
             maxRetries: 3,
             contextCompaction: options.contextCompaction,
         });
         return responseMessages;
+        } finally {
+            closeBashApprovalScope(bashApprovalScope);
+        }
     }
 
     async compactHistory({

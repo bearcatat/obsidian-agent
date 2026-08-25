@@ -24,6 +24,7 @@ import { ContextCompactionController } from "@/llm/AgentRuntime";
 import { ContextCompactionError, validateContextCheckpoint } from "@/llm/ContextCompaction";
 import { ConversationState } from "@/state/agent-state";
 import { getErrorMessage, t } from "@/i18n";
+import { setActiveConversationBashApprovalMode } from "@/logic/bash-approval-mode-logic";
 
 interface PendingTurnRetry {
   userMessage: UserMessage;
@@ -237,6 +238,7 @@ export class AgentViewLogic {
           activateSkill: name => this.activateSkill(name, conversationId),
           memoryContext,
           approvalHistory: this.getApprovalHistory(current, userMessage.id),
+          bashApprovalMode: current.bashApprovalMode,
           contextCompaction: this.createContextController(conversationId, model, variant, forceCompaction, userMessage),
         },
       );
@@ -504,6 +506,16 @@ export class AgentViewLogic {
     agentStore.getState().setModel(model);
     agentStore.getState().setVariant(nextVariant);
     AIModelManager.getInstance().setAgent(model, nextVariant);
+  }
+
+  setBashApprovalMode(mode: import("@/types").BashApprovalMode): Promise<void> {
+    return setActiveConversationBashApprovalMode(mode).catch((error) => {
+      // The next save can retry. Keep the explicit in-memory choice so the
+      // active tool policy and dropdown never diverge because persistence is
+      // temporarily unavailable.
+      console.error('Failed to persist Bash approval mode', error);
+      throw error;
+    });
   }
 
   setTitleModel(model: ModelConfig, variant?: ModelVariant | null): void {

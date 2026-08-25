@@ -8,8 +8,10 @@ import { useSettingsState } from "../../../../hooks/use-settings";
 import { useApp } from "@/hooks/app-context";
 import { Notice } from "obsidian";
 import { MAX_IMAGE_SIZE } from "./cm-config/utils";
-import { getAvailableVariants, ModelConfig, ModelVariant } from "@/types";
+import { BashApprovalMode, getAvailableVariants, ModelConfig, ModelVariant } from "@/types";
 import { formatDateTime, formatNumber, t } from "../../../../i18n";
+import { isBashSandboxPlatformSupported } from '@/tool/Bash/sandbox-executor';
+import { BashApprovalModeDropdown } from './bash-approval-mode-dropdown';
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico'];
 const IMAGE_MIME_TYPES = 'image/png,image/jpeg,image/gif,image/webp,image/bmp,image/svg+xml,image/x-icon';
@@ -88,9 +90,11 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
   onAddImages,
 }) => {
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
-  const { model, messages, variant, contextRuntimeState, contextCheckpoint } = useAgentState();
-  const { setModel, retryContextCompaction } = useAgentLogic();
-  const { models } = useSettingsState();
+  const [isApprovalDropdownOpen, setIsApprovalDropdownOpen] = useState(false);
+  const { model, messages, variant, contextRuntimeState, contextCheckpoint, bashApprovalMode } = useAgentState();
+  const { setModel, setBashApprovalMode, retryContextCompaction } = useAgentLogic();
+  const { models, builtinTools } = useSettingsState();
+  const bashEnabled = builtinTools.some((tool) => tool.name === 'bash' && tool.enabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const app = useApp();
   const contextWindow = model?.contextWindow;
@@ -154,6 +158,20 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
     new Notice(t('agent:contextErrorCopied'));
   };
 
+  const selectBashApprovalMode = (mode: BashApprovalMode) => {
+    void setBashApprovalMode(mode)
+      .catch((error) => {
+        console.error('Failed to apply Bash approval mode', error);
+        new Notice(t('agent:approvalModeSaveFailed'));
+      });
+  };
+
+  const approvalModeLabels: Record<BashApprovalMode, string> = {
+    ask: t('agent:approvalModeAsk'),
+    intelligent: t('agent:approvalModeIntelligent'),
+    'full-access': t('agent:approvalModeFullAccess'),
+  };
+
   return (
     <div className="tw-flex tw-flex-col tw-gap-1">
       {contextRuntimeState.status === 'error' && contextRuntimeState.lastError && (
@@ -185,7 +203,7 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
         onChange={handleImageSelect}
         className="tw-hidden"
       />
-      <div className="tw-flex tw-items-center">
+      <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-1">
         <DropdownMenu open={isModelDropdownOpen} onOpenChange={setIsModelDropdownOpen}>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost2" size="fit">
@@ -224,6 +242,15 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
             })}
           </DropdownMenuContent>
         </DropdownMenu>
+        {bashEnabled && isBashSandboxPlatformSupported() && (
+          <BashApprovalModeDropdown
+            mode={bashApprovalMode}
+            labels={approvalModeLabels}
+            open={isApprovalDropdownOpen}
+            onOpenChange={setIsApprovalDropdownOpen}
+            onSelectMode={selectBashApprovalMode}
+          />
+        )}
       </div>
       <div className="tw-flex tw-items-center">
         {(model || (lastUsage && lastUsage.totalTokens)) && (

@@ -1,7 +1,7 @@
 import { useSettingsStore, settingsStore } from '../state/settings-state-impl';
 import { SettingsLogic } from '../logic/settings-logic';
 import { useShallow } from 'zustand/react/shallow';
-import { ModelConfig, ModelVariant, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, MemorySettings, EmbeddingModelConfig } from '../types';
+import { ModelConfig, ModelVariant, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashSandboxConfig, TelegramFeedbackConfig, MemorySettings, EmbeddingModelConfig } from '../types';
 
 export { useSettingsStore };
 
@@ -23,7 +23,7 @@ export function useSettingsState() {
       exaSearchConfig: state.exaSearchConfig,
       bochaSearchConfig: state.bochaSearchConfig,
       telegramFeedbackConfig: state.telegramFeedbackConfig,
-      bashPermissions: state.bashPermissions,
+      bashSandbox: state.bashSandbox,
       memorySettings: state.memorySettings,
     }))
   );
@@ -81,8 +81,8 @@ export function useSettingsLogic() {
     clearTelegramBinding: async (config?: TelegramFeedbackConfig) =>
       await settingsLogic.clearTelegramBinding(config),
 
-    updateBashPermissions: async (config: BashPermissionConfig) =>
-      await settingsLogic.updateBashPermissions(config),
+    updateBashSandbox: async (config: BashSandboxConfig) =>
+      await settingsLogic.updateBashSandbox(config),
     updateMemorySettings: async (config: MemorySettings) =>
       await settingsLogic.updateMemorySettings(config),
   };

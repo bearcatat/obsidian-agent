@@ -2,7 +2,7 @@ import { useAgentStore } from '../state/agent-state-impl';
 import { AgentViewLogic } from '../logic/agent-view-logic';
 import { FileReviewLogic } from '../logic/file-review-logic';
 import { App } from 'obsidian';
-import { ModelConfig, ModelVariant } from '../types';
+import { BashApprovalMode, ModelConfig, ModelVariant } from '../types';
 import { useShallow } from 'zustand/react/shallow';
 import { UserMessage } from '@/messages/user-message';
 import { agentStore } from '@/state/agent-state-impl';
@@ -22,6 +22,7 @@ export function useAgentState() {
       abortController: state.abortController,
       fileReviews: state.fileReviews,
       variant: state.variant,
+      bashApprovalMode: state.bashApprovalMode,
       contextCheckpoint: state.contextCheckpoint,
       contextRuntimeState: state.contextRuntimeState,
     }))
@@ -44,6 +45,7 @@ export function useAgentLogic() {
     resetForNewChat: (app: App | undefined) => agentLogic.resetForNewChat(app),
     finalizePendingReviews: () => agentLogic.finalizePendingReviews(),
     setModel: (model: ModelConfig, variant?: ModelVariant | null) => agentLogic.setModel(model, variant),
+    setBashApprovalMode: (mode: BashApprovalMode) => agentLogic.setBashApprovalMode(mode),
     requestContextCompaction: (focus?: string) => agentLogic.requestContextCompaction(focus),
     retryContextCompaction: () => agentLogic.retryContextCompaction(),
     applyFileReview: async (filePath: string) => {

@@ -120,6 +120,7 @@ const context = await esbuild.context({
 		"@lezer/highlight",
 		"@lezer/lr",
 		"node:crypto",
+		"node:fs",
 		"node:fs/promises",
 		"node:path",
 		"node:async_hooks",
@@ -135,6 +136,7 @@ const context = await esbuild.context({
 	jsxImportSource: "react",
 	// 添加别名配置
 	alias: {
+		"koffi": "./src/tool/Bash/koffi-shim.ts",
 		"node:process": "process",
 		"node:stream": "stream-browserify",
 		"node:fs/promises": "fs/promises",
@@ -142,6 +144,9 @@ const context = await esbuild.context({
 		"node:crypto": "crypto",
 		"node:util": "util",
 		"node:buffer": "buffer"
+	},
+	loader: {
+		".node": "base64",
 	},
 	// 添加全局变量定义
 	define: {

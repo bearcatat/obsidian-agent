@@ -280,24 +280,36 @@ export enum MCPTransportTypes {
   SSE = "sse",
 }
 
-export type BashExecutionPolicy = "direct" | "rules" | "ai";
-export type BashRulePermission = "allow" | "ask" | "deny";
+/** File-write boundary for new Bash calls. Reads and network access are never restricted. */
+export type BashSandboxMode = "read-only" | "workspace-write" | "full-access";
 
-// 权限规则
-export interface PermissionRule {
-  pattern: string;
-  permission: BashRulePermission;
+export interface BashSandboxConfig {
+  mode: BashSandboxMode;
 }
 
-// Bash 工具权限配置
-export interface BashPermissionConfig {
-  policy: BashExecutionPolicy;
-  rules: PermissionRule[];
+/** The only one-call Bash capability escalation accepted from a model. */
+export interface BashCapabilityRequest {
+  sandbox_permissions?: 'workspace-write' | 'full-access';
+  justification?: string;
 }
 
-export type BashApprovalRisk = "low" | "medium" | "high" | "critical";
+/** Conversation-scoped approval behavior for Bash elevation requests. */
+export type BashApprovalMode = "ask" | "intelligent" | "full-access";
+
+export type BashApprovalRisk = "low" | "medium" | "high";
 export type BashApprovalAuthorization = "explicit" | "implied" | "unclear" | "conflicts";
-export type BashAuthorizationSource = "hard-block" | "direct" | "rule" | "ai" | "human";
+export type BashAuthorizationSource = "hard-guard" | "automatic" | "model" | "human" | "reuse";
+export type BashElevationTrigger = "requested-capability" | "sandbox-denied" | "powershell-https-compatibility";
+export type BashOutcomeStatus =
+  | "success"
+  | "command-failed"
+  | "human-denied"
+  | "model-denied"
+  | "safety-denied"
+  | "approval-required"
+  | "sandbox-denied"
+  | "sandbox-unavailable"
+  | "cancelled";
 
 export interface BashApprovalTextItem {
   role: "user" | "assistant";
@@ -330,18 +342,56 @@ export interface BashApprovalContext {
 }
 
 export interface BashApprovalReview {
+  decision: "allow" | "deny" | "ask";
   risk: BashApprovalRisk;
   authorization: BashApprovalAuthorization;
   reason: string;
 }
 
+/** Runtime-only cache owned by exactly one AIAgent.query invocation. */
+export interface BashApprovalScope {
+  id: string;
+  decisions: Map<string, BashApprovalReview>;
+  reviewFlights: Map<string, Promise<BashApprovalReview>>;
+  closed: boolean;
+}
+
+export interface BashExecutionAttempt {
+  index: 0 | 1;
+  mode: BashSandboxMode;
+  trigger?: BashElevationTrigger;
+  backend: "windows-acl" | "seatbelt" | "host" | "unsupported";
+  shell?: {
+    name: string;
+    version?: string;
+  };
+  status: BashOutcomeStatus;
+  exitCode: number;
+  output: string;
+  error: string;
+}
+
 export interface BashAuthorizationSummary {
-  policy: BashExecutionPolicy;
+  approvalMode: BashApprovalMode;
   source: BashAuthorizationSource;
   risk?: BashApprovalRisk | "unknown";
   authorization?: BashApprovalAuthorization;
   reason?: string;
-  isolation: "none" | "sandbox";
+  configuredMode: BashSandboxMode;
+  effectiveMode: BashSandboxMode;
+  requestedMode?: BashSandboxMode;
+  backend: "windows-acl" | "seatbelt" | "host" | "unsupported";
+  outcome?: BashOutcomeStatus;
+  elevation?: {
+    trigger: BashElevationTrigger;
+    /** Hash of the exact command, Vault, configured sandbox, and trigger. */
+    fingerprint: string;
+    /** Conversation-turn scope; never reused by another turn. */
+    scope: string;
+    attempt: 1;
+    fromMode: Exclude<BashSandboxMode, "full-access">;
+    toMode: "full-access";
+  };
 }
 
 // 内置工具配置
@@ -349,7 +399,6 @@ export interface BuiltinToolConfig {
   name: string;
   description: string;
   enabled: boolean;
-  permissions?: BashPermissionConfig;
 }
 
 // SubAgent Configuration (file-based)
@@ -424,10 +473,18 @@ export interface BashCommand {
   id: string;
   command: string;
   workingDirectory: string;
+  shell?: {
+    name: string;
+    version?: string;
+  };
   output?: string;
   exitCode?: number;
   error?: string;
   duration?: number;
+  outcome?: BashOutcomeStatus;
+  /** Current-invocation facts; not a persistent approval or audit log. */
+  attempts?: BashExecutionAttempt[];
+  retryCount?: 0 | 1;
 }
 
 export interface CursorPosition {

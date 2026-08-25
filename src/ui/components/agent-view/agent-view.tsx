@@ -8,6 +8,7 @@ import React from 'react';
 import { CONVERSATION_LIST_VIEW_TYPE } from '../conversation-list-view';
 import { I18nextProvider, i18n } from '../../../i18n/react';
 import { t } from '../../../i18n';
+import { PortalContainerProvider } from '../../../hooks/PortalContainerContext';
 
 export const AGENT_VIEW_TYPE = 'agent-view';
 
@@ -45,17 +46,23 @@ export class AgentView extends ItemView {
 
 		// 创建React根节点
 		this.root = createRoot(reactContainer);
+		// Obsidian can host views in a document other than the globally active
+		// window. Radix menus must portal into this view's owner document, not
+		// whichever document happened to receive focus most recently.
+		const portalContainer = container.ownerDocument.body;
 
 		// 使用应用上下文包装组件
 		this.root.render(
 			<I18nextProvider i18n={i18n}>
-				<AppContextProvider app={this.app}>
-					<TooltipProvider delayDuration={0}>
-						<React.StrictMode>
-							<Chat />
-						</React.StrictMode>
-					</TooltipProvider>
-				</AppContextProvider>
+				<PortalContainerProvider container={portalContainer}>
+					<AppContextProvider app={this.app}>
+						<TooltipProvider delayDuration={0}>
+							<React.StrictMode>
+								<Chat />
+							</React.StrictMode>
+						</TooltipProvider>
+					</AppContextProvider>
+				</PortalContainerProvider>
 			</I18nextProvider>
 		);
 	}

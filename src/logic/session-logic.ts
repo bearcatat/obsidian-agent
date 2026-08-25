@@ -1,7 +1,7 @@
 import { App } from "obsidian";
 import { ConversationState } from "@/state/agent-state";
 import { getGlobalApp } from "@/utils";
-import { ContextCheckpoint, ContextUsageCalibration, FileReviewEntry, MessageV2 } from "@/types";
+import { BashApprovalMode, ContextCheckpoint, ContextUsageCalibration, FileReviewEntry, MessageV2 } from "@/types";
 import { ModelMessage } from "ai";
 import { UserMessage } from "@/messages/user-message";
 import { ToolMessage } from "@/messages/tool-message";
@@ -37,6 +37,7 @@ export interface SessionData {
   hasUnread?: boolean;
   contextCheckpoint?: ContextCheckpoint;
   contextUsageCalibration?: ContextUsageCalibration;
+  bashApprovalMode?: BashApprovalMode;
 }
 
 export interface SessionMetadata {
@@ -106,25 +107,25 @@ export class SessionLogic {
   }
 
   // Public API to trigger save
-  saveSession(state: ConversationState): void {
-    if (!state.sessionId || state.messages.length === 0) return;
+  saveSession(state: ConversationState, allowEmpty = false): void {
+    if (!state.sessionId || (!allowEmpty && state.messages.length === 0)) return;
     const existing = this.saveTimers.get(state.sessionId);
     if (existing) clearTimeout(existing);
     this.saveTimers.set(state.sessionId, setTimeout(() => {
       this.saveTimers.delete(state.sessionId);
-      void this.saveSessionInternal(state.sessionId, state);
+      void this.saveSessionInternal(state.sessionId, state, false);
     }, 1000));
   }
 
-  async saveSessionNow(state: ConversationState): Promise<void> {
-    if (!state.sessionId || state.messages.length === 0) return;
+  async saveSessionNow(state: ConversationState, allowEmpty = false): Promise<void> {
+    if (!state.sessionId || (!allowEmpty && state.messages.length === 0)) return;
     const existing = this.saveTimers.get(state.sessionId);
     if (existing) clearTimeout(existing);
     this.saveTimers.delete(state.sessionId);
-    await this.saveSessionInternal(state.sessionId, state);
+    await this.saveSessionInternal(state.sessionId, state, true);
   }
 
-  private async saveSessionInternal(sessionId: string, state: ConversationState): Promise<void> {
+  private async saveSessionInternal(sessionId: string, state: ConversationState, throwOnError: boolean): Promise<void> {
     try {
       await this.ensureSessionsDir();
       
@@ -141,6 +142,7 @@ export class SessionLogic {
         hasUnread: state.hasUnread,
         contextCheckpoint: state.contextCheckpoint,
         contextUsageCalibration: state.contextUsageCalibration,
+        bashApprovalMode: state.bashApprovalMode,
       };
 
       const filePath = `${this.SESSIONS_DIR}/${sessionId}.json`;
@@ -152,6 +154,7 @@ export class SessionLogic {
       }
     } catch (e) {
       console.error("Failed to save session", e);
+      if (throwOnError) throw e;
     }
   }
 
@@ -233,6 +236,12 @@ export class SessionLogic {
           contextCheckpoint,
           contextUsageCalibration,
           contextRuntimeState: { status: 'idle' },
+          // `none` was the pre-0.28 no-approval mode. It is deliberately
+          // migrated to the safest current mode rather than preserving an
+          // invisible auto-elevation policy in old session files.
+          bashApprovalMode: sessionData.bashApprovalMode === 'intelligent' || sessionData.bashApprovalMode === 'full-access'
+            ? sessionData.bashApprovalMode
+            : 'ask',
       };
 
     } catch (e) {

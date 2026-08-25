@@ -1,66 +1,7 @@
-import { BuiltinToolConfig, BashPermissionConfig, BashRulePermission, PermissionRule } from '../types';
-
-function cloneBashPermissions(permissions: BashPermissionConfig): BashPermissionConfig {
-  return {
-    policy: permissions.policy,
-    rules: permissions.rules.map((rule) => ({ ...rule })),
-  };
-}
+import { BuiltinToolConfig } from '../types';
 
 function cloneBuiltinTool(tool: BuiltinToolConfig): BuiltinToolConfig {
-  return {
-    ...tool,
-    permissions: tool.permissions ? cloneBashPermissions(tool.permissions) : undefined,
-  };
-}
-
-// 默认 Bash 权限配置
-export const DEFAULT_BASH_PERMISSIONS: BashPermissionConfig = {
-  policy: "rules",
-  rules: [
-    { pattern: "git status*", permission: "allow" },
-    { pattern: "git log*", permission: "allow" },
-    { pattern: "git diff*", permission: "allow" },
-    { pattern: "git *", permission: "ask" },
-    { pattern: "npm *", permission: "allow" },
-    { pattern: "node *", permission: "allow" },
-    { pattern: "pnpm *", permission: "allow" },
-    { pattern: "yarn *", permission: "allow" },
-    { pattern: "rm *", permission: "deny" },
-    { pattern: "del *", permission: "deny" },
-    { pattern: "rmdir *", permission: "deny" },
-    { pattern: "format *", permission: "deny" },
-  ],
-};
-
-export function cloneDefaultBashPermissions(): BashPermissionConfig {
-  return cloneBashPermissions(DEFAULT_BASH_PERMISSIONS);
-}
-
-function isRulePermission(value: unknown): value is BashRulePermission {
-  return value === "allow" || value === "ask" || value === "deny";
-}
-
-export function normalizeBashPermissionConfig(value: unknown): BashPermissionConfig {
-  const candidate = value && typeof value === "object" ? value as Record<string, unknown> : {};
-  const policy = candidate.policy === "direct" || candidate.policy === "rules" || candidate.policy === "ai"
-    ? candidate.policy
-    : "rules";
-  const rawRules = Array.isArray(candidate.rules) ? candidate.rules : DEFAULT_BASH_PERMISSIONS.rules;
-  const byPattern = new Map<string, PermissionRule>();
-
-  for (const rawRule of rawRules) {
-    if (!rawRule || typeof rawRule !== "object") continue;
-    const rule = rawRule as Record<string, unknown>;
-    const pattern = typeof rule.pattern === "string" ? rule.pattern.trim() : "";
-    if (!pattern || !isRulePermission(rule.permission)) continue;
-    byPattern.set(pattern, { pattern, permission: rule.permission });
-  }
-
-  return {
-    policy,
-    rules: Array.from(byPattern.values()),
-  };
+  return { ...tool };
 }
 
 // 默认内置工具配置
@@ -124,7 +65,6 @@ export const DEFAULT_BUILTIN_TOOLS: BuiltinToolConfig[] = [
     name: "bash",
     description: "Execute shell commands in vault directory",
     enabled: true,
-    permissions: DEFAULT_BASH_PERMISSIONS,
   }
 ];
 

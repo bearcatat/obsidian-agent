@@ -1,44 +1,32 @@
 /// <reference types="node" />
+
 function getSystemInfo(): string {
-  const platform = process.platform;
-  switch (platform) {
-    case 'win32': return 'Windows (win32)';
-    case 'darwin': return 'macOS (darwin)';
-    case 'linux': return 'Linux (linux)';
-    default: return platform;
-  }
+  if (process.platform === 'win32') return 'Windows Desktop';
+  if (process.platform === 'darwin') return 'macOS Desktop';
+  return process.platform;
 }
 
-function getShellInfo(): string {
-  const isWindows = process.platform === 'win32';
-  
-  if (!isWindows) {
-    return 'Shell: /bin/bash';
-  }
-
-  return 'Shell: Git Bash (bash.exe) preferred -> cmd.exe fallback';
-}
-
-export const DESCRIPTION = `Execute shell commands in the vault directory.
+export const DESCRIPTION = `Execute shell commands from the Vault root.
 
 Current OS: ${getSystemInfo()}
-${getShellInfo()}
 
-Usage:
-- Provide the command to execute
-- The command will run in the vault's root directory
-- Use appropriate commands for your platform
-- Some dangerous commands are blocked by default
+Windows command shell:
+- Windows runs PowerShell 7 when installed, otherwise Windows PowerShell.
+- Use PowerShell syntax on Windows; Git Bash and cmd.exe are not fallbacks.
 
-Execution policy:
-- The user can choose direct execution, rule approval, or AI approval
-- All policies still pass through a non-overridable hard guard
-- The current executor is not sandboxed
+Write sandbox:
+- The user chooses read-only, workspace-write, or complete access.
+- Reads and network access are available in every mode.
+- workspace-write can write the entire Vault, including .obsidian.
+- Commands within the selected write boundary run by default.
+- If one command needs more write access, request complete access with sandbox_permissions: "full-access" and include a short justification. There is no intermediate escalation.
+- Unsupported platforms and unavailable restricted backends fail closed.
 
-Blocked commands (cannot be overridden):
-- Commands that attempt to escape the vault directory
-- Commands that could harm the system
+Approval:
+- The conversation chooses request approval, intelligent approval, or complete-access approval.
+- Declare a complete-access request explicitly. A restricted sandbox denial or the narrow Windows PowerShell HTTPS compatibility failure may request one complete-access retry.
+- Some destructive, privilege-escalation, and remote-code-pipe commands are always blocked.
 
 Notes:
-- Do not use this tool to move or rename Obsidian Markdown notes. Use the note move tool instead so Obsidian can maintain internal links/backlinks.
-- The working directory is the Vault root, but the unsandboxed shell can access resources outside it.`;
+- Do not use this tool to move or rename Obsidian Markdown notes. Use the note move tool instead.
+- The working directory is the Vault root; it is not a read or network sandbox.`;

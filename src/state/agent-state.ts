@@ -1,4 +1,4 @@
-import { ContextCheckpoint, ContextRuntimeState, ContextUsageCalibration, FileReviewEntry, MessageV2, ModelConfig, ModelVariant } from '../types';
+import { BashApprovalMode, ContextCheckpoint, ContextRuntimeState, ContextUsageCalibration, FileReviewEntry, MessageV2, ModelConfig, ModelVariant } from '../types';
 import { ModelMessage } from 'ai';
 
 export interface IAgentState {
@@ -49,6 +49,7 @@ export interface AgentStateData {
   contextUsageCalibration?: ContextUsageCalibration;
   contextRuntimeState: ContextRuntimeState;
   activeSkills?: string[];
+  bashApprovalMode: BashApprovalMode;
 }
 
 export type ConversationStatus = 'idle' | 'running' | 'conflicted';

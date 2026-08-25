@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { Notice, TFile, normalizePath } from 'obsidian';
-import { ContextCheckpoint, ContextRuntimeState, ContextUsageCalibration, ModelConfig, ModelVariant } from '../types';
+import { BashApprovalMode, ContextCheckpoint, ContextRuntimeState, ContextUsageCalibration, ModelConfig, ModelVariant } from '../types';
 import { FileReviewEntry, MessageV2 } from '@/types';
 import { AgentStateData, ConversationState } from './agent-state';
 import { ModelMessage } from 'ai';
@@ -39,6 +39,7 @@ export interface AgentStore extends AgentStateData {
   setContextRuntimeState: (runtimeState: ContextRuntimeState, conversationId?: string) => void;
   setUnread: (hasUnread: boolean, conversationId?: string) => void;
   setUpdatedAt: (updatedAt: number, conversationId?: string) => void;
+  setBashApprovalMode: (mode: BashApprovalMode, conversationId?: string) => void;
   resetForNewChat: () => void;
   cleanupOldMessages: (keepCount?: number) => void;
   cleanupStreamingMessages: () => void;
@@ -58,6 +59,7 @@ const initialState: AgentStateData = {
   contextUsageCalibration: undefined,
   contextRuntimeState: { status: 'idle' },
   activeSkills: [],
+  bashApprovalMode: 'ask',
 };
 
 const registryInitialState = {
@@ -248,6 +250,7 @@ function syncActiveConversation(state: any): void {
   state.contextCheckpoint = source.contextCheckpoint;
   state.contextUsageCalibration = source.contextUsageCalibration;
   state.contextRuntimeState = source.contextRuntimeState ?? { status: 'idle' };
+  state.bashApprovalMode = source.bashApprovalMode;
 }
 
 function updateConversation(state: any, conversationId: string | undefined, update: (conversation: ConversationState) => void): void {
@@ -257,14 +260,43 @@ function updateConversation(state: any, conversationId: string | undefined, upda
   if (state.activeConversationId === id) syncActiveConversation(state);
 }
 
-function createConversationState(id: string, title: string, model: ModelConfig | null, variant: ModelVariant | null): ConversationState {
+function isBashApprovalMode(value: unknown): value is BashApprovalMode {
+  return value === 'ask' || value === 'intelligent' || value === 'full-access';
+}
+
+interface BashApprovalModeSource {
+  bashApprovalMode: unknown;
+  updatedAt: number;
+}
+
+function inheritedBashApprovalMode(
+  conversations: Record<string, BashApprovalModeSource>,
+  activeConversationId: string | null,
+  fallback: BashApprovalMode,
+): BashApprovalMode {
+  const active = activeConversationId ? conversations[activeConversationId] : undefined;
+  if (isBashApprovalMode(active?.bashApprovalMode)) return active.bashApprovalMode;
+
+  const recent = Object.values(conversations)
+    .sort((left, right) => right.updatedAt - left.updatedAt)
+    .find((conversation) => isBashApprovalMode(conversation.bashApprovalMode));
+  return recent && isBashApprovalMode(recent.bashApprovalMode) ? recent.bashApprovalMode : fallback;
+}
+
+function createConversationState(
+  id: string,
+  title: string,
+  model: ModelConfig | null,
+  variant: ModelVariant | null,
+  bashApprovalMode: BashApprovalMode = 'ask',
+): ConversationState {
   const now = Date.now();
   return {
     sessionId: id, messages: [], modelMessages: [], isLoading: false, title,
     model, variant, abortController: null, fileReviews: [], activeSkills: [],
     contextCheckpoint: undefined, contextUsageCalibration: undefined,
     contextRuntimeState: { status: 'idle', contextWindow: model?.contextWindow },
-    createdAt: now, updatedAt: now, status: 'idle', hasUnread: false,
+    createdAt: now, updatedAt: now, status: 'idle', hasUnread: false, bashApprovalMode,
   };
 }
 
@@ -274,7 +306,14 @@ export const useAgentStore = create<AgentStore>()(
 
     createConversation: (id: string, title: string = 'New Chat') =>
       set((state) => {
-        if (!state.conversations[id]) state.conversations[id] = createConversationState(id, title, state.model, state.variant) as any;
+        if (!state.conversations[id]) {
+          const bashApprovalMode = inheritedBashApprovalMode(
+            state.conversations,
+            state.activeConversationId,
+            state.bashApprovalMode,
+          );
+          state.conversations[id] = createConversationState(id, title, state.model, state.variant, bashApprovalMode) as any;
+        }
         state.activeConversationId = id;
         syncActiveConversation(state);
       }),
@@ -309,7 +348,15 @@ export const useAgentStore = create<AgentStore>()(
 
     setSessionId: (id: string) =>
       set((state) => {
-        if (!state.conversations[id]) state.conversations[id] = createConversationState(id, 'New Chat', state.model, state.variant) as any;
+        if (!state.conversations[id]) {
+          state.conversations[id] = createConversationState(
+            id,
+            'New Chat',
+            state.model,
+            state.variant,
+            inheritedBashApprovalMode(state.conversations, state.activeConversationId, state.bashApprovalMode),
+          ) as any;
+        }
         state.activeConversationId = id;
         syncActiveConversation(state);
       }),
@@ -534,6 +581,25 @@ export const useAgentStore = create<AgentStore>()(
     setUpdatedAt: (updatedAt: number, conversationId?: string) =>
       set((state) => {
         updateConversation(state, conversationId, conversation => { conversation.updatedAt = updatedAt; });
+      }),
+
+    setBashApprovalMode: (mode: BashApprovalMode, conversationId?: string) =>
+      set((state) => {
+        const id = conversationId ?? state.activeConversationId;
+        if (!id || !state.conversations[id]) {
+          // Match the model selector: a choice made before the first
+          // conversation exists is still real state and becomes that
+          // conversation's initial mode when it is created.
+          state.bashApprovalMode = mode;
+          return;
+        }
+        updateConversation(state, conversationId, conversation => {
+          conversation.bashApprovalMode = mode;
+          // This is an explicit per-conversation user choice. Updating the
+          // timestamp also makes it the correct fallback source only when a
+          // future conversation is created without an active predecessor.
+          conversation.updatedAt = Date.now();
+        });
       }),
 
     resetForNewChat: () =>

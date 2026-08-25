@@ -8,6 +8,7 @@ import { useState } from "react";
 import { MCPServerTable } from "./mcp-server-table";
 import { MCPServerConfig } from "@/types";
 import { t } from "../../../../i18n";
+import { isBashSandboxPlatformSupported } from '@/tool/Bash/sandbox-executor';
 
 export const ToolSetting: React.FC = () => {
 
@@ -40,10 +41,10 @@ export const ToolSetting: React.FC = () => {
         <BuiltinToolTable />
       </section>
 
-      <section>
-        <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:bashExecutionPolicy')}</div>
+      {isBashSandboxPlatformSupported() && <section>
+        <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:bashSandboxSettings')}</div>
         <BashPermissionSettings />
-      </section>
+      </section>}
 
       <section>
         <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:externalTools')}</div>

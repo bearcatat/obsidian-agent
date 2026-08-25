@@ -31,7 +31,7 @@ export async function persistSettingsStore(overrides: Partial<SettingsStateData>
     exaSearchConfig: overrides.exaSearchConfig ?? state.exaSearchConfig,
     bochaSearchConfig: overrides.bochaSearchConfig ?? state.bochaSearchConfig,
     telegramFeedbackConfig: overrides.telegramFeedbackConfig ?? state.telegramFeedbackConfig,
-    bashPermissions: overrides.bashPermissions ?? state.bashPermissions,
+    bashSandbox: overrides.bashSandbox ?? state.bashSandbox,
     memorySettings: overrides.memorySettings ?? state.memorySettings,
   };
 

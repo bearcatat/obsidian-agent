@@ -1,9 +1,14 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { assertValidModelIdentity, assertValidEmbeddingModel, ModelConfig, ModelVariant, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashPermissionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings, normalizeMemoryIdleHours, resolveModelVariant, EmbeddingModelConfig, RagSettings, createDefaultRagSettings } from '../types';
-import { cloneDefaultBashPermissions, getDefaultBuiltinTools, normalizeBashPermissionConfig, normalizeBuiltinTools } from '../tool/BuiltinTools';
+import { assertValidModelIdentity, assertValidEmbeddingModel, ModelConfig, ModelVariant, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashSandboxConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings, normalizeMemoryIdleHours, resolveModelVariant, EmbeddingModelConfig, RagSettings, createDefaultRagSettings } from '../types';
+import { getDefaultBuiltinTools, normalizeBuiltinTools } from '../tool/BuiltinTools';
 import AIModelManager from '../llm/ModelManager';
 import { SettingsStateData } from './settings-state';
+
+function normalizeBashSandbox(value: unknown): BashSandboxConfig {
+  const mode = value && typeof value === 'object' ? (value as { mode?: unknown }).mode : undefined;
+  return { mode: mode === 'read-only' || mode === 'workspace-write' || mode === 'full-access' ? mode : 'workspace-write' };
+}
 
 interface SettingsStore extends SettingsStateData {
   addOrUpdateModel: (model: ModelConfig, originalId?: string) => void;
@@ -32,7 +37,7 @@ interface SettingsStore extends SettingsStateData {
   setTelegramFeedbackConfig: (config: TelegramFeedbackConfig) => void;
   updateTelegramFeedbackEnabled: (enabled: boolean) => void;
 
-  setBashPermissions: (config: BashPermissionConfig) => void;
+  setBashSandbox: (config: BashSandboxConfig) => void;
   setMemorySettings: (config: MemorySettings) => void;
 
   setAllData: (data: Partial<SettingsStateData>) => void;
@@ -65,7 +70,7 @@ const initialState: SettingsStateData = {
     freshness: "noLimit",
   },
   telegramFeedbackConfig: createDefaultTelegramFeedbackConfig(),
-  bashPermissions: cloneDefaultBashPermissions(),
+  bashSandbox: { mode: 'workspace-write' },
   memorySettings: createDefaultMemorySettings(),
 };
 
@@ -246,9 +251,9 @@ export const useSettingsStore = create<SettingsStore>()(
         state.telegramFeedbackConfig.enabled = enabled;
       }),
 
-    setBashPermissions: (config: BashPermissionConfig) =>
+    setBashSandbox: (config: BashSandboxConfig) =>
       set((state) => {
-        state.bashPermissions = config;
+        state.bashSandbox = config;
       }),
 
     setMemorySettings: (config: MemorySettings) =>
@@ -287,7 +292,7 @@ export const useSettingsStore = create<SettingsStore>()(
           freshness: "noLimit",
         };
         state.telegramFeedbackConfig = data.telegramFeedbackConfig || createDefaultTelegramFeedbackConfig();
-        state.bashPermissions = normalizeBashPermissionConfig(data.bashPermissions);
+        state.bashSandbox = normalizeBashSandbox(data.bashSandbox);
         const savedMemorySettings = { ...(data.memorySettings || {}) } as Partial<MemorySettings> & {
           startupBatchLimit?: number;
           useMemories?: boolean;
