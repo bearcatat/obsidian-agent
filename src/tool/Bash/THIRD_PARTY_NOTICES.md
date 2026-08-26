@@ -7,7 +7,9 @@
 - License: MIT
 - Source: https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/sandbox/sandbox-windows-acl
 
-This plugin only calls the package's public `AclSandbox`, `workspaceWriteSid`, and `tempWriteSid` APIs. It does not copy or modify its Win32, token, ACL, or Job Object implementation.
+This plugin calls the package's public `AclSandbox`, `workspaceWriteSid`, and `tempWriteSid` APIs. It also applies the repository-local [`patches/@deepseek-ai+dsh-sandbox-windows-acl+0.1.0-rc.8.patch`](../../../patches/@deepseek-ai+dsh-sandbox-windows-acl+0.1.0-rc.8.patch) during installation.
+
+The patch changes only the pipe and inherited-runner spawn paths' `STARTUPINFOW` startup show state (`STARTF_USESHOWWINDOW` with `SW_HIDE`), plus matching type declarations and comments. It preserves `dwCreationFlags` (`0` for pipe, `CREATE_SUSPENDED`/`4` for runner), the restricted token, ACL grants, Job Object behavior, stdio, and permission semantics. It does not use `CREATE_NO_WINDOW` or `CREATE_NEW_CONSOLE`, and is not an upstream-released fix.
 
 ## Koffi
 
