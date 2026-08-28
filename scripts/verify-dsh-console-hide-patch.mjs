@@ -82,6 +82,10 @@ function verifyInstalledPatch() {
   assert((patch.match(/dwFlags: 257/g) ?? []).length === 2, 'DSH patch must set startup flags to 257 in both spawn paths');
   assert((patch.match(/wShowWindow: 0/g) ?? []).length === 2, 'DSH patch must set SW_HIDE in both spawn paths');
   assert(patch.includes('STARTF_USESHOWWINDOW') && patch.includes('SW_HIDE'), 'DSH patch must document the startup show-state constants');
+  for (const typeName of ['STARTUPINFOW', 'PROCESS_INFORMATION']) {
+    assert(patch.includes(`-const ${typeName} = koffi.struct("${typeName}", {`), `DSH patch must remove named Koffi ${typeName} registration`);
+    assert(patch.includes(`+const ${typeName} = koffi.struct({`), `DSH patch must use an anonymous Koffi ${typeName} struct`);
+  }
 
   const installedPackage = JSON.parse(readFileSync(path.join(dshRoot, 'package.json'), 'utf8'));
   assert(installedPackage.version === dshVersion, `Installed ${dshPackage} must be ${dshVersion}`);
@@ -91,6 +95,10 @@ function verifyInstalledPatch() {
 
   assert(/dwFlags: "uint32",\s*wShowWindow: "uint16",\s*cbReserved2: "uint16"/.test(chunk), 'DSH STARTUPINFOW ABI field order must remain unchanged');
   assert(chunk.includes('STARTUPINFOW.size !== 104'), 'DSH STARTUPINFOW ABI size assertion must remain 104');
+  for (const typeName of ['STARTUPINFOW', 'PROCESS_INFORMATION']) {
+    assert(chunk.includes(`const ${typeName} = koffi.struct({`), `Installed DSH must use an anonymous Koffi ${typeName} struct`);
+    assert(!chunk.includes(`koffi.struct("${typeName}"`), `Installed DSH must not register named Koffi ${typeName}`);
+  }
   assert(abi.includes('export declare const STARTF_USESHOWWINDOW = 1;') && abi.includes('export declare const SW_HIDE = 0;'), 'DSH ABI declarations must include STARTF_USESHOWWINDOW and SW_HIDE');
   assert(spawnTypes.includes('STARTF_USESHOWWINDOW with SW_HIDE') && spawnTypes.includes('CREATE_NO_WINDOW or CREATE_NEW_CONSOLE'), 'DSH spawn declarations must document the non-isolating show-state change');
 
@@ -104,6 +112,9 @@ function verifyBundle() {
   const bundlePath = path.join(root, 'main.js');
   assert(existsSync(bundlePath), 'Production bundle main.js is required for --bundle verification');
   const bundle = readFileSync(bundlePath, 'utf8');
+  for (const typeName of ['STARTUPINFOW', 'PROCESS_INFORMATION']) {
+    assert(!bundle.includes(`struct("${typeName}"`), `Production bundle must not register named Koffi ${typeName}`);
+  }
   const startupInfos = [...bundle.matchAll(/dwFlags:\s*257\s*,\s*wShowWindow:\s*0/g)];
   assert(startupInfos.length === 2, 'Production bundle must contain two hidden STARTUPINFOW encodes');
 

@@ -2,6 +2,12 @@ diff --git a/node_modules/@deepseek-ai/dsh-sandbox-windows-acl/lib/types-CNjZgO4
 index 3a737a6..fe3ebf1 100644
 --- a/node_modules/@deepseek-ai/dsh-sandbox-windows-acl/lib/types-CNjZgO4h.js
 +++ b/node_modules/@deepseek-ai/dsh-sandbox-windows-acl/lib/types-CNjZgO4h.js
+@@ -82,1 +82,1 @@
+-const STARTUPINFOW = koffi.struct("STARTUPINFOW", {
++const STARTUPINFOW = koffi.struct({
+@@ -103,1 +103,1 @@
+-const PROCESS_INFORMATION = koffi.struct("PROCESS_INFORMATION", {
++const PROCESS_INFORMATION = koffi.struct({
 @@ -773,8 +773,10 @@ function assertPrivateTempDisjoint(writableDirs, tempDir) {
  //#region lib/types/spawn.js
  /**
