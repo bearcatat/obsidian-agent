@@ -187,7 +187,7 @@ export const BashTool = tool({
         {},
         t('agent:bashExecuting'),
       );
-      const next = await executeSandboxedBash({ command, cwd: vaultPath, timeout, mode }, abortSignal);
+      const next = await executeSandboxedBash({ command, cwd: vaultPath, timeout, mode, conversationId: context.conversationId }, abortSignal);
       attempts.push({
         index: attempts.length === 0 ? 0 : 1,
         mode,

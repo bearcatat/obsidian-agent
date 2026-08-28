@@ -15,6 +15,7 @@ const source = (relative) => path.resolve(root, relative);
 const stubBySource = new Map([
   [source('src/tool/Bash/bash-approval-reviewer.ts'), 'fixture-reviewer'],
   [source('src/tool/Bash/sandbox-executor.ts'), 'fixture-sandbox'],
+  [source('src/tool/Bash/bash-session-temp-manager.ts'), 'fixture-bash-session-temp-manager'],
   [source('src/messages/tool-message.ts'), 'fixture-tool-message'],
   [source('src/messages/user-message.ts'), 'fixture-user-message'],
   [source('src/messages/assistant-message.ts'), 'fixture-assistant-message'],
@@ -55,6 +56,12 @@ const stubContents = {
         error: '',
         ...result,
       };
+    }
+  `,
+  'fixture-bash-session-temp-manager': `
+    export class BashSessionTempManager {
+      static getInstance() { return new BashSessionTempManager(); }
+      async retire() {}
     }
   `,
   'fixture-tool-message': `
@@ -509,6 +516,7 @@ await check('A3 requested capability elevates directly to full-access once', asy
   const result = await promise;
   assert.equal(globalThis.__fixtureExecCalls.length, 1);
   assert.equal(globalThis.__fixtureExecCalls[0].mode, 'full-access');
+  assert.equal(globalThis.__fixtureExecCalls[0].conversationId, context.conversationId, 'Bash execution must receive its conversation ID');
   assert.equal(JSON.parse(result).status, 'success');
   const payload = finalMessagePayload(context);
   assert.equal(payload.authorization.elevation.attempt, 1);

@@ -4,11 +4,15 @@ import path from 'node:path';
 const root = process.cwd();
 const read = (relative) => readFileSync(path.join(root, relative), 'utf8');
 const sandbox = read('src/tool/Bash/sandbox-executor.ts');
+const sessionTemp = read('src/tool/Bash/bash-session-temp-manager.ts');
 const tool = read('src/tool/Bash/BashTool.tsx');
 const settings = read('src/tool/BuiltinTools.ts');
 
-for (const required of ['AclSandbox', 'workspaceWriteSid', 'tempWriteSid', 'prepareEmbeddedKoffi', 'sandbox-unavailable']) {
+for (const required of ['AclSandbox', 'BashSessionTempManager', 'manageDacls: false', 'sandbox-unavailable']) {
   if (!sandbox.includes(required)) throw new Error(`Windows sandbox integration is missing ${required}`);
+}
+for (const required of ['AclWriteGrant', 'workspaceWriteSid', 'tempWriteSid', 'prepareEmbeddedKoffi']) {
+  if (!sessionTemp.includes(required)) throw new Error(`Windows session temporary integration is missing ${required}`);
 }
 if (sandbox.includes("'.obsidian'")) throw new Error('Sandbox executor must not add a .obsidian write deny');
 if (!tool.includes('sandbox_permissions') || !tool.includes('justification')) throw new Error('Bash escalation schema is missing');

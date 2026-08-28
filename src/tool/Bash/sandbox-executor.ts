@@ -5,8 +5,8 @@ import os from 'os';
 import path from 'path';
 import type { BashOutcomeStatus, BashSandboxMode } from '@/types';
 import { executeCommand, getUnixShellConfig, getWindowsPowerShellInfo, getWindowsPowerShellConfig, spawnWithWindowsEnvironment, type ExecuteResult } from './execute-command';
-import { AclSandbox, tempWriteSid, workspaceWriteSid } from '@deepseek-ai/dsh-sandbox-windows-acl';
-import { prepareEmbeddedKoffi } from './koffi-runtime';
+import { AclSandbox } from '@deepseek-ai/dsh-sandbox-windows-acl';
+import { BashSessionTempManager } from './bash-session-temp-manager';
 
 export interface SandboxedExecutionResult extends ExecuteResult {
   status: Extract<BashOutcomeStatus, 'success' | 'command-failed' | 'sandbox-denied' | 'sandbox-unavailable' | 'cancelled'>;
@@ -97,23 +97,21 @@ function canonicalWorkspaceRoot(cwd: string): string {
   return canonical;
 }
 
-async function executeWindowsAcl(command: string, cwd: string, mode: Exclude<BashSandboxMode, 'full-access'>, signal?: AbortSignal): Promise<SandboxedExecutionResult> {
-  let tempDir: string | undefined;
+async function executeWindowsAcl(command: string, cwd: string, mode: Exclude<BashSandboxMode, 'full-access'>, conversationId: string, signal?: AbortSignal): Promise<SandboxedExecutionResult> {
+  let lease: Awaited<ReturnType<BashSessionTempManager['acquire']>> | undefined;
   try {
-    tempDir = mkdtempSync(path.join(os.tmpdir(), 'obsidian-agent-bash-'));
     const shell = getWindowsPowerShellConfig();
     if (!shell) return unavailable('PowerShell 7 and Windows PowerShell are unavailable', 'windows-acl');
-    // This must run before DSH lazily resolves its `koffi` import. The shim
-    // presents only the verified absolute native payload to the public DSH API.
-    prepareEmbeddedKoffi();
     const workspaceRoot = canonicalWorkspaceRoot(cwd);
+    lease = await BashSessionTempManager.getInstance().acquire(workspaceRoot, conversationId, mode);
     const sandbox = mode === 'workspace-write'
       ? new AclSandbox({
         mode,
         writableDirs: [workspaceRoot],
-        tempDir,
-        writeSid: workspaceWriteSid(workspaceRoot),
-        tempWriteSid: tempWriteSid(tempDir),
+        tempDir: lease.tempDir,
+        writeSid: lease.writeSid,
+        tempWriteSid: lease.tempWriteSid,
+        manageDacls: false,
       })
       // DSH's read-only token contains an ambient write-capable SID. Use a
       // workspace-write token with no workspace grants instead: its otherwise
@@ -122,14 +120,15 @@ async function executeWindowsAcl(command: string, cwd: string, mode: Exclude<Bas
       : new AclSandbox({
         mode: 'workspace-write',
         writableDirs: [],
-        tempDir,
-        writeSid: workspaceWriteSid(tempDir),
-        tempWriteSid: tempWriteSid(tempDir),
+        tempDir: lease.tempDir,
+        writeSid: lease.writeSid,
+        tempWriteSid: lease.tempWriteSid,
+        manageDacls: false,
       });
     await sandbox.init();
     try {
       if (signal?.aborted) return { output: 'Command cancelled', exitCode: 130, error: 'Cancelled', status: 'cancelled', backend: 'windows-acl', enforcement: 'write-restricted' };
-      const child = await spawnWithWindowsEnvironment(tempDir, () => sandbox.spawn({
+      const child = await spawnWithWindowsEnvironment(lease.tempDir, () => sandbox.spawn({
         command: shell.shell,
         args: [...shell.args, command],
         cwd: workspaceRoot,
@@ -150,12 +149,10 @@ async function executeWindowsAcl(command: string, cwd: string, mode: Exclude<Bas
   } catch (error) {
     return unavailable(error, 'windows-acl');
   } finally {
-    if (tempDir) {
-      try { rmSync(tempDir, { recursive: true, force: true }); } catch { /* DSH disposal has already released the temp grant */ }
-    }
+    await lease?.release();
   }
 }
-export async function executeSandboxedBash(params: { command: string; cwd: string; timeout?: number; mode: BashSandboxMode }, signal?: AbortSignal): Promise<SandboxedExecutionResult> {
+export async function executeSandboxedBash(params: { command: string; cwd: string; timeout?: number; mode: BashSandboxMode; conversationId?: string }, signal?: AbortSignal): Promise<SandboxedExecutionResult> {
   if (!isBashSandboxPlatformSupported()) return unavailable('Bash is supported only on Windows and macOS Desktop', 'unsupported');
   if (params.mode === 'full-access') {
     try {
@@ -168,7 +165,10 @@ export async function executeSandboxedBash(params: { command: string; cwd: strin
     }
   }
   if (!params.cwd) return unavailable('The Vault filesystem path is unavailable', process.platform === 'win32' ? 'windows-acl' : 'seatbelt');
+  if (process.platform === 'win32' && (!params.conversationId || typeof params.conversationId !== 'string')) {
+    return unavailable('Bash sandbox requires a persistent conversation ID', 'windows-acl');
+  }
   return process.platform === 'win32'
-    ? executeWindowsAcl(params.command, params.cwd, params.mode, signal)
+    ? executeWindowsAcl(params.command, params.cwd, params.mode, params.conversationId!, signal)
     : executeSeatbelt(params.command, params.cwd, params.timeout, params.mode, signal);
 }

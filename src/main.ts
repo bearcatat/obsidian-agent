@@ -28,6 +28,7 @@ import MemoryLogic from './logic/memory-logic';
 import MemoryJobQueue from './logic/memory-job-queue';
 import { initI18n, resolveHostLocale } from './i18n';
 import VaultRagService from './retrieval/VaultRagService';
+import { BashSessionTempManager } from './tool/Bash/bash-session-temp-manager';
 
 export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgentPlugin {
 	private uiManager!: UIManager;
@@ -51,6 +52,12 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 		try {
 			// 优先初始化设置，确保模型配置可用
 			await this.initializeSettings();
+
+			// This is intentionally non-blocking for plugin availability: a failed
+			// orphan sweep only makes restricted Bash fail closed on later use.
+			this.initializeBashSessionTemp().catch(error => {
+				console.error('Failed to initialize Bash session temporary directories:', error);
+			});
 
 			// 在任何 React root 挂载前解析宿主语言并初始化共享 UI 本地化
 			await this.initializeLocalization();
@@ -106,6 +113,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 	async onunload() {
 		try {
+			BashSessionTempManager.getInstance().beginShutdown();
 			await VaultRagService.getInstance().shutdown();
 			await TelegramFeedbackRuntime.getInstance().stop();
 
@@ -114,6 +122,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			for (const conversation of Object.values(agentState.conversations)) {
 				conversation.abortController?.abort();
 			}
+			await BashSessionTempManager.getInstance().shutdown();
 
 			await AgentViewLogic.getInstance().finalizePendingReviews();
 			await MemoryJobQueue.getInstance().shutdown();
@@ -128,6 +137,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			SessionLogic.resetInstance();
 			MemoryLogic.resetInstance();
 			MemoryJobQueue.resetInstance();
+			BashSessionTempManager.resetInstance();
 			VaultRagService.resetInstance();
 			FileReviewDriftMonitor.resetInstance();
 			FileReviewLogic.resetInstance();
@@ -175,6 +185,14 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 		} catch (error) {
 			console.error('Failed to initialize settings:', error);
 		}
+	}
+
+	private async initializeBashSessionTemp(): Promise<void> {
+		if (process.platform !== 'win32') return;
+		const vaultPath = (this.app.vault.adapter as { basePath?: string }).basePath;
+		if (!vaultPath) throw new Error('Vault filesystem path is unavailable');
+		const sessions = await SessionLogic.getInstance().listSessions();
+		await BashSessionTempManager.getInstance().startup(vaultPath, sessions.map(session => session.id));
 	}
 
 	private initializeUI(): void {
