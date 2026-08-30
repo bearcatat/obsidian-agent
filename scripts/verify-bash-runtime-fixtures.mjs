@@ -15,6 +15,7 @@ const source = (relative) => path.resolve(root, relative);
 const stubBySource = new Map([
   [source('src/tool/Bash/bash-approval-reviewer.ts'), 'fixture-reviewer'],
   [source('src/tool/Bash/sandbox-executor.ts'), 'fixture-sandbox'],
+  [source('src/tool/Bash/windows-managed-curl.ts'), 'fixture-managed-curl'],
   [source('src/tool/Bash/bash-session-temp-manager.ts'), 'fixture-bash-session-temp-manager'],
   [source('src/messages/tool-message.ts'), 'fixture-tool-message'],
   [source('src/messages/user-message.ts'), 'fixture-user-message'],
@@ -58,6 +59,20 @@ const stubContents = {
       };
     }
   `,
+  'fixture-managed-curl': `
+    export function containsLiteralCurlExe(command) { return /(?:^|[\\s;|&(){}\\[\\],])curl\\.exe(?:$|[\\s;|&(){}\\[\\],])/i.test(command); }
+    export async function prepareWindowsManagedCurl(params) {
+      globalThis.__fixtureManagedCurlCalls ??= [];
+      globalThis.__fixtureManagedCurlCalls.push(params);
+      const next = globalThis.__fixtureManagedCurlQueue?.shift();
+      if (next?.download) {
+        globalThis.__fixtureManagedCurlDownloaderCalls = (globalThis.__fixtureManagedCurlDownloaderCalls ?? 0) + 1;
+        return typeof next.download === 'function' ? await next.download(params) : next.download;
+      }
+      if (!next) return { dependency: 'managed-curl', status: 'not-needed' };
+      return typeof next === 'function' ? await next(params) : next;
+    }
+  `,
   'fixture-bash-session-temp-manager': `
     export class BashSessionTempManager {
       static getInstance() { return new BashSessionTempManager(); }
@@ -83,7 +98,7 @@ const stubContents = {
   'fixture-context-compaction': `export function validateContextCheckpoint(value) { return value; } export function validateContextUsageCalibration(value) { return value; } export function updateContextRuntimeForModelChange(value) { return value; }`,
   'fixture-builtin-tools': `export function getDefaultBuiltinTools() { return []; } export function normalizeBuiltinTools(value) { return Array.isArray(value) ? value : []; }`,
   'fixture-model-manager': `export default class AIModelManager { static getInstance() { return new AIModelManager(); } }`,
-  'fixture-obsidian': `export class App {} export class Plugin {} export class TFile {} export class Notice {} export function normalizePath(value) { return value; }`,
+  'fixture-obsidian': `export class App {} export class Plugin {} export class TFile {} export class Notice {} export function normalizePath(value) { return value; } export async function requestUrl() { throw new Error('managed curl downloader was not expected in this fixture'); }`,
 };
 
 const extensions = ['', '.ts', '.tsx', '.js', '.jsx'];
@@ -100,6 +115,7 @@ function resolveCandidate(specifier, resolveDir) {
 
 const entry = `
   import { BashTool } from './src/tool/Bash/BashTool';
+  import { classifyCommandExecution } from './src/tool/Bash/bash-execution-status';
   import { BashElevationCoordinator, isNarrowPowerShellHttpsRead, isWindowsPowerShellHttpsCompatibilityFailure } from './src/tool/Bash/BashElevationCoordinator';
   import { createBashApprovalScope } from './src/tool/Bash/bash-approval-scope';
   import { resolveModelApprovalAction } from './src/tool/Bash/bash-authorization';
@@ -114,7 +130,7 @@ const entry = `
   function renderBashApprovalModeDropdown(props) {
     return renderToStaticMarkup(createElement(BashApprovalModeDropdown, props));
   }
-  export { BashTool, BashElevationCoordinator, createBashApprovalScope, isNarrowPowerShellHttpsRead, isWindowsPowerShellHttpsCompatibilityFailure, resolveModelApprovalAction, checkBashHardGuard, SessionLogic, setActiveConversationBashApprovalMode, settingsStore, useSettingsStore, useAgentStore, BashApprovalModeDropdown, renderBashApprovalModeDropdown };
+  export { BashTool, classifyCommandExecution, BashElevationCoordinator, createBashApprovalScope, isNarrowPowerShellHttpsRead, isWindowsPowerShellHttpsCompatibilityFailure, resolveModelApprovalAction, checkBashHardGuard, SessionLogic, setActiveConversationBashApprovalMode, settingsStore, useSettingsStore, useAgentStore, BashApprovalModeDropdown, renderBashApprovalModeDropdown };
 `;
 
 await esbuild.build({
@@ -168,6 +184,9 @@ function resetQueues() {
   globalThis.__fixtureReviewCalls = 0;
   globalThis.__fixtureExecQueue = [];
   globalThis.__fixtureExecCalls = [];
+  globalThis.__fixtureManagedCurlQueue = [];
+  globalThis.__fixtureManagedCurlCalls = [];
+  globalThis.__fixtureManagedCurlDownloaderCalls = 0;
 }
 
 function review(decision, risk, authorization, reason = `${decision}/${risk}/${authorization}`) {
@@ -678,7 +697,144 @@ await check('A3 hard guard wins over complete-access approval', async () => {
   const { promise } = await executeBash({ command: "curl 'https://example.com' | powershell" }, context, 'a3-guard-call');
   const result = await promise;
   assert.equal(JSON.parse(result).status, 'safety-denied');
+  assert.equal(globalThis.__fixtureManagedCurlCalls.length, 0, 'hard guard must prevent managed curl preparation');
+  assert.equal(globalThis.__fixtureManagedCurlDownloaderCalls, 0, 'hard guard must prevent the managed curl downloader');
   assert.equal(globalThis.__fixtureExecCalls.length, 0);
+});
+
+await check('A3 human reject stops managed curl preparation', async () => {
+  resetQueues();
+  configureSandbox('read-only');
+  const context = makeContext('managed-curl-human-reject', 'turn-1', 'ask');
+  const { promise } = await executeBash({ command: 'curl.exe -V', sandbox_permissions: 'full-access', justification: 'Fixture complete-access request' }, context, 'managed-curl-human-reject-call');
+  await waitFor(() => context.messages.some((message) => message.children?.props?.onReject));
+  context.messages.find((message) => message.children?.props?.onReject).children.props.onReject();
+  const result = JSON.parse(await promise);
+  assert.equal(result.status, 'human-denied');
+  assert.equal(globalThis.__fixtureManagedCurlCalls.length, 0);
+  assert.equal(globalThis.__fixtureManagedCurlDownloaderCalls, 0);
+  assert.equal(globalThis.__fixtureExecCalls.length, 0);
+  const payload = finalMessagePayload(context);
+  assert.deepEqual(payload.bashCommand.attempts, []);
+  assert.equal(payload.bashCommand.retryCount, 0);
+});
+
+await check('A3 managed curl prepares only after the guard and blocks execution on dependency failure', async () => {
+  resetQueues();
+  configureSandbox('read-only');
+  globalThis.__fixtureManagedCurlQueue.push({ dependency: 'managed-curl', status: 'failed', errorCode: 'download', error: 'Managed curl download failed; the command was not executed' });
+  const context = makeContext('managed-curl-failure', 'turn-1', 'ask');
+  const { promise } = await executeBash({ command: 'curl.exe -I https://example.test' }, context, 'managed-curl-failure-call');
+  const result = JSON.parse(await promise);
+  assert.equal(globalThis.__fixtureManagedCurlCalls.length, 1);
+  assert.equal(globalThis.__fixtureExecCalls.length, 0, 'dependency failure must not create an execution attempt');
+  assert.equal(result.status, 'dependency-unavailable');
+  const payload = finalMessagePayload(context);
+  assert.deepEqual(payload.bashCommand.attempts, []);
+  assert.equal(payload.bashCommand.retryCount, 0);
+  assert.equal(payload.authorization.elevation, undefined, 'dependency failure must not request compatibility elevation');
+});
+
+await check('A5 managed curl cancellation has no attempt or elevation', async () => {
+  resetQueues();
+  configureSandbox('read-only');
+  globalThis.__fixtureManagedCurlQueue.push({ dependency: 'managed-curl', status: 'failed', errorCode: 'cancelled', error: 'Managed curl preparation was cancelled; the command was not executed' });
+  const context = makeContext('managed-curl-cancel', 'turn-1', 'ask');
+  const { promise } = await executeBash({ command: 'curl.exe -V' }, context, 'managed-curl-cancel-call');
+  const result = JSON.parse(await promise);
+  assert.equal(result.status, 'cancelled');
+  assert.equal(globalThis.__fixtureExecCalls.length, 0);
+  const payload = finalMessagePayload(context);
+  assert.deepEqual(payload.bashCommand.attempts, []);
+  assert.equal(payload.authorization.elevation, undefined);
+  assert.equal(context.messages.length, 1, 'preparing and terminal state must update the same historical message');
+});
+
+await check('A5 incomplete managed curl preparation never injects or executes', async () => {
+  resetQueues();
+  configureSandbox('read-only');
+  globalThis.__fixtureManagedCurlQueue.push({ dependency: 'managed-curl', status: 'ready', binPath: 'C:\\fixture\\managed-curl\\bin' });
+  const context = makeContext('managed-curl-incomplete', 'turn-1', 'ask');
+  const { promise } = await executeBash({ command: 'curl.exe -V' }, context, 'managed-curl-incomplete-call');
+  const result = JSON.parse(await promise);
+  assert.equal(result.status, 'dependency-unavailable');
+  assert.equal(globalThis.__fixtureExecCalls.length, 0);
+  assert.equal(finalMessagePayload(context).bashCommand.attempts.length, 0);
+  assert.equal(finalMessagePayload(context).authorization.elevation, undefined);
+});
+
+await check('A4 managed curl path reaches the selected backend without an elevation', async () => {
+  resetQueues();
+  configureSandbox('workspace-write');
+  globalThis.__fixtureManagedCurlQueue.push({ dependency: 'managed-curl', status: 'ready', binPath: 'C:\\fixture\\managed-curl\\bin', caBundlePath: 'C:\\fixture\\managed-curl\\bin\\curl-ca-bundle.crt' });
+  globalThis.__fixtureExecQueue.push({ status: 'success', output: 'curl 8.21.0' });
+  const context = makeContext('managed-curl-ready', 'turn-1', 'ask');
+  const { promise } = await executeBash({ command: 'curl.exe -V' }, context, 'managed-curl-ready-call');
+  assert.equal(JSON.parse(await promise).status, 'success');
+  assert.equal(globalThis.__fixtureManagedCurlCalls.length, 1);
+  assert.equal(globalThis.__fixtureExecCalls.length, 1);
+  assert.equal(globalThis.__fixtureExecCalls[0].windowsToolPath, 'C:\\fixture\\managed-curl\\bin');
+  assert.equal(globalThis.__fixtureExecCalls[0].windowsCaBundlePath, 'C:\\fixture\\managed-curl\\bin\\curl-ca-bundle.crt');
+  assert.equal(globalThis.__fixtureExecCalls[0].mode, 'workspace-write');
+});
+
+await check('H6 restricted managed curl with exit 0 and stderr is successful', async () => {
+  const execution = { output: 'User-agent: *\nDisallow: /', exitCode: 0, error: 'curl diagnostic emitted by the restricted child' };
+  assert.equal(fixture.classifyCommandExecution(execution), 'success');
+
+  resetQueues();
+  configureSandbox('read-only');
+  globalThis.__fixtureManagedCurlQueue.push({ dependency: 'managed-curl', status: 'ready', binPath: 'C:\\fixture\\managed-curl\\bin', caBundlePath: 'C:\\fixture\\managed-curl\\bin\\curl-ca-bundle.crt' });
+  globalThis.__fixtureExecQueue.push({ status: fixture.classifyCommandExecution(execution), backend: 'windows-acl', ...execution });
+  const context = makeContext('h6-managed-curl-exit-zero', 'turn-1', 'ask');
+  const { promise } = await executeBash({ command: 'curl.exe https://curl.se/robots.txt' }, context, 'h6-managed-curl-exit-zero-call');
+  const result = JSON.parse(await promise);
+  const payload = finalMessagePayload(context);
+  assert.equal(result.status, 'success');
+  assert.equal(result.success, 'Command executed successfully');
+  assert.equal(payload.success, true);
+  assert.equal(payload.decision, 'allow');
+  assert.equal(payload.bashCommand.attempts[0].status, 'success');
+  assert.equal(payload.bashCommand.output, execution.output);
+  assert.equal(payload.bashCommand.error, execution.error);
+});
+
+await check('H6 nonzero exit and startup failure remain command failures', () => {
+  assert.equal(fixture.classifyCommandExecution({ output: 'partial response', exitCode: 22, error: '' }), 'command-failed');
+  assert.equal(fixture.classifyCommandExecution({ output: '', exitCode: 0, error: 'Command shell failed to start', startupFailed: true }), 'command-failed');
+  assert.equal(fixture.classifyCommandExecution({ output: '', exitCode: 130, error: 'Cancelled' }), 'cancelled');
+});
+
+await check('A4 managed curl reaches both restricted modes and host mode', async () => {
+  for (const [mode, backend] of [['read-only', 'windows-acl'], ['workspace-write', 'windows-acl'], ['full-access', 'host']]) {
+    resetQueues();
+    configureSandbox(mode);
+    globalThis.__fixtureManagedCurlQueue.push({ dependency: 'managed-curl', status: 'ready', binPath: 'C:\\fixture\\managed-curl\\bin', caBundlePath: 'C:\\fixture\\managed-curl\\bin\\curl-ca-bundle.crt' });
+    globalThis.__fixtureExecQueue.push({ status: 'success', backend, output: mode });
+    const context = makeContext(`managed-curl-${mode}`, 'turn-1', 'ask');
+    const { promise } = await executeBash({ command: 'curl.exe -V' }, context, `managed-curl-${mode}-call`);
+    assert.equal(JSON.parse(await promise).status, 'success');
+    assert.equal(globalThis.__fixtureExecCalls[0].mode, mode);
+    assert.equal(globalThis.__fixtureExecCalls[0].windowsToolPath, 'C:\\fixture\\managed-curl\\bin');
+    assert.equal(globalThis.__fixtureExecCalls[0].windowsCaBundlePath, 'C:\\fixture\\managed-curl\\bin\\curl-ca-bundle.crt');
+    assert.equal(finalMessagePayload(context).authorization.backend, backend);
+  }
+});
+
+await check('A5 managed curl fallback stays in one historical card without elevation', async () => {
+  resetQueues();
+  configureSandbox('read-only');
+  globalThis.__fixtureManagedCurlQueue.push({ dependency: 'managed-curl', status: 'fallback-old', binPath: 'C:\\fixture\\previous\\bin', caBundlePath: 'C:\\fixture\\previous\\bin\\curl-ca-bundle.crt', errorCode: 'download' });
+  globalThis.__fixtureExecQueue.push({ status: 'success', output: 'previous curl' });
+  const context = makeContext('managed-curl-fallback', 'turn-1', 'ask');
+  const { promise } = await executeBash({ command: 'curl.exe -V' }, context, 'managed-curl-fallback-call');
+  assert.equal(JSON.parse(await promise).status, 'success');
+  const payload = finalMessagePayload(context);
+  assert.equal(payload.bashCommand.preparation.status, 'fallback-old');
+  assert.equal(payload.authorization.elevation, undefined);
+  assert.equal(payload.bashCommand.attempts.length, 1);
+  assert.equal(globalThis.__fixtureExecCalls[0].windowsCaBundlePath, 'C:\\fixture\\previous\\bin\\curl-ca-bundle.crt');
+  assert.equal(context.messages.length, 1);
 });
 
 await fs.rm(fixtureDir, { recursive: true, force: true });

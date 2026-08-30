@@ -83,7 +83,34 @@ export function getWindowsPowerShellInfo(config: ShellConfig): BashShellInfo {
  * every Windows child creation in this module so another invocation cannot
  * inherit the private sandbox temp directory.
  */
-export async function spawnWithWindowsEnvironment<T>(tempDir: string | undefined, operation: () => T): Promise<T> {
+export type WindowsChildEnvironment = {
+  pathPrefix?: string;
+  curlCaBundlePath?: string;
+};
+
+type WindowsEnvironmentSnapshot = ReadonlyArray<readonly [string, string | undefined]>;
+
+function snapshotWindowsEnvironment(name: string): WindowsEnvironmentSnapshot {
+  return Object.keys(process.env)
+    .filter((key) => key.toLowerCase() === name.toLowerCase())
+    .map((key) => [key, process.env[key]] as const);
+}
+
+function setWindowsEnvironment(name: string, value: string): void {
+  const existing = snapshotWindowsEnvironment(name)[0]?.[0];
+  for (const [key] of snapshotWindowsEnvironment(name)) delete process.env[key];
+  process.env[existing ?? name] = value;
+}
+
+function restoreWindowsEnvironment(name: string, snapshot: WindowsEnvironmentSnapshot): void {
+  for (const [key] of snapshotWindowsEnvironment(name)) delete process.env[key];
+  for (const [key, value] of snapshot) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+}
+
+export async function spawnWithWindowsEnvironment<T>(tempDir: string | undefined, operation: () => T, environment: WindowsChildEnvironment = {}): Promise<T> {
   if (process.platform !== 'win32') return operation();
 
   const previous = windowsSpawnMutex;
@@ -91,23 +118,30 @@ export async function spawnWithWindowsEnvironment<T>(tempDir: string | undefined
   windowsSpawnMutex = new Promise<void>((resolve) => { release = resolve; });
   await previous;
 
-  const tmpWasSet = Object.prototype.hasOwnProperty.call(process.env, 'TMP');
-  const tempWasSet = Object.prototype.hasOwnProperty.call(process.env, 'TEMP');
-  const previousTmp = process.env.TMP;
-  const previousTemp = process.env.TEMP;
+  const tmp = snapshotWindowsEnvironment('TMP');
+  const temp = snapshotWindowsEnvironment('TEMP');
+  const pathSnapshot = environment.pathPrefix ? snapshotWindowsEnvironment('Path') : undefined;
+  const curlCaBundle = environment.curlCaBundlePath ? snapshotWindowsEnvironment('CURL_CA_BUNDLE') : undefined;
   try {
     if (tempDir) {
-      process.env.TMP = tempDir;
-      process.env.TEMP = tempDir;
+      setWindowsEnvironment('TMP', tempDir);
+      setWindowsEnvironment('TEMP', tempDir);
     }
+    if (environment.pathPrefix) {
+      const original = pathSnapshot?.[0]?.[1] ?? '';
+      const entries = original.split(path.delimiter).filter(Boolean);
+      const prefix = path.resolve(environment.pathPrefix);
+      setWindowsEnvironment('Path', [prefix, ...entries.filter((entry) => path.resolve(entry) !== prefix)].join(path.delimiter));
+    }
+    if (environment.curlCaBundlePath) setWindowsEnvironment('CURL_CA_BUNDLE', environment.curlCaBundlePath);
     return operation();
   } finally {
     if (tempDir) {
-      if (tmpWasSet) process.env.TMP = previousTmp!;
-      else delete process.env.TMP;
-      if (tempWasSet) process.env.TEMP = previousTemp!;
-      else delete process.env.TEMP;
+      restoreWindowsEnvironment('TMP', tmp);
+      restoreWindowsEnvironment('TEMP', temp);
     }
+    if (pathSnapshot) restoreWindowsEnvironment('Path', pathSnapshot);
+    if (curlCaBundle) restoreWindowsEnvironment('CURL_CA_BUNDLE', curlCaBundle);
     release?.();
   }
 }
@@ -123,7 +157,7 @@ export interface BashExecutor {
   execute(request: BashExecutionRequest, signal?: AbortSignal): Promise<ExecuteResult>;
 }
 
-export async function runWithShell(command: string, cwd: string, timeoutMs: number, config: ShellConfig, signal?: AbortSignal): Promise<ExecuteResult | { enotent: true }> {
+export async function runWithShell(command: string, cwd: string, timeoutMs: number, config: ShellConfig, signal?: AbortSignal, windowsToolPath?: string, windowsCaBundlePath?: string): Promise<ExecuteResult | { enotent: true }> {
   if (signal?.aborted) return { output: 'Command cancelled', exitCode: 130, error: 'Cancelled' };
 
   let child: ChildProcessWithoutNullStreams;
@@ -132,7 +166,7 @@ export async function runWithShell(command: string, cwd: string, timeoutMs: numb
       cwd: cwd || undefined,
       shell: false,
       windowsHide: true,
-    }));
+    }), { pathPrefix: windowsToolPath, curlCaBundlePath: windowsCaBundlePath });
   } catch (error) {
     return { output: '', exitCode: 125, error: error instanceof Error ? error.message : 'Command shell failed to start', startupFailed: true };
   }
@@ -208,7 +242,7 @@ export async function runWithShell(command: string, cwd: string, timeoutMs: numb
   });
 }
 
-export async function executeCommand(command: string, cwd: string, timeout?: number, signal?: AbortSignal): Promise<ExecuteResult> {
+export async function executeCommand(command: string, cwd: string, timeout?: number, signal?: AbortSignal, windowsToolPath?: string, windowsCaBundlePath?: string): Promise<ExecuteResult> {
   const timeoutMs = timeout ?? DEFAULT_TIMEOUT;
 
   if (process.platform !== 'win32') {
@@ -219,7 +253,7 @@ export async function executeCommand(command: string, cwd: string, timeout?: num
 
   const config = getWindowsPowerShellConfig();
   if (!config) return { output: '', exitCode: 125, error: 'PowerShell 7 and Windows PowerShell are unavailable', startupFailed: true };
-  const result = await runWithShell(command, cwd, timeoutMs, config, signal);
+  const result = await runWithShell(command, cwd, timeoutMs, config, signal, windowsToolPath, windowsCaBundlePath);
   if ('enotent' in result) return { output: '', exitCode: 125, error: 'PowerShell failed to start', startupFailed: true };
   return { ...result, shell: getWindowsPowerShellInfo(config) };
 }

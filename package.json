@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-agent",
-	"version": "0.29.1",
+	"version": "0.30.0",
 	"description": "AI agent plugin for Obsidian",
 	"main": "main.js",
 	"scripts": {
@@ -16,6 +16,7 @@
 		"verify:bash-security": "node scripts/verify-koffi-payloads.mjs && node scripts/verify-dsh-console-hide-patch.mjs && node scripts/verify-bash-security.mjs",
 		"verify:bash-session-temp": "node scripts/verify-bash-session-temp.mjs",
 		"verify:powershell-execution": "node scripts/verify-powershell-execution.mjs",
+		"verify:windows-managed-curl": "node scripts/verify-windows-managed-curl.mjs",
 		"verify:p4-network-routing": "node scripts/verify-p4-network-routing.mjs",
 		"verify:bash-elevation": "node scripts/verify-bash-elevation.mjs",
 		"verify:bash-runtime-fixtures": "node scripts/verify-bash-runtime-fixtures.mjs",
@@ -88,6 +89,7 @@
 		"clsx": "^2.1.1",
 		"codemirror": "^6.0.2",
 		"diff-match-patch": "^1.0.5",
+		"fflate": "0.8.2",
 		"gramio": "^0.9.0",
 		"http-proxy-agent": "^9.0.0",
 		"https-proxy-agent": "^9.0.0",

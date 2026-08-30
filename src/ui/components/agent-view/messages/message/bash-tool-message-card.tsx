@@ -48,6 +48,7 @@ export const BashToolMessageCard: React.FC<Props> = ({ origin_answered_state, ba
       case 'command-failed': return t('agent:executionFailed');
       case 'sandbox-unavailable': return t('agent:sandboxUnavailable');
       case 'sandbox-denied': return t('agent:sandboxDenied');
+      case 'dependency-unavailable': return t('agent:managedCurlUnavailable');
       case 'approval-required': return t('agent:approvalRequired');
       case 'safety-denied': return t('agent:blockedByHardGuard');
       case 'cancelled': return t('agent:rejected');
@@ -85,6 +86,7 @@ export const BashToolMessageCard: React.FC<Props> = ({ origin_answered_state, ba
           {authorization.elevation && <div className="tw-mt-1">{t('agent:elevationTrace', { trigger: elevationTriggerLabel(authorization.elevation.trigger) })}</div>}
           {bashCommand.attempts && bashCommand.attempts.length > 0 && <div className="tw-mt-1">{t('agent:executionAttempts', { attempts: bashCommand.attempts.map((attempt) => `${attempt.index}:${modeLabel(attempt.mode)}/${attempt.status}`).join(' → ') })}</div>}
           {authorization.reason && <div className="tw-mt-1 tw-break-words">{authorization.reason}</div>}
+          {bashCommand.preparation?.status === 'fallback-old' && <div className="tw-mt-1 tw-text-orange-500">{t('agent:managedCurlFallbackWarning')}</div>}
         </div>}
         {bashCommand.shell && <div className="tw-mt-2 tw-text-xs tw-text-muted-foreground">
           {bashCommand.shell.version

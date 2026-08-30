@@ -309,6 +309,7 @@ export type BashOutcomeStatus =
   | "approval-required"
   | "sandbox-denied"
   | "sandbox-unavailable"
+  | "dependency-unavailable"
   | "cancelled";
 
 export interface BashApprovalTextItem {
@@ -485,6 +486,11 @@ export interface BashCommand {
   /** Current-invocation facts; not a persistent approval or audit log. */
   attempts?: BashExecutionAttempt[];
   retryCount?: 0 | 1;
+  preparation?: {
+    dependency: "managed-curl";
+    status: "fallback-old" | "failed";
+    errorCode?: "download" | "archive-hash" | "allowlist" | "file-hash" | "pe-arch" | "filesystem" | "cancelled";
+  };
 }
 
 export interface CursorPosition {

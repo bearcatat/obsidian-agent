@@ -12,6 +12,7 @@ import { DESCRIPTION } from './prompts';
 import { checkBashHardGuard } from './bash-hard-guard';
 import { BashElevationCoordinator, isWindowsPowerShellHttpsCompatibilityFailure } from './BashElevationCoordinator';
 import { executeSandboxedBash, isBashSandboxPlatformSupported, type SandboxedExecutionResult } from './sandbox-executor';
+import { containsLiteralCurlExe, prepareWindowsManagedCurl } from './windows-managed-curl';
 
 export const toolName = 'bash';
 type DisplayDecision = 'apply' | 'reject' | 'allow' | 'deny' | null;
@@ -45,6 +46,7 @@ export const BashTool = tool({
     const toolMessage = ToolMessage.from(toolName, toolCallId);
     const app = getGlobalApp();
     const vaultPath = (app.vault.adapter as { basePath?: string }).basePath ?? '';
+    const configDir = app.vault.configDir;
     const configuredMode = settingsStore.getState().bashSandbox.mode;
     const approvalMode = context.bashApprovalMode ?? 'ask';
     const backend = process.platform === 'win32' ? 'windows-acl' : process.platform === 'darwin' ? 'seatbelt' : 'unsupported';
@@ -178,6 +180,47 @@ export const BashTool = tool({
 
     let authorization = initialAuthorization('automatic', 'The command stays within the configured write boundary');
     let result: SandboxedExecutionResult;
+    let windowsToolPath: string | undefined;
+    let windowsCaBundlePath: string | undefined;
+    const prepareManagedCurl = async (mode: typeof configuredMode): Promise<boolean> => {
+      if (!containsLiteralCurlExe(command)) return true;
+      publish(
+        bashCommand,
+        false,
+        null,
+        { ...authorization, effectiveMode: mode },
+        {},
+        t('agent:bashPreparingManagedCurl'),
+      );
+      const preparation = await prepareWindowsManagedCurl({ command, vaultPath, configDir, signal: abortSignal });
+      if (preparation.status === 'not-needed') return true;
+      if (preparation.status === 'ready') {
+        if (!preparation.binPath || !preparation.caBundlePath) {
+          bashCommand.preparation = { dependency: 'managed-curl', status: 'failed', errorCode: 'filesystem' };
+          closeWithoutExecution(authorization, 'Managed curl verification did not return the executable and CA bundle paths; the command was not executed', 'dependency-unavailable');
+          return false;
+        }
+        windowsToolPath = preparation.binPath;
+        windowsCaBundlePath = preparation.caBundlePath;
+        return true;
+      }
+      if (preparation.status === 'fallback-old') {
+        if (!preparation.binPath || !preparation.caBundlePath) {
+          bashCommand.preparation = { dependency: 'managed-curl', status: 'failed', errorCode: 'filesystem' };
+          closeWithoutExecution(authorization, 'Managed curl fallback verification did not return the executable and CA bundle paths; the command was not executed', 'dependency-unavailable');
+          return false;
+        }
+        windowsToolPath = preparation.binPath;
+        windowsCaBundlePath = preparation.caBundlePath;
+        bashCommand.preparation = { dependency: 'managed-curl', status: 'fallback-old', errorCode: preparation.errorCode };
+        authorization = { ...authorization, reason: t('agent:managedCurlFallbackWarning') };
+        return true;
+      }
+      bashCommand.preparation = { dependency: 'managed-curl', status: 'failed', errorCode: preparation.errorCode };
+      const status = preparation.errorCode === 'cancelled' || abortSignal?.aborted ? 'cancelled' : 'dependency-unavailable';
+      closeWithoutExecution(authorization, preparation.error ?? t('agent:managedCurlUnavailable'), status);
+      return false;
+    };
     const executeAttempt = async (mode: typeof configuredMode, trigger?: NonNullable<BashAuthorizationSummary['elevation']>['trigger']): Promise<SandboxedExecutionResult> => {
       publish(
         bashCommand,
@@ -187,7 +230,7 @@ export const BashTool = tool({
         {},
         t('agent:bashExecuting'),
       );
-      const next = await executeSandboxedBash({ command, cwd: vaultPath, timeout, mode, conversationId: context.conversationId }, abortSignal);
+      const next = await executeSandboxedBash({ command, cwd: vaultPath, timeout, mode, conversationId: context.conversationId, windowsToolPath, windowsCaBundlePath }, abortSignal);
       attempts.push({
         index: attempts.length === 0 ? 0 : 1,
         mode,
@@ -207,11 +250,13 @@ export const BashTool = tool({
       if (!elevated) return terminalResult ?? deniedResult(command, 'Complete-access elevation was not approved', abortSignal?.aborted ? 'cancelled' : 'approval-required');
       authorization = elevated;
       if (abortSignal?.aborted) return closeWithoutExecution(authorization, 'Command execution was cancelled', 'cancelled');
+      if (!await prepareManagedCurl('full-access')) return terminalResult ?? deniedResult(command, 'Managed curl dependency is unavailable', 'dependency-unavailable');
       result = await executeAttempt('full-access', 'requested-capability');
       return finalize(result, authorization);
     }
 
     if (abortSignal?.aborted) return closeWithoutExecution(authorization, 'Command execution was cancelled', 'cancelled');
+    if (!await prepareManagedCurl(configuredMode)) return terminalResult ?? deniedResult(command, 'Managed curl dependency is unavailable', 'dependency-unavailable');
     result = await executeAttempt(configuredMode);
     const compatibilityElevation = isWindowsPowerShellHttpsCompatibilityFailure({ command, status: result.status, backend: result.backend, configuredMode, error: result.error });
     const elevationTrigger = configuredMode !== 'full-access'

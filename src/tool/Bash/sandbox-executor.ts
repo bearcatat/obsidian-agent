@@ -5,6 +5,7 @@ import os from 'os';
 import path from 'path';
 import type { BashOutcomeStatus, BashSandboxMode } from '@/types';
 import { executeCommand, getUnixShellConfig, getWindowsPowerShellInfo, getWindowsPowerShellConfig, spawnWithWindowsEnvironment, type ExecuteResult } from './execute-command';
+import { classifyCommandExecution } from './bash-execution-status';
 import { AclSandbox } from '@deepseek-ai/dsh-sandbox-windows-acl';
 import { BashSessionTempManager } from './bash-session-temp-manager';
 
@@ -24,11 +25,6 @@ function unavailable(error: unknown, backend: SandboxedExecutionResult['backend'
     error: error instanceof Error ? error.message : 'Bash sandbox is unavailable',
     status: 'sandbox-unavailable', backend, enforcement: 'unavailable',
   };
-}
-
-function resultStatus(result: ExecuteResult): Extract<BashOutcomeStatus, 'success' | 'command-failed' | 'cancelled'> {
-  if (result.error === 'Cancelled') return 'cancelled';
-  return Number.isInteger(result.exitCode) && result.exitCode === 0 && !result.error.trim() ? 'success' : 'command-failed';
 }
 
 function seatbeltString(value: string): string {
@@ -81,7 +77,7 @@ async function executeSeatbelt(command: string, cwd: string, timeout: number | u
       });
     });
     const denied = /(?:Operation not permitted|Permission denied|deny\()/i.test(result.error);
-    return { ...result, status: denied ? 'sandbox-denied' : resultStatus(result), backend: 'seatbelt', enforcement: 'write-restricted' };
+    return { ...result, status: denied ? 'sandbox-denied' : classifyCommandExecution(result), backend: 'seatbelt', enforcement: 'write-restricted' };
   } catch (error) {
     return unavailable(error, 'seatbelt');
   } finally {
@@ -97,7 +93,7 @@ function canonicalWorkspaceRoot(cwd: string): string {
   return canonical;
 }
 
-async function executeWindowsAcl(command: string, cwd: string, mode: Exclude<BashSandboxMode, 'full-access'>, conversationId: string, signal?: AbortSignal): Promise<SandboxedExecutionResult> {
+async function executeWindowsAcl(command: string, cwd: string, mode: Exclude<BashSandboxMode, 'full-access'>, conversationId: string, signal?: AbortSignal, windowsToolPath?: string, windowsCaBundlePath?: string): Promise<SandboxedExecutionResult> {
   let lease: Awaited<ReturnType<BashSessionTempManager['acquire']>> | undefined;
   try {
     const shell = getWindowsPowerShellConfig();
@@ -133,7 +129,7 @@ async function executeWindowsAcl(command: string, cwd: string, mode: Exclude<Bas
         args: [...shell.args, command],
         cwd: workspaceRoot,
         stdio: 'pipe',
-      }));
+      }), { pathPrefix: windowsToolPath, curlCaBundlePath: windowsCaBundlePath });
       const settled = await child.wait();
       const result: ExecuteResult = {
         output: settled.stdout.toString(shell.encoding),
@@ -142,7 +138,7 @@ async function executeWindowsAcl(command: string, cwd: string, mode: Exclude<Bas
         shell: getWindowsPowerShellInfo(shell),
       };
       if (signal?.aborted) return { output: 'Command cancelled', exitCode: 130, error: 'Cancelled', status: 'cancelled', backend: 'windows-acl', enforcement: 'write-restricted' };
-      return { ...result, status: resultStatus(result), backend: 'windows-acl', enforcement: 'write-restricted' };
+      return { ...result, status: classifyCommandExecution(result), backend: 'windows-acl', enforcement: 'write-restricted' };
     } finally {
       sandbox.dispose();
     }
@@ -152,14 +148,14 @@ async function executeWindowsAcl(command: string, cwd: string, mode: Exclude<Bas
     await lease?.release();
   }
 }
-export async function executeSandboxedBash(params: { command: string; cwd: string; timeout?: number; mode: BashSandboxMode; conversationId?: string }, signal?: AbortSignal): Promise<SandboxedExecutionResult> {
+export async function executeSandboxedBash(params: { command: string; cwd: string; timeout?: number; mode: BashSandboxMode; conversationId?: string; windowsToolPath?: string; windowsCaBundlePath?: string }, signal?: AbortSignal): Promise<SandboxedExecutionResult> {
   if (!isBashSandboxPlatformSupported()) return unavailable('Bash is supported only on Windows and macOS Desktop', 'unsupported');
   if (params.mode === 'full-access') {
     try {
       const cwd = process.platform === 'win32' ? canonicalWorkspaceRoot(params.cwd) : params.cwd;
-      const result = await executeCommand(params.command, cwd, params.timeout, signal);
+      const result = await executeCommand(params.command, cwd, params.timeout, signal, params.windowsToolPath, params.windowsCaBundlePath);
       if (result.startupFailed) return { ...result, status: 'sandbox-unavailable', backend: 'host', enforcement: 'unavailable' };
-      return { ...result, status: resultStatus(result), backend: 'host', enforcement: 'full-access' };
+      return { ...result, status: classifyCommandExecution(result), backend: 'host', enforcement: 'full-access' };
     } catch (error) {
       return unavailable(error, 'host');
     }
@@ -169,6 +165,6 @@ export async function executeSandboxedBash(params: { command: string; cwd: strin
     return unavailable('Bash sandbox requires a persistent conversation ID', 'windows-acl');
   }
   return process.platform === 'win32'
-    ? executeWindowsAcl(params.command, params.cwd, params.mode, params.conversationId!, signal)
+    ? executeWindowsAcl(params.command, params.cwd, params.mode, params.conversationId!, signal, params.windowsToolPath, params.windowsCaBundlePath)
     : executeSeatbelt(params.command, params.cwd, params.timeout, params.mode, signal);
 }

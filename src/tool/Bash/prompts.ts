@@ -13,6 +13,9 @@ Current OS: ${getSystemInfo()}
 Windows command shell:
 - Windows runs PowerShell 7 when installed, otherwise Windows PowerShell.
 - Use PowerShell syntax on Windows; Git Bash and cmd.exe are not fallbacks.
+- For ordinary HTTP/HTTPS reads on Windows, invoke curl.exe as the command and pass the URL as its argument, for example: curl.exe https://example.com. A URL is data, never a PowerShell command: never submit a bare http:// or https:// URL to Bash. Always write curl.exe, never curl, because PowerShell may resolve curl as an Invoke-WebRequest alias.
+- Use Invoke-WebRequest or Invoke-RestMethod only when Windows integrated authentication, Windows certificate-store features, or PowerShell response objects are explicitly needed. Do not default to -k or --insecure.
+- The plugin prepares its managed non-Schannel curl.exe automatically. If preparation fails, report that failure; do not fall back to the system curl.exe and do not request complete access merely because a network request failed.
 
 Write sandbox:
 - The user chooses read-only, workspace-write, or complete access.
