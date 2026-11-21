@@ -1,4 +1,4 @@
-import { assertValidModelIdentity, assertValidEmbeddingModel, ModelConfig, ModelVariant, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, BashSandboxConfig, TelegramFeedbackConfig, MemorySettings, normalizeMemoryIdleHours, resolveModelVariant, EmbeddingModelConfig } from "../types";
+import { assertValidModelIdentity, assertValidEmbeddingModel, ModelConfig, ModelVariant, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, TelegramFeedbackConfig, MemorySettings, normalizeMemoryIdleHours, resolveModelVariant, EmbeddingModelConfig } from "../types";
 import { settingsStore } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
 import AIToolManager from "@/tool/ToolManager";
@@ -299,7 +299,8 @@ export class SettingsLogic {
                 settingsStore.getState().setAllData(savedData);
                 const normalizedBuiltinTools = normalizeBuiltinTools(savedData.builtinTools);
                 if (JSON.stringify(savedData.builtinTools || []) !== JSON.stringify(normalizedBuiltinTools)
-                    || Object.prototype.hasOwnProperty.call(savedData, 'bashPermissions')) {
+                    || Object.prototype.hasOwnProperty.call(savedData, 'bashPermissions')
+                    || Object.prototype.hasOwnProperty.call(savedData, 'bashSandbox')) {
                     await this.saveSettings();
                 }
             }
@@ -332,7 +333,7 @@ export class SettingsLogic {
                 exaSearchConfig: state.exaSearchConfig,
                 bochaSearchConfig: state.bochaSearchConfig,
                 telegramFeedbackConfig: state.telegramFeedbackConfig,
-                bashSandbox: state.bashSandbox,
+                bashExecution: state.bashExecution,
                 memorySettings: state.memorySettings,
             };
             await this.plugin?.saveData(stateData);
@@ -451,18 +452,6 @@ export class SettingsLogic {
         await AIToolManager.getInstance().updateTelegramFeedbackConfig(nextConfig);
         await this.saveSettings();
         return nextConfig;
-    }
-
-    async updateBashSandbox(config: BashSandboxConfig): Promise<void> {
-        const state = settingsStore.getState();
-        const previous = state.bashSandbox;
-        state.setBashSandbox({ mode: config.mode === 'read-only' || config.mode === 'full-access' ? config.mode : 'workspace-write' });
-        try {
-          await this.saveSettings();
-        } catch (error) {
-          state.setBashSandbox(previous);
-          throw error;
-        }
     }
 
     async updateMemorySettings(config: MemorySettings): Promise<void> {

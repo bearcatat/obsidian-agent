@@ -118,7 +118,7 @@ export async function reviewBashCommand(
     const approvalCommand = sanitizeBashApprovalText(command, vaultPath);
     const result = await agent.generate({
       prompt: JSON.stringify({
-        action: { command: approvalCommand, platform: process.platform, cwdScope: "vault-root", writeSandbox: "configured-by-host" },
+        action: { command: approvalCommand, platform: process.platform, cwdScope: "vault-root", execution: "local-desktop-process" },
         context: snapshotApprovalContext(context.bashApprovalContext, vaultPath),
         evidence: inferBashApprovalEvidence(command, vaultPath),
       }),

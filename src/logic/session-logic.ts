@@ -11,7 +11,6 @@ import { renderHistoricalToolMessage } from "@/ui/components/agent-view/messages
 import { SnapshotLogic } from "@/logic/snapshot-logic";
 import MemoryJobQueue from "@/logic/memory-job-queue";
 import { validateContextCheckpoint, validateContextUsageCalibration } from "@/llm/ContextCompaction";
-import { BashSessionTempManager } from "@/tool/Bash/bash-session-temp-manager";
 
 export interface SnapshotData {
   snapshotId: string;
@@ -239,7 +238,7 @@ export class SessionLogic {
           contextRuntimeState: { status: 'idle' },
           // `none` was the pre-0.28 no-approval mode. It is deliberately
           // migrated to the safest current mode rather than preserving an
-          // invisible auto-elevation policy in old session files.
+          // invisible automatic-execution policy in old session files.
           bashApprovalMode: sessionData.bashApprovalMode === 'intelligent' || sessionData.bashApprovalMode === 'full-access'
             ? sessionData.bashApprovalMode
             : 'ask',
@@ -267,7 +266,6 @@ export class SessionLogic {
     // Mark the external, process-owned Bash resource as retiring before the
     // session file disappears. Cleanup failures are logged by the manager and
     // must not make a user unable to delete the conversation itself.
-    await BashSessionTempManager.getInstance().retire(sessionId);
     const pendingSave = this.saveTimers.get(sessionId);
     if (pendingSave) clearTimeout(pendingSave);
     this.saveTimers.delete(sessionId);

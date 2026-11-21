@@ -7,29 +7,20 @@ import { BashToolMessageCard } from '@/ui/components/agent-view/messages/message
 import type { BashAuthorizationSummary, BashCommand, BashExecutionAttempt, BashOutcomeStatus, MessageV2 } from '@/types';
 import type { AgentToolContext } from '@/tool/ToolContext';
 import { settingsStore } from '@/state/settings-state-impl';
+import { isSettingsPersistenceReady, persistSettingsStore } from '@/logic/settings-persistence';
 import { t } from '@/i18n';
 import { DESCRIPTION } from './prompts';
 import { checkBashHardGuard } from './bash-hard-guard';
-import { BashElevationCoordinator, isWindowsPowerShellHttpsCompatibilityFailure } from './BashElevationCoordinator';
-import { executeSandboxedBash, isBashSandboxPlatformSupported, type SandboxedExecutionResult } from './sandbox-executor';
-import { containsLiteralCurlExe, prepareWindowsManagedCurl } from './windows-managed-curl';
+import { reviewBashCommand } from './bash-approval-reviewer';
+import { resolveModelApprovalAction } from './bash-authorization';
+import { executeCommand, isBashHostPlatformSupported, type ExecuteResult } from './execute-command';
 
 export const toolName = 'bash';
 type DisplayDecision = 'apply' | 'reject' | 'allow' | 'deny' | null;
 type HumanDecision = 'apply' | 'reject' | 'cancel';
 
-function resultPayload(command: string, output: string, exitCode: number, error: string, status: BashOutcomeStatus): string {
-  return JSON.stringify({ success: status === 'success' ? 'Command executed successfully' : 'Command was not executed or failed', command, output, exitCode, error, status });
-}
-
-function deniedResult(command: string, reason: string, status: BashOutcomeStatus): string {
-  return resultPayload(command, '', 1, reason, status);
-}
-
-function outcomeDecision(status: BashOutcomeStatus): DisplayDecision {
-  if (status === 'success') return 'allow';
-  if (status === 'command-failed') return 'apply';
-  return 'deny';
+function resultPayload(command: string, result: ExecuteResult, status: BashOutcomeStatus): string {
+  return JSON.stringify({ success: status === 'success' ? 'Command executed successfully' : 'Command was not executed or failed', command, output: result.output, exitCode: result.exitCode, error: result.error, status });
 }
 
 export const BashTool = tool({
@@ -38,240 +29,102 @@ export const BashTool = tool({
   inputSchema: z.object({
     command: z.string().describe('The shell command to execute'),
     timeout: z.number().optional().describe('Timeout in milliseconds (default: 60000)'),
-    sandbox_permissions: z.literal('full-access').optional().describe('One-call complete-access request; never request an intermediate mode'),
-    justification: z.string().max(500).optional().describe('Why this one call needs complete access'),
   }),
-  execute: async ({ command, timeout, sandbox_permissions, justification }, { toolCallId, experimental_context, abortSignal }) => {
+  execute: async ({ command, timeout }, { toolCallId, experimental_context, abortSignal }) => {
     const context = experimental_context as AgentToolContext;
     const toolMessage = ToolMessage.from(toolName, toolCallId);
     const app = getGlobalApp();
     const vaultPath = (app.vault.adapter as { basePath?: string }).basePath ?? '';
-    const configDir = app.vault.configDir;
-    const configuredMode = settingsStore.getState().bashSandbox.mode;
     const approvalMode = context.bashApprovalMode ?? 'ask';
-    const backend = process.platform === 'win32' ? 'windows-acl' : process.platform === 'darwin' ? 'seatbelt' : 'unsupported';
     const bashCommand: BashCommand = { id: toolCallId ?? '', command, workingDirectory: vaultPath || '/' };
     const attempts: BashExecutionAttempt[] = [];
-    let terminalResult: string | undefined;
-    const initialAuthorization = (source: BashAuthorizationSummary['source'], reason: string, effectiveMode = configuredMode): BashAuthorizationSummary => ({
-      approvalMode,
-      source,
-      reason,
-      configuredMode,
-      effectiveMode,
-      backend,
-    });
+    let cardRevision = 0;
 
-    const publish = (
-      commandState: BashCommand,
-      answered: boolean,
-      decision: DisplayDecision,
-      authorization: BashAuthorizationSummary,
-      handlers: Partial<Record<'apply' | 'reject', () => void>> = {},
-      pendingLabel?: string,
-    ) => {
-      toolMessage.setChildren(<BashToolMessageCard
-        bashCommand={commandState}
-        origin_answered_state={answered}
-        decision={decision}
-        authorization={authorization}
-        pendingLabel={pendingLabel}
-        onApply={handlers.apply}
-        onReject={handlers.reject}
-      />);
+    const authorization = (source: BashAuthorizationSummary['source'], reason: string): BashAuthorizationSummary => ({ approvalMode, source, reason, backend: 'host' });
+    const publish = (commandState: BashCommand, answered: boolean, decision: DisplayDecision, summary: BashAuthorizationSummary, handlers: Partial<Record<'apply' | 'reject', () => void>> = {}, pendingLabel?: string) => {
+      // Each stage needs fresh card state, especially when two approvals follow one another.
+      toolMessage.setChildren(<BashToolMessageCard key={++cardRevision} bashCommand={commandState} origin_answered_state={answered} decision={decision} authorization={summary} pendingLabel={pendingLabel} onApply={handlers.apply} onReject={handlers.reject} />);
       if (answered) toolMessage.close();
-      // addMessage upserts by message id, so every progress update replaces
-      // this one streaming card instead of appending a second tool message.
       context.addMessage(toolMessage as MessageV2);
     };
-
-    const closeWithoutExecution = (authorization: BashAuthorizationSummary, reason: string, status: BashOutcomeStatus) => {
-      const finalCommand: BashCommand = { ...bashCommand, error: reason, outcome: status, attempts: [...attempts], retryCount: attempts.length > 1 ? 1 : 0 };
-      const finalAuthorization = { ...authorization, outcome: status, reason };
-      toolMessage.setContent(JSON.stringify({ toolName, decision: outcomeDecision(status), bashCommand: finalCommand, authorization: finalAuthorization, success: false, isCancelled: status === 'cancelled', status }));
-      publish(finalCommand, true, outcomeDecision(status), finalAuthorization);
-      terminalResult = deniedResult(command, reason, status);
-      return terminalResult;
+    const closeWithoutExecution = (summary: BashAuthorizationSummary, reason: string, status: BashOutcomeStatus) => {
+      const finalCommand: BashCommand = { ...bashCommand, error: reason, outcome: status, attempts };
+      const finalAuthorization = { ...summary, outcome: status, reason };
+      toolMessage.setContent(JSON.stringify({ toolName, decision: 'deny', bashCommand: finalCommand, authorization: finalAuthorization, success: false, isCancelled: status === 'cancelled', status }));
+      publish(finalCommand, true, 'deny', finalAuthorization);
+      return JSON.stringify({ success: 'Command was not executed or failed', command, output: '', exitCode: 1, error: reason, status });
     };
-
-    const finalize = (result: SandboxedExecutionResult, authorization: BashAuthorizationSummary) => {
-      const status = result.status;
-      const finalCommand: BashCommand = { ...bashCommand, shell: result.shell, output: result.output, exitCode: result.exitCode, error: result.error, outcome: status, attempts: [...attempts], retryCount: attempts.length > 1 ? 1 : 0 };
-      const finalAuthorization: BashAuthorizationSummary = { ...authorization, backend: result.backend, outcome: status };
-      toolMessage.setContent(JSON.stringify({ toolName, decision: outcomeDecision(status), bashCommand: finalCommand, authorization: finalAuthorization, success: status === 'success', isCancelled: status === 'cancelled', status }));
-      publish(finalCommand, true, outcomeDecision(status), finalAuthorization);
-      return resultPayload(command, result.output, result.exitCode, result.error, status);
-    };
-
-    const waitForHuman = async (authorization: BashAuthorizationSummary): Promise<HumanDecision> => await new Promise<HumanDecision>((resolve) => {
+    const waitForHuman = (summary: BashAuthorizationSummary, pendingLabel: string) => new Promise<HumanDecision>((resolve) => {
       let settled = false;
       const settle = (value: HumanDecision) => {
-        if (!settled) {
-          settled = true;
-          abortSignal?.removeEventListener('abort', cancel);
-          resolve(value);
-        }
+        if (settled) return;
+        settled = true;
+        abortSignal?.removeEventListener('abort', cancel);
+        resolve(value);
       };
       const cancel = () => settle('cancel');
       abortSignal?.addEventListener('abort', cancel, { once: true });
       if (abortSignal?.aborted) return cancel();
-      publish(
-        bashCommand,
-        false,
-        null,
-        authorization,
-        { apply: () => settle('apply'), reject: () => settle('reject') },
-        t('agent:bashWaitingForHumanApproval'),
-      );
+      publish(bashCommand, false, null, summary, { apply: () => settle('apply'), reject: () => settle('reject') }, pendingLabel);
     });
 
-    if (!isBashSandboxPlatformSupported()) return closeWithoutExecution(initialAuthorization('hard-guard', 'Bash is available only on Windows and macOS Desktop'), 'Bash is unavailable on this platform', 'sandbox-unavailable');
-    if (sandbox_permissions && configuredMode === 'full-access') return closeWithoutExecution(initialAuthorization('hard-guard', 'Complete access is already selected'), 'sandbox_permissions cannot elevate an already complete-access sandbox', 'safety-denied');
-    if (sandbox_permissions && !justification?.trim()) return closeWithoutExecution(initialAuthorization('hard-guard', 'A complete-access request needs justification'), 'A complete-access request requires justification', 'safety-denied');
-
+    if (!isBashHostPlatformSupported()) return closeWithoutExecution(authorization('hard-guard', 'Bash is available only on Windows and macOS Desktop'), 'Bash is unavailable on this platform', 'execution-unavailable');
     const hardGuard = checkBashHardGuard(command, vaultPath);
-    if (hardGuard.blocked) return closeWithoutExecution(initialAuthorization('hard-guard', `${hardGuard.code}: ${hardGuard.reason}`), hardGuard.reason, 'safety-denied');
+    if (hardGuard.blocked) return closeWithoutExecution(authorization('hard-guard', `${hardGuard.code}: ${hardGuard.reason}`), hardGuard.reason, 'safety-denied');
 
-    const coordinator = new BashElevationCoordinator({
-      command,
-      vaultPath,
-      configuredMode,
-      approvalMode,
-      context,
-      backend,
-      justification,
-      signal: abortSignal,
-      onReviewStart: () => publish(
-        bashCommand,
-        false,
-        null,
-        initialAuthorization('model', 'Reviewing one complete-access elevation'),
-        {},
-        t('agent:bashIntelligentApproval'),
-      ),
-    });
-    const resolveElevation = async (trigger: 'requested-capability' | 'sandbox-denied' | 'powershell-https-compatibility'): Promise<BashAuthorizationSummary | undefined> => {
-      let resolution;
+    if (!settingsStore.getState().bashExecution.hostAccessAcknowledged) {
+      const migrationAuthorization = authorization('human', t('agent:bashHostAccessNotice'));
+      const decision = await waitForHuman(migrationAuthorization, t('agent:bashHostAccessConfirmation'));
+      if (decision === 'cancel') return closeWithoutExecution(migrationAuthorization, 'Command approval was cancelled', 'cancelled');
+      if (decision === 'reject') return closeWithoutExecution(migrationAuthorization, 'Local command execution was not enabled', 'human-denied');
+      if (!isSettingsPersistenceReady()) return closeWithoutExecution(migrationAuthorization, 'Local command execution acknowledgement could not be saved', 'approval-required');
       try {
-        resolution = await coordinator.request(trigger);
+        await persistSettingsStore({ bashExecution: { hostAccessAcknowledged: true } });
+        settingsStore.getState().setBashExecution({ hostAccessAcknowledged: true });
       } catch (error) {
-        if (abortSignal?.aborted) closeWithoutExecution(initialAuthorization('human', 'Command approval was cancelled'), 'Command approval was cancelled', 'cancelled');
-        return undefined;
+        return closeWithoutExecution(migrationAuthorization, error instanceof Error ? error.message : 'Local command execution acknowledgement could not be saved', 'approval-required');
       }
-      if (resolution.decision === 'deny') {
-        closeWithoutExecution(resolution.authorization, resolution.authorization.reason ?? 'AI denied the complete-access request', 'model-denied');
-        return undefined;
-      }
-      if (resolution.decision === 'ask') {
-        const human = await waitForHuman(resolution.authorization);
-        if (human === 'cancel') {
-          closeWithoutExecution({ ...resolution.authorization, source: 'human' }, 'Command approval was cancelled', 'cancelled');
-          return undefined;
-        }
-        if (human === 'reject') {
-          coordinator.rememberHumanDeny(trigger, 'User rejected the complete-access request');
-          closeWithoutExecution({ ...resolution.authorization, source: 'human' }, 'User rejected the complete-access request', 'human-denied');
-          return undefined;
-        }
-        return { ...resolution.authorization, source: 'human', reason: 'User approved one complete-access execution' };
-      }
-      return resolution.authorization;
-    };
-
-    let authorization = initialAuthorization('automatic', 'The command stays within the configured write boundary');
-    let result: SandboxedExecutionResult;
-    let windowsToolPath: string | undefined;
-    let windowsCaBundlePath: string | undefined;
-    const prepareManagedCurl = async (mode: typeof configuredMode): Promise<boolean> => {
-      if (!containsLiteralCurlExe(command)) return true;
-      publish(
-        bashCommand,
-        false,
-        null,
-        { ...authorization, effectiveMode: mode },
-        {},
-        t('agent:bashPreparingManagedCurl'),
-      );
-      const preparation = await prepareWindowsManagedCurl({ command, vaultPath, configDir, signal: abortSignal });
-      if (preparation.status === 'not-needed') return true;
-      if (preparation.status === 'ready') {
-        if (!preparation.binPath || !preparation.caBundlePath) {
-          bashCommand.preparation = { dependency: 'managed-curl', status: 'failed', errorCode: 'filesystem' };
-          closeWithoutExecution(authorization, 'Managed curl verification did not return the executable and CA bundle paths; the command was not executed', 'dependency-unavailable');
-          return false;
-        }
-        windowsToolPath = preparation.binPath;
-        windowsCaBundlePath = preparation.caBundlePath;
-        return true;
-      }
-      if (preparation.status === 'fallback-old') {
-        if (!preparation.binPath || !preparation.caBundlePath) {
-          bashCommand.preparation = { dependency: 'managed-curl', status: 'failed', errorCode: 'filesystem' };
-          closeWithoutExecution(authorization, 'Managed curl fallback verification did not return the executable and CA bundle paths; the command was not executed', 'dependency-unavailable');
-          return false;
-        }
-        windowsToolPath = preparation.binPath;
-        windowsCaBundlePath = preparation.caBundlePath;
-        bashCommand.preparation = { dependency: 'managed-curl', status: 'fallback-old', errorCode: preparation.errorCode };
-        authorization = { ...authorization, reason: t('agent:managedCurlFallbackWarning') };
-        return true;
-      }
-      bashCommand.preparation = { dependency: 'managed-curl', status: 'failed', errorCode: preparation.errorCode };
-      const status = preparation.errorCode === 'cancelled' || abortSignal?.aborted ? 'cancelled' : 'dependency-unavailable';
-      closeWithoutExecution(authorization, preparation.error ?? t('agent:managedCurlUnavailable'), status);
-      return false;
-    };
-    const executeAttempt = async (mode: typeof configuredMode, trigger?: NonNullable<BashAuthorizationSummary['elevation']>['trigger']): Promise<SandboxedExecutionResult> => {
-      publish(
-        bashCommand,
-        false,
-        null,
-        { ...authorization, effectiveMode: mode },
-        {},
-        t('agent:bashExecuting'),
-      );
-      const next = await executeSandboxedBash({ command, cwd: vaultPath, timeout, mode, conversationId: context.conversationId, windowsToolPath, windowsCaBundlePath }, abortSignal);
-      attempts.push({
-        index: attempts.length === 0 ? 0 : 1,
-        mode,
-        trigger,
-        backend: next.backend,
-        shell: next.shell,
-        status: next.status,
-        exitCode: next.exitCode,
-        output: next.output,
-        error: next.error,
-      });
-      return next;
-    };
-
-    if (sandbox_permissions) {
-      const elevated = await resolveElevation('requested-capability');
-      if (!elevated) return terminalResult ?? deniedResult(command, 'Complete-access elevation was not approved', abortSignal?.aborted ? 'cancelled' : 'approval-required');
-      authorization = elevated;
-      if (abortSignal?.aborted) return closeWithoutExecution(authorization, 'Command execution was cancelled', 'cancelled');
-      if (!await prepareManagedCurl('full-access')) return terminalResult ?? deniedResult(command, 'Managed curl dependency is unavailable', 'dependency-unavailable');
-      result = await executeAttempt('full-access', 'requested-capability');
-      return finalize(result, authorization);
     }
 
-    if (abortSignal?.aborted) return closeWithoutExecution(authorization, 'Command execution was cancelled', 'cancelled');
-    if (!await prepareManagedCurl(configuredMode)) return terminalResult ?? deniedResult(command, 'Managed curl dependency is unavailable', 'dependency-unavailable');
-    result = await executeAttempt(configuredMode);
-    const compatibilityElevation = isWindowsPowerShellHttpsCompatibilityFailure({ command, status: result.status, backend: result.backend, configuredMode, error: result.error });
-    const elevationTrigger = configuredMode !== 'full-access'
-      ? result.status === 'sandbox-denied' ? 'sandbox-denied'
-        : compatibilityElevation ? 'powershell-https-compatibility'
-          : undefined
-      : undefined;
-    if (!elevationTrigger) return finalize(result, authorization);
+    let summary: BashAuthorizationSummary = authorization('automatic', 'Command approval is automatic for this conversation');
+    if (approvalMode === 'ask') {
+      const decision = await waitForHuman(authorization('human', 'The conversation requires human approval for every command'), t('agent:bashWaitingForHumanApproval'));
+      if (decision === 'cancel') return closeWithoutExecution(authorization('human', 'Command approval was cancelled'), 'Command approval was cancelled', 'cancelled');
+      if (decision === 'reject') return closeWithoutExecution(authorization('human', 'User rejected the command'), 'User rejected the command', 'human-denied');
+      summary = authorization('human', 'User approved one execution');
+    } else if (approvalMode === 'intelligent') {
+      summary = authorization('model', 'Reviewing command approval');
+      publish(bashCommand, false, null, summary, {}, t('agent:bashIntelligentApproval'));
+      try {
+        const review = await reviewBashCommand(command, context, abortSignal, context.bashApprovalVaultPath ?? vaultPath);
+        summary = { ...summary, ...review };
+        const decision = resolveModelApprovalAction(review);
+        if (decision === 'deny') return closeWithoutExecution(summary, review.reason, 'model-denied');
+        if (decision === 'ask') {
+          const human = await waitForHuman(summary, t('agent:bashWaitingForHumanApproval'));
+          if (human === 'cancel') return closeWithoutExecution({ ...summary, source: 'human' }, 'Command approval was cancelled', 'cancelled');
+          if (human === 'reject') return closeWithoutExecution({ ...summary, source: 'human' }, 'User rejected the command', 'human-denied');
+          summary = { ...summary, source: 'human', reason: 'User approved one execution' };
+        }
+      } catch (error) {
+        if (abortSignal?.aborted) return closeWithoutExecution(summary, 'Command approval was cancelled', 'cancelled');
+        summary = { ...summary, source: 'human', risk: 'unknown', authorization: 'unclear', reason: 'Intelligent approval is unavailable, so human approval is required' };
+        const human = await waitForHuman(summary, t('agent:bashWaitingForHumanApproval'));
+        if (human === 'cancel') return closeWithoutExecution(summary, 'Command approval was cancelled', 'cancelled');
+        if (human === 'reject') return closeWithoutExecution(summary, 'User rejected the command', 'human-denied');
+        summary = { ...summary, reason: 'User approved one execution' };
+      }
+    }
 
-    const elevated = await resolveElevation(elevationTrigger);
-    if (!elevated) return terminalResult ?? deniedResult(command, 'Complete-access elevation was not approved', abortSignal?.aborted ? 'cancelled' : 'approval-required');
-    authorization = elevated;
-    if (abortSignal?.aborted) return closeWithoutExecution(authorization, 'Command execution was cancelled', 'cancelled');
-    // Exactly one retry is possible: full-access results never re-enter this branch.
-    result = await executeAttempt('full-access', elevationTrigger);
-    return finalize(result, authorization);
+    if (abortSignal?.aborted) return closeWithoutExecution(summary, 'Command execution was cancelled', 'cancelled');
+    publish(bashCommand, false, null, summary, {}, t('agent:bashExecuting'));
+    const result = await executeCommand(command, vaultPath, timeout, abortSignal);
+    const status: BashOutcomeStatus = result.error === 'Cancelled' ? 'cancelled' : result.exitCode === 0 && !result.startupFailed ? 'success' : 'command-failed';
+    attempts.push({ index: 0, backend: 'host', shell: result.shell, status, exitCode: result.exitCode, output: result.output, error: result.error });
+    const finalCommand: BashCommand = { ...bashCommand, shell: result.shell, output: result.output, exitCode: result.exitCode, error: result.error, outcome: status, attempts };
+    const finalAuthorization = { ...summary, outcome: status };
+    toolMessage.setContent(JSON.stringify({ toolName, decision: status === 'success' ? 'allow' : 'apply', bashCommand: finalCommand, authorization: finalAuthorization, success: status === 'success', isCancelled: status === 'cancelled', status }));
+    publish(finalCommand, true, status === 'success' ? 'allow' : 'apply', finalAuthorization);
+    return resultPayload(command, result, status);
   },
 });

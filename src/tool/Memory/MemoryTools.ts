@@ -4,6 +4,8 @@ import MemoryLogic from "@/logic/memory-logic";
 import MemoryJobQueue from "@/logic/memory-job-queue";
 import { AgentToolContext } from "@/tool/ToolContext";
 
+const memoryIdSchema = z.string().regex(/^mem-/);
+
 function contextOf(experimentalContext: unknown): AgentToolContext {
   return experimentalContext as AgentToolContext;
 }
@@ -27,7 +29,7 @@ export const MemorySearchTool = tool({
 export const MemoryReadTool = tool({
   title: "memory_read",
   description: "Read one private memory by the exact ID returned by memory_search or the compact memory index. This tool cannot read arbitrary files.",
-  inputSchema: z.object({ memoryId: z.string().startsWith("mem-") }),
+  inputSchema: z.object({ memoryId: memoryIdSchema }),
   execute: async ({ memoryId }) => JSON.stringify(await MemoryLogic.getInstance().read(memoryId)),
 });
 
@@ -47,7 +49,7 @@ export const MemoryCorrectTool = tool({
   title: "memory_correct",
   description: "Immediately replace an existing memory after the user explicitly corrects it. Find the target with memory_search first.",
   inputSchema: z.object({
-    memoryId: z.string().startsWith("mem-"),
+    memoryId: memoryIdSchema,
     content: z.string().min(1).max(2000),
   }),
   execute: async ({ memoryId, content }, { experimental_context }) => {

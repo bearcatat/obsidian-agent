@@ -9,6 +9,10 @@ export function setSettingsPlugin(plugin: Plugin): void {
   settingsPlugin = plugin;
 }
 
+export function isSettingsPersistenceReady(): boolean {
+  return settingsPlugin !== undefined;
+}
+
 export async function persistSettingsStore(overrides: Partial<SettingsStateData> = {}): Promise<void> {
   if (!settingsPlugin) {
     console.warn("Settings plugin not set, skipping persistence");
@@ -31,7 +35,7 @@ export async function persistSettingsStore(overrides: Partial<SettingsStateData>
     exaSearchConfig: overrides.exaSearchConfig ?? state.exaSearchConfig,
     bochaSearchConfig: overrides.bochaSearchConfig ?? state.bochaSearchConfig,
     telegramFeedbackConfig: overrides.telegramFeedbackConfig ?? state.telegramFeedbackConfig,
-    bashSandbox: overrides.bashSandbox ?? state.bashSandbox,
+    bashExecution: overrides.bashExecution ?? state.bashExecution,
     memorySettings: overrides.memorySettings ?? state.memorySettings,
   };
 

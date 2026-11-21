@@ -10,7 +10,7 @@ import { Notice } from "obsidian";
 import { MAX_IMAGE_SIZE } from "./cm-config/utils";
 import { BashApprovalMode, getAvailableVariants, ModelConfig, ModelVariant } from "@/types";
 import { formatDateTime, formatNumber, t } from "../../../../i18n";
-import { isBashSandboxPlatformSupported } from '@/tool/Bash/sandbox-executor';
+import { isBashHostPlatformSupported } from '@/tool/Bash/execute-command';
 import { BashApprovalModeDropdown } from './bash-approval-mode-dropdown';
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico'];
@@ -242,7 +242,7 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
             })}
           </DropdownMenuContent>
         </DropdownMenu>
-        {bashEnabled && isBashSandboxPlatformSupported() && (
+        {bashEnabled && isBashHostPlatformSupported() && (
           <BashApprovalModeDropdown
             mode={bashApprovalMode}
             labels={approvalModeLabels}

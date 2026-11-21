@@ -281,25 +281,17 @@ export enum MCPTransportTypes {
 }
 
 /** File-write boundary for new Bash calls. Reads and network access are never restricted. */
-export type BashSandboxMode = "read-only" | "workspace-write" | "full-access";
-
-export interface BashSandboxConfig {
-  mode: BashSandboxMode;
+export interface BashExecutionConfig {
+  /** The user has acknowledged that Bash runs with the desktop app's permissions. */
+  hostAccessAcknowledged: boolean;
 }
 
-/** The only one-call Bash capability escalation accepted from a model. */
-export interface BashCapabilityRequest {
-  sandbox_permissions?: 'workspace-write' | 'full-access';
-  justification?: string;
-}
-
-/** Conversation-scoped approval behavior for Bash elevation requests. */
+/** Conversation-scoped approval behavior for Bash commands. */
 export type BashApprovalMode = "ask" | "intelligent" | "full-access";
 
 export type BashApprovalRisk = "low" | "medium" | "high";
 export type BashApprovalAuthorization = "explicit" | "implied" | "unclear" | "conflicts";
 export type BashAuthorizationSource = "hard-guard" | "automatic" | "model" | "human" | "reuse";
-export type BashElevationTrigger = "requested-capability" | "sandbox-denied" | "powershell-https-compatibility";
 export type BashOutcomeStatus =
   | "success"
   | "command-failed"
@@ -307,9 +299,7 @@ export type BashOutcomeStatus =
   | "model-denied"
   | "safety-denied"
   | "approval-required"
-  | "sandbox-denied"
-  | "sandbox-unavailable"
-  | "dependency-unavailable"
+  | "execution-unavailable"
   | "cancelled";
 
 export interface BashApprovalTextItem {
@@ -358,10 +348,8 @@ export interface BashApprovalScope {
 }
 
 export interface BashExecutionAttempt {
-  index: 0 | 1;
-  mode: BashSandboxMode;
-  trigger?: BashElevationTrigger;
-  backend: "windows-acl" | "seatbelt" | "host" | "unsupported";
+  index: 0;
+  backend: "host";
   shell?: {
     name: string;
     version?: string;
@@ -378,21 +366,8 @@ export interface BashAuthorizationSummary {
   risk?: BashApprovalRisk | "unknown";
   authorization?: BashApprovalAuthorization;
   reason?: string;
-  configuredMode: BashSandboxMode;
-  effectiveMode: BashSandboxMode;
-  requestedMode?: BashSandboxMode;
-  backend: "windows-acl" | "seatbelt" | "host" | "unsupported";
+  backend: "host";
   outcome?: BashOutcomeStatus;
-  elevation?: {
-    trigger: BashElevationTrigger;
-    /** Hash of the exact command, Vault, configured sandbox, and trigger. */
-    fingerprint: string;
-    /** Conversation-turn scope; never reused by another turn. */
-    scope: string;
-    attempt: 1;
-    fromMode: Exclude<BashSandboxMode, "full-access">;
-    toMode: "full-access";
-  };
 }
 
 // 内置工具配置
@@ -486,11 +461,6 @@ export interface BashCommand {
   /** Current-invocation facts; not a persistent approval or audit log. */
   attempts?: BashExecutionAttempt[];
   retryCount?: 0 | 1;
-  preparation?: {
-    dependency: "managed-curl";
-    status: "fallback-old" | "failed";
-    errorCode?: "download" | "archive-hash" | "allowlist" | "file-hash" | "pe-arch" | "filesystem" | "cancelled";
-  };
 }
 
 export interface CursorPosition {

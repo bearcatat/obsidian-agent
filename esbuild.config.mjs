@@ -136,7 +136,6 @@ const context = await esbuild.context({
 	jsxImportSource: "react",
 	// 添加别名配置
 	alias: {
-		"koffi": "./src/tool/Bash/koffi-shim.ts",
 		"node:process": "process",
 		"node:stream": "stream-browserify",
 		"node:fs/promises": "fs/promises",

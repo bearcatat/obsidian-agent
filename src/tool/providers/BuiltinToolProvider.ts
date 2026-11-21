@@ -3,7 +3,7 @@ import { BuiltinToolConfig } from "@/types";
 import { ToolProvider } from "../ToolProvider";
 import { ToolContext } from "../ToolContext";
 import { BUILTIN_TOOL_REGISTRY } from "../registry/BuiltinToolRegistry";
-import { isBashSandboxPlatformSupported } from "../Bash/sandbox-executor";
+import { isBashHostPlatformSupported } from "../Bash/execute-command";
 
 export default class BuiltinToolProvider implements ToolProvider {
   private configs: BuiltinToolConfig[] = [];
@@ -29,7 +29,7 @@ export default class BuiltinToolProvider implements ToolProvider {
   }
 
   private filterUnsupportedTools(tools: ToolSet): ToolSet {
-    if (isBashSandboxPlatformSupported()) return tools;
+    if (isBashHostPlatformSupported()) return tools;
     const { bash: _bash, ...supported } = tools;
     return supported;
   }

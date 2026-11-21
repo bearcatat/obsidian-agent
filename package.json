@@ -8,21 +8,14 @@
 		"dev:esbuild": "node esbuild.config.mjs",
 		"dev:css": "node ./scripts/build-css.mjs --watch",
 		"build": "npm-run-all --parallel build:*",
-		"build:esbuild": "node scripts/verify-koffi-payloads.mjs && node scripts/verify-dsh-console-hide-patch.mjs && tsc -noEmit -skipLibCheck && node esbuild.config.mjs production && node scripts/verify-dsh-console-hide-patch.mjs --bundle",
+		"build:esbuild": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"build:css": "node ./scripts/build-css.mjs --minify",
 		"check:i18n": "node scripts/check-i18n.mjs",
 		"verify:vault-rag": "node scripts/verify-vault-rag.mjs",
-		"verify:dsh-console-hide": "node scripts/verify-dsh-console-hide-patch.mjs",
-		"verify:bash-security": "node scripts/verify-koffi-payloads.mjs && node scripts/verify-dsh-console-hide-patch.mjs && node scripts/verify-bash-security.mjs",
-		"verify:bash-session-temp": "node scripts/verify-bash-session-temp.mjs",
-		"verify:powershell-execution": "node scripts/verify-powershell-execution.mjs",
-		"verify:windows-managed-curl": "node scripts/verify-windows-managed-curl.mjs",
-		"verify:p4-network-routing": "node scripts/verify-p4-network-routing.mjs",
-		"verify:bash-elevation": "node scripts/verify-bash-elevation.mjs",
-		"verify:bash-runtime-fixtures": "node scripts/verify-bash-runtime-fixtures.mjs",
 		"verify:agent-view-portals": "node scripts/verify-agent-view-portals.mjs",
 		"verify:bash-approval-reviewer": "node scripts/verify-bash-approval-reviewer.mjs",
 		"verify:bash-approval-mode-inheritance": "node scripts/verify-bash-approval-mode-inheritance.mjs",
+		"verify:bash-host-execution": "node scripts/verify-bash-host-execution.mjs",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"postinstall": "patch-package --error-on-fail"
 	},
@@ -65,7 +58,6 @@
 		"@ai-sdk/openai-compatible": "^2.0.26",
 		"@codemirror/state": "6.5.0",
 		"@codemirror/view": "6.35.0",
-		"@deepseek-ai/dsh-sandbox-windows-acl": "0.1.0-rc.8",
 		"@dnd-kit/core": "^6.3.1",
 		"@dnd-kit/sortable": "^10.0.0",
 		"@dnd-kit/utilities": "^3.2.2",
@@ -95,7 +87,6 @@
 		"https-proxy-agent": "^9.0.0",
 		"i18next": "^26.3.6",
 		"immer": "^11.1.4",
-		"koffi": "3.1.2",
 		"lucide-react": "^0.540.0",
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1",
@@ -119,12 +110,6 @@
 		"@codemirror/lang-python": "6.1.6",
 		"@lezer/common": "1.2.2",
 		"@lezer/highlight": "1.2.1",
-		"@lezer/lr": "1.4.2",
-		"@deepseek-ai/dsh-sandbox-windows-acl": {
-			"koffi": "3.1.2"
-		},
-		"koffi": "3.1.2",
-		"@koromix/koffi-win32-x64": "3.1.2",
-		"@koromix/koffi-win32-arm64": "3.1.2"
+		"@lezer/lr": "1.4.2"
 	}
 }

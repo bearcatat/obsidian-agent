@@ -3,12 +3,10 @@ import { MCPToolManagerDialog } from "./MCPToolManagerDialog";
 import { BuiltinToolTable } from "./builtin-tool-table";
 import { ExternalToolsTable, ExternalToolId } from "./external-tools-table";
 import { ExternalToolDialog } from "./external-tool-dialog";
-import { BashPermissionSettings } from "./bash-permission-settings";
 import { useState } from "react";
 import { MCPServerTable } from "./mcp-server-table";
 import { MCPServerConfig } from "@/types";
 import { t } from "../../../../i18n";
-import { isBashSandboxPlatformSupported } from '@/tool/Bash/sandbox-executor';
 
 export const ToolSetting: React.FC = () => {
 
@@ -40,11 +38,6 @@ export const ToolSetting: React.FC = () => {
         <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:builtinTools')}</div>
         <BuiltinToolTable />
       </section>
-
-      {isBashSandboxPlatformSupported() && <section>
-        <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:bashSandboxSettings')}</div>
-        <BashPermissionSettings />
-      </section>}
 
       <section>
         <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:externalTools')}</div>
