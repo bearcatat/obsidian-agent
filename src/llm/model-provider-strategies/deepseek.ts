@@ -20,7 +20,7 @@ export default class DeepSeekProviderStrategy implements ModelProviderStrategy {
     }
 
     private isThinkingModel(modelConfig: ModelConfig): boolean {
-        return modelConfig.name.includes('v4-pro') || modelConfig.name.includes('v4-flash')
+        return modelConfig.name.includes('v4-pro') || modelConfig.name.includes('v4-flash') || modelConfig.name.includes('deepseek-flash')
     }
 
     private buildProviderOptions(variant: ModelVariant | undefined, isThinkingModel: boolean): Record<string, any> | undefined {

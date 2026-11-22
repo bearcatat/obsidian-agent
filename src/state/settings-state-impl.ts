@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { assertValidModelIdentity, assertValidEmbeddingModel, ModelConfig, ModelVariant, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashExecutionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings, normalizeMemoryIdleHours, resolveModelVariant, EmbeddingModelConfig, RagSettings, createDefaultRagSettings } from '../types';
+import { assertValidModelIdentity, ModelConfig, ModelVariant, MCPServerConfig, BuiltinToolConfig, ExaSearchConfig, BochaSearchConfig, BashExecutionConfig, TelegramFeedbackConfig, createDefaultTelegramFeedbackConfig, MemorySettings, createDefaultMemorySettings, normalizeMemoryIdleHours, resolveModelVariant, OfficialModelCatalogCache } from '../types';
 import { getDefaultBuiltinTools, normalizeBuiltinTools } from '../tool/BuiltinTools';
 import AIModelManager from '../llm/ModelManager';
 import { SettingsStateData } from './settings-state';
@@ -18,10 +18,7 @@ function normalizeBashExecution(value: unknown, legacySandbox: unknown): BashExe
 
 interface SettingsStore extends SettingsStateData {
   addOrUpdateModel: (model: ModelConfig, originalId?: string) => void;
-  addOrUpdateEmbeddingModel: (model: EmbeddingModelConfig, originalId?: string) => void;
-  removeEmbeddingModel: (modelId: string) => void;
-  reorderEmbeddingModels: (models: EmbeddingModelConfig[]) => void;
-  setRagEmbeddingModelId: (modelId: string | null) => void;
+  setOfficialModelCatalog: (cache: OfficialModelCatalogCache) => void;
   removeModel: (modelId: string) => void;
   reorderModels: (newModels: ModelConfig[]) => void;
   setDefaultAgentModel: (model: ModelConfig | null, variant: ModelVariant | null) => void;
@@ -51,8 +48,7 @@ interface SettingsStore extends SettingsStateData {
 
 const initialState: SettingsStateData = {
   models: [],
-  embeddingModels: [],
-  ragSettings: createDefaultRagSettings(),
+  officialModelCatalog: undefined,
   defaultAgentModel: null,
   defaultAgentModelVariant: null,
   titleModel: null,
@@ -126,27 +122,8 @@ export const useSettingsStore = create<SettingsStore>()(
         }
       }),
 
-    addOrUpdateEmbeddingModel: (model: EmbeddingModelConfig, originalId?: string) =>
-      set((state) => {
-        assertValidEmbeddingModel(model);
-        const targetId = originalId || model.id;
-        const existingIndex = state.embeddingModels.findIndex((item) => item.id === targetId);
-        if (existingIndex >= 0) state.embeddingModels[existingIndex] = model;
-        else state.embeddingModels.push(model);
-        if (state.ragSettings.embeddingModelId === targetId) state.ragSettings.embeddingModelId = model.id;
-      }),
-
-    removeEmbeddingModel: (modelId: string) =>
-      set((state) => {
-        state.embeddingModels = state.embeddingModels.filter((model) => model.id !== modelId);
-        if (state.ragSettings.embeddingModelId === modelId) state.ragSettings.embeddingModelId = null;
-      }),
-
-    reorderEmbeddingModels: (models: EmbeddingModelConfig[]) =>
-      set((state) => { state.embeddingModels = models; }),
-
-    setRagEmbeddingModelId: (modelId: string | null) =>
-      set((state) => { state.ragSettings.embeddingModelId = modelId; }),
+    setOfficialModelCatalog: (cache: OfficialModelCatalogCache) =>
+      set((state) => { state.officialModelCatalog = cache; }),
 
     removeModel: (modelId: string) =>
       set((state) => {
@@ -270,11 +247,7 @@ export const useSettingsStore = create<SettingsStore>()(
     setAllData: (data: SettingsStateData) =>
       set((state) => {
         state.models = data.models || [];
-        state.embeddingModels = Array.isArray(data.embeddingModels) ? data.embeddingModels.filter(isEmbeddingModel) : [];
-        state.ragSettings = { ...createDefaultRagSettings(), ...(data.ragSettings || {}) };
-        if (!state.embeddingModels.some((model) => model.id === state.ragSettings.embeddingModelId)) {
-          state.ragSettings.embeddingModelId = null;
-        }
+        state.officialModelCatalog = data.officialModelCatalog;
         state.defaultAgentModel = data.defaultAgentModel || null;
         state.defaultAgentModelVariant = data.defaultAgentModelVariant ?? null;
         state.titleModel = data.titleModel || null;
@@ -315,15 +288,6 @@ export const useSettingsStore = create<SettingsStore>()(
       }),
   }))
 );
-
-function isEmbeddingModel(value: unknown): value is EmbeddingModelConfig {
-  try {
-    assertValidEmbeddingModel(value as EmbeddingModelConfig);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 // 保留向后兼容的单例 API（用于非 React 代码）
 export const settingsStore = {

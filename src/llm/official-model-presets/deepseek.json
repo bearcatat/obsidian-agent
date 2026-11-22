@@ -1,0 +1,7 @@
+{
+  "provider": "deepseek",
+  "models": [
+    { "id": "deepseek-flash", "displayName": "DeepSeek Flash" },
+    { "id": "deepseek-v4-pro", "displayName": "DeepSeek V4 Pro" }
+  ]
+}

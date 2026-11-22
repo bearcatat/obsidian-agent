@@ -1,0 +1,34 @@
+{
+  "id": "oa-vault-rag-history-fixture",
+  "title": "OA Vault RAG History Fixture",
+  "createdAt": 1704067200000,
+  "updatedAt": 1704067200000,
+  "turns": [
+    {
+      "id": "oa-rag-fixture-user",
+      "userMessage": {
+        "id": "oa-rag-fixture-user",
+        "role": "user",
+        "content": "Find the fixture note",
+        "context": { "images": [] }
+      },
+      "modelMessages": [
+        { "role": "user", "content": "Find the fixture note" }
+      ],
+      "assistantMessages": [
+        {
+          "id": "oa-rag-fixture-result",
+          "role": "tool",
+          "name": "vaultRagSearch",
+          "tool_call_id": "oa-rag-fixture-call",
+          "content": "{\"query\":\"fixture query\",\"response\":{\"state\":\"success\",\"hits\":[{\"path\":\"Fixture Note.md\",\"startLine\":1,\"endLine\":2,\"score\":0.99,\"content\":\"fixture\"}]}}",
+          "isError": false
+        }
+      ],
+      "snapshots": {}
+    }
+  ],
+  "activeSkills": [],
+  "fileReviews": [],
+  "hasUnread": false
+}

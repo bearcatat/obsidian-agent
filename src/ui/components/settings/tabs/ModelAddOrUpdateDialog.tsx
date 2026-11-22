@@ -1,18 +1,11 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useTab } from "@/hooks/TabContext";
 import { ModelConfig, ModelProviders } from "@/types";
-import { Input } from "@/ui/elements/input";
 import { Button } from "@/ui/elements/button";
-import { HelpCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/ui/elements/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/elements/select";
-import { PasswordInput } from "@/ui/elements/password-input";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/ui/elements/tooltip";
-import { FormField } from "@/ui/elements/form-field";
-import { SettingSlider } from "@/ui/elements/setting-slider";
 import { debounce } from "@/ui/components/utils";
 import { useSettingsLogic } from "@/hooks/use-settings";
-import { CommonModelConfig } from "./ProviderModelConfig/CommonModelConfig";
+import { CommonModelConfig, NEW_SECRET_VALUE } from "./ProviderModelConfig/CommonModelConfig";
 import { ProviderModelConfig } from "./ProviderModelConfig/ProviderModelConfig";
 import { Notice } from "obsidian";
 import { t } from "@/i18n";
@@ -35,11 +28,19 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
   const [dialogElement, setDialogElement] = useState<HTMLDivElement | null>(null);
 
   const [model, setModel] = useState<ModelConfig>(initialModel);
-  const { addOrUpdateModel } = useSettingsLogic();
+  const [newSecretValue, setNewSecretValue] = useState('');
+  const [newSecretId, setNewSecretId] = useState('');
+  const [secretChoice, setSecretChoice] = useState('__none__');
+  const { addOrUpdateModel, createCustomSecret, listSecretIds } = useSettingsLogic();
+  const [secretIds, setSecretIds] = useState<string[]>([]);
 
 
   useEffect(() => {
     setModel(initialModel);
+    setSecretChoice(initialModel.credentialRef ?? '__none__');
+    setNewSecretId('');
+    setNewSecretValue('');
+    setSecretIds(listSecretIds());
   }, [initialModel]);
 
   // Clean up model data by trimming whitespace
@@ -49,12 +50,13 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
       id: modelData.id?.trim(),
       name: modelData.name?.trim(),
       baseUrl: modelData.baseUrl?.trim(),
-      apiKey: modelData.apiKey?.trim(),
+      credentialRef: modelData.credentialRef?.trim() || undefined,
+      apiKey: modelData.credentialRef ? undefined : modelData.apiKey,
     };
   };
 
   const onSave = async () => {
-    const cleanedModel = getCleanedModel(model);
+    let cleanedModel = getCleanedModel(model);
     if (!cleanedModel.id || !cleanedModel.name) {
       new Notice(t("settings:modelRequired"));
       return;
@@ -66,6 +68,23 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
       return;
     }
     try {
+      if (cleanedModel.connectionMode === 'custom' && !cleanedModel.apiKey && secretChoice === '__none__') {
+        new Notice(t('settings:secretIdRequired'));
+        return;
+      }
+      if (secretChoice === NEW_SECRET_VALUE) {
+        const secretId = newSecretId.trim();
+        if (!secretId) {
+          new Notice(t('settings:secretIdRequired'));
+          return;
+        }
+        if (!newSecretValue) {
+          new Notice(t('settings:secretCannotBeEmpty'));
+          return;
+        }
+        createCustomSecret(secretId, newSecretValue);
+        cleanedModel = { ...cleanedModel, credentialRef: secretId, apiKey: undefined };
+      }
       if (isUpdate) {
         // 更新模式：传递原始ID
         await addOrUpdateModel(cleanedModel, initialModel.id);
@@ -95,7 +114,10 @@ export const ModelAddOrUpdateDialog: React.FC<ModelAddOrUpdateDialogProps> = ({
           <DialogDescription>{isUpdate ? t("settings:updateModelDescription") : t("settings:addModelDescription")}</DialogDescription>
         </DialogHeader>
         <div className="tw-min-h-0 tw-overflow-y-auto tw-pr-2">
-          <CommonModelConfig model={model} setModel={setModel} dialogElement={dialogElement}></CommonModelConfig>
+          <CommonModelConfig model={model} setModel={setModel} dialogElement={dialogElement}
+            secretIds={secretIds} secretChoice={secretChoice} setSecretChoice={setSecretChoice}
+            newSecretId={newSecretId} setNewSecretId={setNewSecretId}
+            newSecretValue={newSecretValue} setNewSecretValue={setNewSecretValue} />
           <ProviderModelConfig model={model} debouncedSetModel={debouncedSetModel} setModel={setModel}></ProviderModelConfig>
         </div>
 

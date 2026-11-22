@@ -55,34 +55,23 @@ export interface ModelConfig {
   frequencyPenalty?: number;
   presencePenalty?: number;
   useCORS?: boolean;
+  /** Built-in catalog entries are derived at runtime and are never editable. */
+  source?: 'official' | 'user';
+  displayName?: string;
+  connectionMode?: 'official' | 'custom';
+  /** SecretStorage key.  Plain-text apiKey is retained only for legacy migration. */
+  credentialRef?: string;
 }
 
-/** A remote OpenAI-compatible embedding endpoint. No field has a fallback. */
-export interface EmbeddingModelConfig {
+export interface OfficialModelPreset {
   id: string;
-  name: string;
-  provider: "openai-compatible";
-  baseUrl: string;
-  apiKey: string;
+  displayName: string;
 }
 
-export interface RagSettings {
-  embeddingModelId: string | null;
-}
-
-export function createDefaultRagSettings(): RagSettings {
-  return { embeddingModelId: null };
-}
-
-export function assertValidEmbeddingModel(model: EmbeddingModelConfig | null | undefined): asserts model is EmbeddingModelConfig {
-  if (!model
-    || !model.id.trim()
-    || !model.name.trim()
-    || model.provider !== "openai-compatible"
-    || !model.baseUrl.trim()
-    || !model.apiKey.trim()) {
-    throw new Error("Embedding model ID, name, provider, Base URL, and API key are required");
-  }
+export interface OfficialModelCatalogCache {
+  version: 1;
+  provider: 'deepseek';
+  models: OfficialModelPreset[];
 }
 
 export function assertValidModelIdentity(model: ModelConfig | null | undefined): asserts model is ModelConfig {
@@ -161,7 +150,7 @@ export function getAvailableVariants(modelConfig: ModelConfig): ModelVariantOpti
 
   switch (provider) {
     case ModelProviders.DEEPSEEK: {
-      if (name.includes('v4-pro') || name.includes('v4-flash')) {
+      if (name.includes('v4-pro') || name.includes('v4-flash') || name.includes('deepseek-flash')) {
         return [
           { label: 'Off', value: 'off' },
           { label: 'High', value: 'high' },

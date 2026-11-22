@@ -1,7 +1,7 @@
 import { useSettingsStore, settingsStore } from '../state/settings-state-impl';
 import { SettingsLogic } from '../logic/settings-logic';
 import { useShallow } from 'zustand/react/shallow';
-import { ModelConfig, ModelVariant, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, TelegramFeedbackConfig, MemorySettings, EmbeddingModelConfig } from '../types';
+import { ModelConfig, ModelVariant, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, TelegramFeedbackConfig, MemorySettings } from '../types';
 
 export { useSettingsStore };
 
@@ -9,8 +9,7 @@ export function useSettingsState() {
   return useSettingsStore(
     useShallow((state) => ({
       models: state.models,
-      embeddingModels: state.embeddingModels,
-      ragSettings: state.ragSettings,
+      officialModelCatalog: state.officialModelCatalog,
       defaultAgentModel: state.defaultAgentModel,
       defaultAgentModelVariant: state.defaultAgentModelVariant,
       titleModel: state.titleModel,
@@ -36,10 +35,10 @@ export function useSettingsLogic() {
       await settingsLogic.addOrUpdateModel(model, originalId),
     removeModel: async (modelId: string) => await settingsLogic.removeModel(modelId),
     reorderModels: async (newModels: ModelConfig[]) => await settingsLogic.reorderModels(newModels),
-    addOrUpdateEmbeddingModel: async (model: EmbeddingModelConfig, originalId?: string) => await settingsLogic.addOrUpdateEmbeddingModel(model, originalId),
-    removeEmbeddingModel: async (modelId: string) => await settingsLogic.removeEmbeddingModel(modelId),
-    reorderEmbeddingModels: async (models: EmbeddingModelConfig[]) => await settingsLogic.reorderEmbeddingModels(models),
-    setRagEmbeddingModelId: async (modelId: string | null) => await settingsLogic.setRagEmbeddingModelId(modelId),
+    getOfficialModels: () => settingsLogic.getOfficialModels(),
+    setDeepSeekOfficialSecret: async (value: string) => await settingsLogic.setDeepSeekOfficialSecret(value),
+    createCustomSecret: (secretId: string, value: string) => settingsLogic.createCustomSecret(secretId, value),
+    listSecretIds: () => settingsLogic.listSecretIds(),
 
     setDefaultAgentModel: async (model: ModelConfig | null, variant: ModelVariant | null = null) =>
       await settingsLogic.setDefaultAgentModel(model, variant),

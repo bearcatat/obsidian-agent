@@ -25,6 +25,7 @@ import { ContextCompactionError, validateContextCheckpoint } from "@/llm/Context
 import { ConversationState } from "@/state/agent-state";
 import { getErrorMessage, t } from "@/i18n";
 import { setActiveConversationBashApprovalMode } from "@/logic/bash-approval-mode-logic";
+import { isOfficialDeepSeekAuthError } from '@/llm/model-auth-error';
 
 interface PendingTurnRetry {
   userMessage: UserMessage;
@@ -265,7 +266,9 @@ export class AgentViewLogic {
             }), 5000);
           } else {
             console.error('Failed to send message:', error);
-            new Notice(t('agent:sendMessageFailed', { cause: getErrorMessage(error) }), 3000);
+            new Notice(isOfficialDeepSeekAuthError(error, agentStore.getState().model)
+              ? t('agent:officialDeepSeekAuthFailed')
+              : t('agent:sendMessageFailed', { cause: getErrorMessage(error) }), 3000);
           }
         }
       }

@@ -7,6 +7,7 @@ import MoonshotProviderStrategy from "./model-provider-strategies/moonshot";
 import OpenAIFormatProviderStrategy from "./model-provider-strategies/openai-format";
 import GoogleProviderStrategy from "./model-provider-strategies/google";
 import ModelProviderRegistry from "./ModelProviderRegistry";
+import { resolveModelCredentials } from './credentials';
 
 export default class AIModelManager {
     private static instance: AIModelManager;
@@ -50,7 +51,8 @@ export default class AIModelManager {
     }
 
     buildAgentConfig(modelConfig: ModelConfig, variant?: ModelVariant): ToolLoopAgentSettings {
-        return this.providerRegistry.get(modelConfig.provider).buildAgentConfig(modelConfig, variant)
+        // The resolved object is intentionally short-lived and never enters Zustand/saveData.
+        return this.providerRegistry.get(modelConfig.provider).buildAgentConfig(resolveModelCredentials(modelConfig), variant)
     }
 
     getAgentConfig(): ToolLoopAgentSettings {

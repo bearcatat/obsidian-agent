@@ -123,6 +123,7 @@ const context = await esbuild.context({
 		"node:fs",
 		"node:fs/promises",
 		"node:path",
+		"node:timers",
 		"node:async_hooks",
 		...builtins],
 	format: "cjs",

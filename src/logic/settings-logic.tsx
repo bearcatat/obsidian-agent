@@ -1,4 +1,4 @@
-import { assertValidModelIdentity, assertValidEmbeddingModel, ModelConfig, ModelVariant, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, TelegramFeedbackConfig, MemorySettings, normalizeMemoryIdleHours, resolveModelVariant, EmbeddingModelConfig } from "../types";
+import { assertValidModelIdentity, ModelConfig, ModelVariant, MCPServerConfig, ExaSearchConfig, BochaSearchConfig, TelegramFeedbackConfig, MemorySettings, normalizeMemoryIdleHours, resolveModelVariant } from "../types";
 import { settingsStore } from "../state/settings-state-impl";
 import { Plugin } from "obsidian";
 import AIToolManager from "@/tool/ToolManager";
@@ -9,11 +9,18 @@ import TelegramFeedbackRuntime from "@/tool/TelegramFeedback/TelegramFeedbackRun
 import MemoryJobQueue from "@/logic/memory-job-queue";
 import { AgentViewLogic } from "@/logic/agent-view-logic";
 import { agentStore } from "@/state/agent-state-impl";
-import VaultRagService from "@/retrieval/VaultRagService";
+import { OfficialModelCatalog, DEEPSEEK_SECRET_ID } from '@/llm/OfficialModelCatalog';
+import { clearOfficialDeepSeekSelections, isOfficialDeepSeek } from '@/llm/official-model-selection';
+import { writeSecretAndConfirm } from '@/llm/credentials';
+import { persistModelTransaction } from './model-persistence-transaction';
+import { selectableModels } from '@/llm/selectable-model-utils';
+import { t } from '@/i18n';
 
 export class SettingsLogic {
     private static instance: SettingsLogic;
     private plugin?: Plugin;
+    private saveQueue: Promise<void> = Promise.resolve();
+    private catalog?: OfficialModelCatalog;
 
     private constructor(plugin?: Plugin) {
         this.plugin = plugin;
@@ -41,6 +48,7 @@ export class SettingsLogic {
 
     // 模型管理业务逻辑
     async addOrUpdateModel(model: ModelConfig, originalId?: string): Promise<void> {
+        if (model.source === 'official') throw new Error(t('settings:officialModelsReadOnly'));
         assertValidModelIdentity(model);
         if (model.contextWindow !== undefined
             && (!Number.isFinite(model.contextWindow) || model.contextWindow <= 0)) {
@@ -66,15 +74,32 @@ export class SettingsLogic {
             }
         }
 
-        state.addOrUpdateModel(model, originalId);
+        if (model.connectionMode === 'official' && model.provider === 'deepseek') {
+            if (!this.plugin?.app.secretStorage.getSecret(DEEPSEEK_SECRET_ID)) throw new Error(t('settings:officialDeepSeekKeyRequired'));
+            model = { ...model, baseUrl: undefined, credentialRef: DEEPSEEK_SECRET_ID };
+        }
+        if (model.connectionMode === 'custom' && model.credentialRef && !this.plugin?.app.secretStorage.getSecret(model.credentialRef)) {
+            throw new Error(t('settings:secretNotFound', { id: model.credentialRef }));
+        }
+        const candidate: ModelConfig = { ...model, source: 'user', apiKey: model.credentialRef ? undefined : model.apiKey };
+        const previousModels = state.models.map((item) => ({ ...item }));
+        const previousDefault = state.defaultAgentModel;
+        const previousTitle = state.titleModel;
+        const previousImage = state.imageModel;
+        await persistModelTransaction(
+          () => state.addOrUpdateModel(candidate, originalId),
+          () => {
+            settingsStore.setState({ models: previousModels, defaultAgentModel: previousDefault, titleModel: previousTitle, imageModel: previousImage });
+          },
+          () => this.saveSettings(),
+        );
         const selectedAgentModel = agentStore.getState().model;
-        if (selectedAgentModel && (selectedAgentModel.id === (originalId ?? model.id))) {
+        if (selectedAgentModel && (selectedAgentModel.id === (originalId ?? candidate.id))) {
             AgentViewLogic.getInstance().setModel(
-                model,
-                resolveModelVariant(model, agentStore.getState().variant),
+                candidate,
+                resolveModelVariant(candidate, agentStore.getState().variant),
             );
         }
-        await this.saveSettings();
     }
 
     async removeModel(modelId: string): Promise<void> {
@@ -89,46 +114,15 @@ export class SettingsLogic {
         await this.saveSettings();
     }
 
-    async addOrUpdateEmbeddingModel(model: EmbeddingModelConfig, originalId?: string): Promise<void> {
-        assertValidEmbeddingModel(model);
-        const state = settingsStore.getState();
-        const targetId = originalId ?? model.id;
-        if (originalId && !state.embeddingModels.some((item) => item.id === originalId)) {
-            throw new Error(`Embedding model with ID "${originalId}" not found`);
-        }
-        if (!originalId && state.embeddingModels.some((item) => item.id === model.id)) {
-            throw new Error(`Embedding model with ID "${model.id}" already exists`);
-        }
-        state.addOrUpdateEmbeddingModel({ ...model, id: model.id.trim(), name: model.name.trim(), baseUrl: model.baseUrl.trim(), apiKey: model.apiKey.trim() }, originalId);
-        await this.saveSettings();
-        await VaultRagService.getInstance().configure(this.getSelectedEmbeddingModel());
-        if (originalId && originalId !== model.id) await this.removeEmbeddingModelIndex(originalId);
+    createCustomSecret(secretId: string, value: string): void {
+        if (!this.plugin) throw new Error(t('settings:settingsPluginUnavailable'));
+        if (!/^[a-z0-9-]+$/.test(secretId)) throw new Error(t('settings:customSecretIdFormat'));
+        writeSecretAndConfirm(this.plugin.app.secretStorage, secretId, value);
     }
 
-    async removeEmbeddingModel(modelId: string): Promise<void> {
-        const state = settingsStore.getState();
-        if (!state.embeddingModels.some((item) => item.id === modelId)) throw new Error(`Embedding model with ID "${modelId}" not found`);
-        state.removeEmbeddingModel(modelId);
-        await this.saveSettings();
-        await VaultRagService.getInstance().configure(this.getSelectedEmbeddingModel());
-        await this.removeEmbeddingModelIndex(modelId);
-    }
-
-    async reorderEmbeddingModels(models: EmbeddingModelConfig[]): Promise<void> {
-        const current = settingsStore.getState().embeddingModels;
-        if (current.length !== models.length || new Set(models.map((model) => model.id)).size !== current.length) {
-            throw new Error("Embedding model list mismatch during reordering");
-        }
-        settingsStore.getState().reorderEmbeddingModels(models);
-        await this.saveSettings();
-    }
-
-    async setRagEmbeddingModelId(modelId: string | null): Promise<void> {
-        const state = settingsStore.getState();
-        if (modelId && !state.embeddingModels.some((model) => model.id === modelId)) throw new Error("Selected embedding model was not found");
-        state.setRagEmbeddingModelId(modelId);
-        await this.saveSettings();
-        await VaultRagService.getInstance().configure(this.getSelectedEmbeddingModel());
+    listSecretIds(): string[] {
+        if (!this.plugin) return [];
+        return this.plugin.app.secretStorage.listSecrets().sort();
     }
 
     async reorderModels(newModels: ModelConfig[]): Promise<void> {
@@ -153,15 +147,16 @@ export class SettingsLogic {
 
     async setDefaultAgentModel(model: ModelConfig | null, variant: ModelVariant | null = null): Promise<void> {
         const state = settingsStore.getState();
+        const availableModels = selectableModels(this.getOfficialModels(), state.models);
         // 如果设置了模型，验证模型是否存在
         if (model) {
-            const existingModel = state.models.find((m: ModelConfig) => m.id === model.id);
+            const existingModel = availableModels.find((m: ModelConfig) => m.id === model.id);
             if (!existingModel) {
                 throw new Error(`Model with ID "${model.id}" not found`);
             }
         }
 
-        const effectiveModel = model ?? state.models[0] ?? null;
+        const effectiveModel = model ?? availableModels[0] ?? null;
         const nextVariant = effectiveModel ? resolveModelVariant(effectiveModel, variant) : null;
         state.setDefaultAgentModel(model, nextVariant);
         if (!state.titleModel && effectiveModel) {
@@ -175,15 +170,16 @@ export class SettingsLogic {
 
     async setTitleModel(model: ModelConfig | null, variant: ModelVariant | null = null): Promise<void> {
         const state = settingsStore.getState();
+        const availableModels = selectableModels(this.getOfficialModels(), state.models);
         // 如果设置了模型，验证模型是否存在
         if (model) {
-            const existingModel = state.models.find((m: ModelConfig) => m.id === model.id);
+            const existingModel = availableModels.find((m: ModelConfig) => m.id === model.id);
             if (!existingModel) {
                 throw new Error(`Model with ID "${model.id}" not found`);
             }
         }
 
-        const effectiveModel = model ?? state.defaultAgentModel ?? state.models[0] ?? null;
+        const effectiveModel = model ?? state.defaultAgentModel ?? availableModels[0] ?? null;
         state.setTitleModel(model, null);
         if (effectiveModel) {
             AgentViewLogic.getInstance().setTitleModel(effectiveModel, null);
@@ -193,8 +189,9 @@ export class SettingsLogic {
 
     async setImageModel(model: ModelConfig | null, variant: ModelVariant | null = null): Promise<void> {
         const state = settingsStore.getState();
+        const availableModels = selectableModels(this.getOfficialModels(), state.models);
         if (model) {
-            const existingModel = state.models.find((m: ModelConfig) => m.id === model.id);
+            const existingModel = availableModels.find((m: ModelConfig) => m.id === model.id);
             if (!existingModel) {
                 throw new Error(`Model with ID "${model.id}" not found`);
             }
@@ -304,7 +301,12 @@ export class SettingsLogic {
                     await this.saveSettings();
                 }
             }
-            await VaultRagService.getInstance().configure(this.getSelectedEmbeddingModel());
+            this.catalog = new OfficialModelCatalog(this.plugin!.app, settingsStore.getState().officialModelCatalog);
+            this.catalog.subscribe(() => {
+                settingsStore.getState().setOfficialModelCatalog(this.catalog!.getCache());
+                void this.saveSettings().catch((error) => console.error('Failed to persist official model catalog:', error));
+            });
+            await this.catalog.refresh();
             // 异步初始化，不阻塞插件加载
             TelegramFeedbackRuntime.getInstance().configure(settingsStore.getState().telegramFeedbackConfig).catch((error: unknown) => {
                 console.error('[TelegramFeedbackRuntime] Background configure failed:', error);
@@ -315,12 +317,10 @@ export class SettingsLogic {
     }
 
     async saveSettings(): Promise<void> {
-        try {
-            const state = settingsStore.getState();
-            const stateData = {
+        const state = settingsStore.getState();
+        const stateData = JSON.parse(JSON.stringify({
                 models: state.models,
-                embeddingModels: state.embeddingModels,
-                ragSettings: state.ragSettings,
+                officialModelCatalog: state.officialModelCatalog,
                 defaultAgentModel: state.defaultAgentModel,
                 defaultAgentModelVariant: state.defaultAgentModelVariant,
                 titleModel: state.titleModel,
@@ -335,11 +335,13 @@ export class SettingsLogic {
                 telegramFeedbackConfig: state.telegramFeedbackConfig,
                 bashExecution: state.bashExecution,
                 memorySettings: state.memorySettings,
-            };
-            await this.plugin?.saveData(stateData);
-        } catch (error) {
-            console.error('Failed to save settings:', error);
-        }
+            }));
+        const pending = this.saveQueue.then(async () => {
+            if (!this.plugin) throw new Error('Settings plugin is unavailable');
+            await this.plugin.saveData(stateData);
+        });
+        this.saveQueue = pending.catch(() => undefined);
+        await pending;
     }
 
     async getMCPTools(server: MCPServerConfig): Promise<ToolSet> {
@@ -471,17 +473,28 @@ export class SettingsLogic {
         await this.saveSettings();
     }
 
-    private getSelectedEmbeddingModel(): EmbeddingModelConfig | null {
-        const state = settingsStore.getState();
-        return state.embeddingModels.find((model) => model.id === state.ragSettings.embeddingModelId) ?? null;
+    getOfficialModels(): ModelConfig[] { return this.catalog?.getModels() ?? []; }
+
+    async refreshOfficialModelCatalog(): Promise<void> {
+        if (this.catalog) await this.catalog.refresh();
     }
 
-    private async removeEmbeddingModelIndex(modelId: string): Promise<void> {
-        try {
-            await VaultRagService.getInstance().removeModel(modelId);
-        } catch (error) {
-            console.error(`[VaultRagService] Failed to remove RAG index for embedding model "${modelId}":`, error);
+    async setDeepSeekOfficialSecret(value: string): Promise<void> {
+        if (!this.plugin) throw new Error(t('settings:settingsPluginUnavailable'));
+        writeSecretAndConfirm(this.plugin.app.secretStorage, DEEPSEEK_SECRET_ID, value, true);
+        if (!this.catalog) this.catalog = new OfficialModelCatalog(this.plugin.app, settingsStore.getState().officialModelCatalog);
+        await this.catalog.refresh();
+        if (!value) {
+            const state = settingsStore.getState();
+            const cleared = clearOfficialDeepSeekSelections({ current: agentStore.getState().model, defaultModel: state.defaultAgentModel, title: state.titleModel, image: state.imageModel });
+            if (cleared.current === null && isOfficialDeepSeek(agentStore.getState().model)) {
+                agentStore.setState({ model: null, variant: null });
+            }
+            state.setDefaultAgentModel(cleared.defaultModel, cleared.defaultModel ? state.defaultAgentModelVariant : null);
+            state.setTitleModel(cleared.title, null);
+            state.setImageModel(cleared.image, null);
         }
+        await this.saveSettings();
     }
 
 }

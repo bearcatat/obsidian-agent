@@ -1,0 +1,24 @@
+diff --git a/node_modules/@modelcontextprotocol/sdk/dist/cjs/client/stdio.js b/node_modules/@modelcontextprotocol/sdk/dist/cjs/client/stdio.js
+--- a/node_modules/@modelcontextprotocol/sdk/dist/cjs/client/stdio.js
++++ b/node_modules/@modelcontextprotocol/sdk/dist/cjs/client/stdio.js
+@@ -8,7 +8,8 @@ exports.getDefaultEnvironment = getDefaultEnvironment;
+ const cross_spawn_1 = __importDefault(require("cross-spawn"));
+ const node_process_1 = __importDefault(require("node:process"));
+ const node_stream_1 = require("node:stream");
++const { setTimeout } = require("node:timers");
+ const stdio_js_1 = require("../shared/stdio.js");
+ /**
+  * Environment variables to inherit by default, if an environment is not explicitly given.
+  */
+diff --git a/node_modules/@modelcontextprotocol/sdk/dist/esm/client/stdio.js b/node_modules/@modelcontextprotocol/sdk/dist/esm/client/stdio.js
+--- a/node_modules/@modelcontextprotocol/sdk/dist/esm/client/stdio.js
++++ b/node_modules/@modelcontextprotocol/sdk/dist/esm/client/stdio.js
+@@ -1,7 +1,8 @@
+ import spawn from 'cross-spawn';
+ import process from 'node:process';
+ import { PassThrough } from 'node:stream';
++import { setTimeout } from 'node:timers';
+ import { ReadBuffer, serializeMessage } from '../shared/stdio.js';
+ /**
+  * Environment variables to inherit by default, if an environment is not explicitly given.
+  */

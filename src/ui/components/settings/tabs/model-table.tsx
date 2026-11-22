@@ -47,7 +47,10 @@ const ModelTableRow: React.FC<{
         </Button>
       </TableCell>
       <TableCell>{model.id}</TableCell>
-      <TableCell>{model.name}</TableCell>
+      <TableCell>
+        <div>{model.name}</div>
+        <div className="tw-text-[10px] tw-text-muted">{t('settings:userSource')}</div>
+      </TableCell>
       <TableCell>{model.provider}</TableCell>
       <TableCell className="tw-text-center">
         <div className="tw-flex tw-justify-center tw-gap-2">
@@ -151,7 +154,7 @@ export const ModelTable: React.FC<ModelTableProps> = ({ onEdit, onAdd }) => {
           modifiers={[createDragModifier()]}
         >
           <div className="tw-relative tw-overflow-hidden">
-            <Table>
+            <Table className="tw-text-xs">
               <TableHeader>
                 <TableRow>
                   <TableHead className="tw-w-6 tw-px-2"></TableHead>

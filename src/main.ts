@@ -27,7 +27,8 @@ import { SessionLogic } from './logic/session-logic';
 import MemoryLogic from './logic/memory-logic';
 import MemoryJobQueue from './logic/memory-job-queue';
 import { initI18n, resolveHostLocale } from './i18n';
-import VaultRagService from './retrieval/VaultRagService';
+import { DEEPSEEK_OVERRIDE_PATH } from './llm/OfficialModelCatalog';
+import { selectableModels } from './llm/selectable-model-utils';
 
 export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgentPlugin {
 	private uiManager!: UIManager;
@@ -49,14 +50,11 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 		RuleLogic.getInstance().setApp(this.app);
 
 		try {
-			// 优先初始化设置，确保模型配置可用
-			await this.initializeSettings();
-
-			// 在任何 React root 挂载前解析宿主语言并初始化共享 UI 本地化
+			// 加载设置时也可能显示提示，先初始化界面语言。
 			await this.initializeLocalization();
 
-			// Vault RAG watcher follows the plugin lifecycle, not the settings component lifecycle.
-			VaultRagService.getInstance().start(this);
+			// 加载已保存的设置，确保模型配置在挂载界面前可用。
+			await this.initializeSettings();
 
 			// 初始化UI，让用户看到界面
 			this.initializeUI();
@@ -85,6 +83,7 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 			// 注册subagent文件自动刷新监听
 			this.registerSubAgentFileWatcher();
+			this.registerOfficialModelCatalogWatcher();
 
 			// 异步初始化Agent工具（非阻塞）
 			this.initializeAgent().catch(error => {
@@ -106,7 +105,6 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 
 	async onunload() {
 		try {
-			await VaultRagService.getInstance().shutdown();
 			await TelegramFeedbackRuntime.getInstance().stop();
 
 			// 1. 中断正在进行的请求
@@ -127,7 +125,6 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 			SessionLogic.resetInstance();
 			MemoryLogic.resetInstance();
 			MemoryJobQueue.resetInstance();
-			VaultRagService.resetInstance();
 			FileReviewDriftMonitor.resetInstance();
 			FileReviewLogic.resetInstance();
 			SettingsLogic.resetInstance();
@@ -359,9 +356,20 @@ export default class ObsidianAgentPlugin extends Plugin implements IObsidianAgen
 		);
 	}
 
+	private registerOfficialModelCatalogWatcher(): void {
+		const refresh = (file: TAbstractFile) => {
+			if (file.path === DEEPSEEK_OVERRIDE_PATH) {
+				void SettingsLogic.getInstance().refreshOfficialModelCatalog();
+			}
+		};
+		this.registerEvent(this.app.vault.on('modify', refresh));
+		this.registerEvent(this.app.vault.on('create', refresh));
+		this.registerEvent(this.app.vault.on('delete', refresh));
+	}
+
 	private async initializeAgent(): Promise<void> {
 		const settingsState = settingsStore.getState();
-		const modelConfigs = settingsState.models;
+		const modelConfigs = selectableModels(SettingsLogic.getInstance().getOfficialModels(), settingsState.models);
 
 		if (modelConfigs.length > 0) {
 			// 优先使用设置的默认模型，如果没有设置则使用第一个模型

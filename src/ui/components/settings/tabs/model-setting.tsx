@@ -6,13 +6,16 @@ import { useSettingsState, useSettingsLogic } from "@/hooks/use-settings";
 import { ModelVariantSelect } from "../model-variant-select";
 import { SettingSwitch } from "@/ui/elements/setting-switch";
 import { t } from "../../../../i18n";
-import { EmbeddingModelsSetting, VaultRagIndexSetting } from "./vault-rag-setting";
+import { Input } from '@/ui/elements/input';
+import { Button } from '@/ui/elements/button';
+import { selectableModels } from '@/llm/selectable-model-utils';
 
 export const ModelSetting: React.FC = () => {
   const _initialModel = {
     id: "",
     name: "",
     provider: "",
+    connectionMode: 'official',
     baseUrl: "",
     apiKey: "",
     temperature: 0.1,
@@ -23,6 +26,8 @@ export const ModelSetting: React.FC = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [initialModel, setInitialModel] = useState<ModelConfig>(_initialModel);
   const [isUpdate, setIsUpdate] = useState(false);
+  const [deepSeekKey, setDeepSeekKey] = useState('');
+  const [isEditingDeepSeekKey, setIsEditingDeepSeekKey] = useState(false);
   
   const {
     models,
@@ -33,11 +38,31 @@ export const ModelSetting: React.FC = () => {
     imageModel,
     imageModelVariant,
     autoContextCompaction,
+    officialModelCatalog,
   } = useSettingsState();
-  const { setDefaultAgentModel, setTitleModel, setImageModel, setAutoContextCompaction } = useSettingsLogic();
+  const { setDefaultAgentModel, setTitleModel, setImageModel, setAutoContextCompaction, getOfficialModels, setDeepSeekOfficialSecret } = useSettingsLogic();
+  const officialModels = getOfficialModels();
+  const hasDeepSeekKey = officialModels.length > 0;
+  const allModels = selectableModels(officialModels, models);
   
   return (
     <div className="tw-min-w-0 tw-max-w-full tw-space-y-6">
+      <section>
+        <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:officialProviders')}</div>
+        <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-border-b tw-[border-bottom-style:solid] tw-border-border tw-px-1 tw-pb-3">
+          <div className="tw-font-medium">DeepSeek</div>
+          {officialModels.length > 0 && <div className="tw-text-xs tw-text-muted">{t('settings:secretStored')}</div>}
+          <div className="tw-ml-auto tw-flex tw-min-w-[220px] tw-flex-1 tw-items-center tw-justify-end tw-gap-2">
+            {(!hasDeepSeekKey || isEditingDeepSeekKey) && <Input type="password" value={deepSeekKey} onChange={(event) => setDeepSeekKey(event.target.value)} placeholder={t('settings:deepseekApiKeyPlaceholder')} />}
+            <Button onClick={() => {
+              if (hasDeepSeekKey && !isEditingDeepSeekKey) { setIsEditingDeepSeekKey(true); return; }
+              void setDeepSeekOfficialSecret(deepSeekKey).then(() => { setDeepSeekKey(''); setIsEditingDeepSeekKey(false); });
+            }}>{hasDeepSeekKey && !isEditingDeepSeekKey ? t('settings:changeOfficialKey') : t('common:save')}</Button>
+            {hasDeepSeekKey && <Button variant="ghost" onClick={() => void setDeepSeekOfficialSecret('').then(() => { setDeepSeekKey(''); setIsEditingDeepSeekKey(false); })}>{t('common:clear')}</Button>}
+          </div>
+        </div>
+        <div className="tw-mt-1 tw-text-xs tw-text-muted">{t('settings:officialSecretDescription')}</div>
+      </section>
       <section>
         <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:chatModels')}</div>
         <ModelTable
@@ -60,8 +85,6 @@ export const ModelSetting: React.FC = () => {
         />
       </section>
 
-      <EmbeddingModelsSetting />
-
       <section>
         <div className="tw-mb-3 tw-text-xl tw-font-bold">{t('settings:modelSettings')}</div>
         <div className="tw-space-y-4">
@@ -79,46 +102,44 @@ export const ModelSetting: React.FC = () => {
           </div>
           <ModelVariantSelect
             label={t('settings:defaultAgentModel')}
-            models={models}
+            models={allModels}
             selectedModelId={defaultAgentModel?.id ?? null}
             variant={defaultAgentModelVariant}
-            fallbackModel={models[0] ?? null}
+            fallbackModel={allModels[0] ?? null}
             fallbackLabel={t('settings:firstAvailableModel')}
             onChange={(modelId, variant) => setDefaultAgentModel(
-              modelId ? models.find((model) => model.id === modelId) ?? null : null,
+              modelId ? allModels.find((model) => model.id === modelId) ?? null : null,
               variant,
             )}
           />
           <ModelVariantSelect
             label={t('settings:titleGenerationModel')}
-            models={models}
+            models={allModels}
             selectedModelId={titleModel?.id ?? null}
             variant={titleModelVariant}
-            fallbackModel={defaultAgentModel ?? models[0] ?? null}
+            fallbackModel={defaultAgentModel ?? allModels[0] ?? null}
             fallbackLabel={t('settings:defaultAgentModelFallback')}
             showVariants={false}
             onChange={(modelId) => setTitleModel(
-              modelId ? models.find((model) => model.id === modelId) ?? null : null,
+              modelId ? allModels.find((model) => model.id === modelId) ?? null : null,
               null,
             )}
           />
           <ModelVariantSelect
             label={t('settings:imageAnalysisModel')}
-            models={models}
+            models={allModels}
             selectedModelId={imageModel?.id ?? null}
             variant={imageModelVariant}
-            fallbackModel={defaultAgentModel ?? models[0] ?? null}
+            fallbackModel={defaultAgentModel ?? allModels[0] ?? null}
             fallbackLabel={t('settings:defaultAgentModelFallback')}
             showVariants={false}
             onChange={(modelId) => setImageModel(
-              modelId ? models.find((model) => model.id === modelId) ?? null : null,
+              modelId ? allModels.find((model) => model.id === modelId) ?? null : null,
               null,
             )}
           />
         </div>
       </section>
-
-      <VaultRagIndexSetting />
     </div>
   );
 };

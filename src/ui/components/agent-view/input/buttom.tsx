@@ -1,8 +1,8 @@
-import { ArrowUp, ChevronDown, Loader2, StopCircle, Image, Activity, RotateCcw, Copy, Settings2 } from "lucide-react";
+import { ArrowUp, ChevronDown, Loader2, StopCircle, Image, Activity, RotateCcw, Copy, Settings2, Check } from "lucide-react";
 import { Button } from "../../../elements/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "../../../elements/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../../elements/tooltip";
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { useAgentLogic, useAgentState } from "../../../../hooks/use-agent";
 import { useSettingsState } from "../../../../hooks/use-settings";
 import { useApp } from "@/hooks/app-context";
@@ -12,6 +12,10 @@ import { BashApprovalMode, getAvailableVariants, ModelConfig, ModelVariant } fro
 import { formatDateTime, formatNumber, t } from "../../../../i18n";
 import { isBashHostPlatformSupported } from '@/tool/Bash/execute-command';
 import { BashApprovalModeDropdown } from './bash-approval-mode-dropdown';
+import { SettingsLogic } from '@/logic/settings-logic';
+import { selectableModels } from '@/llm/selectable-model-utils';
+
+const modelGroupHeadingClass = "tw-px-2 tw-py-1 tw-text-xs tw-font-medium tw-text-muted";
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico'];
 const IMAGE_MIME_TYPES = 'image/png,image/jpeg,image/gif,image/webp,image/bmp,image/svg+xml,image/x-icon';
@@ -45,7 +49,7 @@ const getModelVariantLabel = (modelConfig: ModelConfig, variant: ModelVariant | 
     return modelConfig.id;
   }
 
-  return `${modelConfig.id} | ${selectedVariant.label}`;
+  return `${modelConfig.displayName ?? modelConfig.id} | ${selectedVariant.label}`;
 };
 
 interface InputButtomGenerateProps {
@@ -93,7 +97,9 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
   const [isApprovalDropdownOpen, setIsApprovalDropdownOpen] = useState(false);
   const { model, messages, variant, contextRuntimeState, contextCheckpoint, bashApprovalMode } = useAgentState();
   const { setModel, setBashApprovalMode, retryContextCompaction } = useAgentLogic();
-  const { models, builtinTools } = useSettingsState();
+  const { models, builtinTools, officialModelCatalog } = useSettingsState();
+  const officialModels = SettingsLogic.getInstance().getOfficialModels();
+  const menuModels = selectableModels(officialModels, models);
   const bashEnabled = builtinTools.some((tool) => tool.name === 'bash' && tool.enabled);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const app = useApp();
@@ -211,33 +217,37 @@ const InputButtomSend: React.FC<InputButtomSendProps> = ({
               <ChevronDown className="tw-mt-0.5 tw-size-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            {models.map((modelOption) => {
+          <DropdownMenuContent align="start" className="tw-w-[245px] tw-max-w-[calc(100vw-5rem)]">
+            {menuModels.length === 0 && <DropdownMenuItem onSelect={openModelSettings}>{t('agent:noModelsOpenSettings')}</DropdownMenuItem>}
+            {officialModels.length > 0 && <div className={modelGroupHeadingClass}>{t('settings:deepseekOfficial')}</div>}
+            {menuModels.map((modelOption, index) => {
+              const isOfficial = index < officialModels.length;
+              const showUserHeading = !isOfficial && index === officialModels.length && models.length > 0;
               const variants = getAvailableVariants(modelOption);
               if (!variants) {
                 return (
-                  <DropdownMenuItem key={modelOption.id} onSelect={() => setModel(modelOption)}>
-                    {modelOption.id}
-                  </DropdownMenuItem>
+                  <React.Fragment key={modelOption.id}>{showUserHeading && <div className={modelGroupHeadingClass}>{t('agent:userModels')}</div>}<DropdownMenuItem onSelect={() => { setModel(modelOption); setIsModelDropdownOpen(false); }}>
+                    <span>{modelOption.displayName ?? modelOption.id}</span>{!isOfficial && <span className="tw-ml-auto tw-text-xs tw-text-muted">{modelOption.provider}</span>}{model?.id === modelOption.id && <Check className="tw-ml-1 tw-size-3" />}
+                  </DropdownMenuItem></React.Fragment>
                 );
               }
 
               return (
-                <DropdownMenuSub key={modelOption.id}>
+                <React.Fragment key={modelOption.id}>{showUserHeading && <div className={modelGroupHeadingClass}>{t('agent:userModels')}</div>}<DropdownMenuSub>
                   <DropdownMenuSubTrigger>
-                    {modelOption.id}
+                    <span>{modelOption.displayName ?? modelOption.id}</span>{!isOfficial && <span className="tw-ml-auto tw-text-xs tw-text-muted">{modelOption.provider}</span>}{model?.id === modelOption.id && <Check className="tw-ml-1 tw-size-3" />}
                   </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
+                  <DropdownMenuSubContent className="tw-min-w-20">
                     {variants.map((variantOption) => (
                       <DropdownMenuItem
                         key={variantOption.value}
-                        onSelect={() => setModel(modelOption, variantOption.value)}
+                        onSelect={() => { setModel(modelOption, variantOption.value); setIsModelDropdownOpen(false); }}
                       >
-                        {variantOption.label}
+                        {variantOption.label}{model?.id === modelOption.id && variant === variantOption.value && <Check className="tw-ml-auto tw-size-3" />}
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuSubContent>
-                </DropdownMenuSub>
+                </DropdownMenuSub></React.Fragment>
               );
             })}
           </DropdownMenuContent>
