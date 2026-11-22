@@ -1,11 +1,11 @@
 {
 	"id": "obsidian-agent",
 	"name": "Obsidian Agent",
-  "minAppVersion": "1.11.4",
+	"minAppVersion": "1.11.4",
 	"description": "Obsidian Agent",
 	"author": "bearcatat",
 	"authorUrl": "",
 	"fundingUrl": "",
 	"isDesktopOnly": false,
-	"version": "0.31.0"
+	"version": "0.32.0"
 }
